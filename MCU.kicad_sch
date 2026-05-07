@@ -1498,6 +1498,80 @@
 			(embedded_fonts no)
 		)
 	)
+	(bus_entry
+		(at 96.52 166.37)
+		(size 2.54 2.54)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9d1fc3cb-f68b-47a9-aa0d-75287b3d9e39")
+	)
+	(bus_entry
+		(at 96.52 163.83)
+		(size 2.54 2.54)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d3b8c1a4-b8ed-45fc-b1e9-5d2d858dfae1")
+	)
+	(bus
+		(pts
+			(xy 99.06 166.37) (xy 99.06 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "61f0d72b-750d-4bbf-bb4c-d9053ceea61f")
+	)
+	(bus
+		(pts
+			(xy 99.06 166.37) (xy 101.6 166.37)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7ef50dbb-ed37-49ca-90c6-734fd22bc944")
+	)
+	(hierarchical_label "CC_Setpoint"
+		(shape output)
+		(at 111.76 107.95 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "10dbbe6e-f7b7-422b-85bf-63b5cb7a5cf0")
+	)
+	(hierarchical_label "{I2C1}"
+		(shape bidirectional)
+		(at 101.6 166.37 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.254)
+				(bold yes)
+				(color 0 0 0 1)
+			)
+			(justify left)
+		)
+		(uuid "836cdef0-a89f-4ab2-aad4-977faabd2983")
+	)
+	(hierarchical_label "CV_Setpoint"
+		(shape output)
+		(at 111.76 111.76 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "dab52cec-fe8c-4a65-b69e-17244a1add9d")
+	)
 	(symbol
 		(lib_id "MCU_ST_STM32G4:STM32G474CEUx")
 		(at 45.72 101.6 0)

@@ -3626,6 +3626,12 @@
 		(uuid "d5cf302b-ece2-4d0c-bf9e-919d4bdc336b")
 	)
 	(junction
+		(at 383.54 95.25)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "d741bf6b-8bb3-4935-b73b-88f6e32b6f0e")
+	)
+	(junction
 		(at 284.48 63.5)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -4196,6 +4202,16 @@
 			(type default)
 		)
 		(uuid "2d0c8c0b-5f15-46b7-b906-8ba7d3c28b40")
+	)
+	(wire
+		(pts
+			(xy 383.54 95.25) (xy 386.08 95.25)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2da80bb0-461e-48ed-9083-ddb960ef9552")
 	)
 	(wire
 		(pts
@@ -6617,16 +6633,6 @@
 		)
 		(uuid "ff674b9f-f9dd-4051-b56f-943d981fccbb")
 	)
-	(label "CV Set"
-		(at 328.93 196.85 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "0b8df82d-0423-455e-896b-72166dbedfed")
-	)
 	(label "LOADTG"
 		(at 96.52 184.15 180)
 		(effects
@@ -6707,16 +6713,6 @@
 		)
 		(uuid "d2e0c8de-24b9-4425-b695-f4b239f1fd77")
 	)
-	(label "CC Set"
-		(at 85.09 137.16 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "dfc6271a-dfa1-4308-acef-77ef8ff38ef0")
-	)
 	(label "INTVCC"
 		(at 81.28 102.87 0)
 		(effects
@@ -6726,6 +6722,50 @@
 			(justify left bottom)
 		)
 		(uuid "ebda2f79-83dd-4a34-8246-4880c06b8c6d")
+	)
+	(hierarchical_label "CC_Set"
+		(shape input)
+		(at 85.09 137.16 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "5b5d7d0d-0c3e-4d8a-994c-dfa99cacdbfc")
+	)
+	(hierarchical_label "CV_Set"
+		(shape input)
+		(at 328.93 196.85 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "5d624d10-361a-451d-98ba-0f21abc8dd49")
+	)
+	(hierarchical_label "PWR_UNREG_IN"
+		(shape input)
+		(at 43.18 27.94 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "78255e71-a9c5-47e2-866e-c4f3587bc647")
+	)
+	(hierarchical_label "PWR_REG_OUT"
+		(shape output)
+		(at 386.08 95.25 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "8756f3f8-d1b1-4a12-adf2-85128057d2fe")
 	)
 	(symbol
 		(lib_id "Thommys-parts2:EPC2367")

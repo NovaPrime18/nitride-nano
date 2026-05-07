@@ -4553,6 +4553,12 @@
 		(uuid "a2c645cd-0aa4-472b-b421-e6c66cf24cb2")
 	)
 	(junction
+		(at 260.35 46.99)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "a32e9ac3-c9f9-4394-91c4-6d7f8897e4f2")
+	)
+	(junction
 		(at 66.04 92.71)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -4629,12 +4635,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "eff55897-3a54-4f2d-9825-620a0150c445")
-	)
-	(junction
-		(at 260.35 46.99)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "f11a1ce7-c312-491b-9a4e-246734535cb0")
 	)
 	(no_connect
 		(at 68.58 82.55)
@@ -4798,16 +4798,6 @@
 			(type default)
 		)
 		(uuid "080344b8-89b4-46ef-adbf-b9f51f24a3f9")
-	)
-	(wire
-		(pts
-			(xy 35.56 186.69) (xy 60.96 186.69)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "084643fa-3476-44e2-9ac5-39612608ea48")
 	)
 	(wire
 		(pts
@@ -4978,16 +4968,6 @@
 			(type default)
 		)
 		(uuid "20c55834-918c-49c9-af5a-a585059b355e")
-	)
-	(wire
-		(pts
-			(xy 35.56 181.61) (xy 60.96 181.61)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "24678042-cbf0-4322-9819-31aeb3d22010")
 	)
 	(bus
 		(pts
@@ -5211,16 +5191,6 @@
 	)
 	(wire
 		(pts
-			(xy 78.74 186.69) (xy 102.87 186.69)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "4b093a38-6e03-4187-8a0b-b706f2de7394")
-	)
-	(wire
-		(pts
 			(xy 331.47 147.32) (xy 340.36 147.32)
 		)
 		(stroke
@@ -5318,6 +5288,16 @@
 			(type default)
 		)
 		(uuid "59575dd6-4271-47a6-b700-cab64b0b576e")
+	)
+	(wire
+		(pts
+			(xy 260.35 43.18) (xy 260.35 46.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5bc16460-caf5-4a5f-9b62-f42f551f298f")
 	)
 	(wire
 		(pts
@@ -5531,16 +5511,6 @@
 	)
 	(wire
 		(pts
-			(xy 35.56 191.77) (xy 60.96 191.77)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "7250c948-70fc-4c7a-a98a-9b00e0ae997a")
-	)
-	(wire
-		(pts
 			(xy 347.98 176.53) (xy 347.98 179.07)
 		)
 		(stroke
@@ -5608,6 +5578,16 @@
 			(type default)
 		)
 		(uuid "77dd4dc1-a722-4d85-8399-bc3e97a472c9")
+	)
+	(wire
+		(pts
+			(xy 260.35 46.99) (xy 271.78 46.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "80af2327-e549-44a5-b5c8-34e531395071")
 	)
 	(wire
 		(pts
@@ -5891,16 +5871,6 @@
 	)
 	(wire
 		(pts
-			(xy 78.74 181.61) (xy 102.87 181.61)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "b29d6169-7e68-42ce-a078-1d49ee5327f1")
-	)
-	(wire
-		(pts
 			(xy 95.25 96.52) (xy 95.25 92.71)
 		)
 		(stroke
@@ -6058,16 +6028,6 @@
 			(type default)
 		)
 		(uuid "ca410bc3-c717-40e8-aace-f6cb7b58b4cb")
-	)
-	(wire
-		(pts
-			(xy 35.56 196.85) (xy 60.96 196.85)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "d06a04b7-a594-4f4c-93d1-c07e9ead5c3c")
 	)
 	(bus
 		(pts
@@ -7269,16 +7229,6 @@
 		)
 		(uuid "217fc02e-f3a9-48ae-a5db-5d925654f90a")
 	)
-	(label "+VBUS_C"
-		(at 35.56 191.77 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "37a37f16-7366-4385-be97-b5ffd904f65d")
-	)
 	(label "~{FLT}"
 		(at 35.56 217.17 0)
 		(effects
@@ -7318,16 +7268,6 @@
 			(justify right bottom)
 		)
 		(uuid "5a0cd187-99d1-4783-8dd4-c9e8e7613418")
-	)
-	(label "CC2_C"
-		(at 78.74 186.69 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "64046dbf-f68a-43b6-94ec-7b20eabb59e4")
 	)
 	(label "~{FLT}"
 		(at 316.23 54.61 0)
@@ -7388,16 +7328,6 @@
 			(justify right bottom)
 		)
 		(uuid "7cc08a80-8ed9-4f8e-8fcd-f83dce035687")
-	)
-	(label "CC1_C"
-		(at 78.74 181.61 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "92e0f87c-7625-4c6a-be9d-510d5319d935")
 	)
 	(label "+VBUS_C"
 		(at 50.8 85.09 0)
@@ -7529,36 +7459,6 @@
 		)
 		(uuid "c8060a69-7520-4025-a9b0-524073415198")
 	)
-	(label "+VBUS"
-		(at 35.56 196.85 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "c838fe2c-896c-49f8-b16c-bc3d401260d7")
-	)
-	(label "CC2"
-		(at 35.56 186.69 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "cc7ce0e2-0271-4c9e-b13e-7f0bd827e409")
-	)
-	(label "CC1"
-		(at 35.56 181.61 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "cf4c1edc-84bb-4f02-9b59-6e1cf40f09cd")
-	)
 	(label "CC1_C"
 		(at 50.8 74.93 0)
 		(effects
@@ -7632,6 +7532,17 @@
 			(justify left)
 		)
 		(uuid "7a1e727b-66ef-442c-8145-4bf1a69c2bf4")
+	)
+	(hierarchical_label "VBUS"
+		(shape output)
+		(at 271.78 46.99 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "7ffd1821-a778-4b79-be76-5265d3e7a990")
 	)
 	(hierarchical_label "{SAFE_USB_SIGNALS}"
 		(shape output)
@@ -7990,80 +7901,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:VBUS")
-		(at 233.68 134.62 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "1869e4b7-ffbb-4510-9e9c-39a2c0b736b3")
-		(property "Reference" "#PWR045"
-			(at 233.68 134.62 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+VBUS"
-			(at 233.68 129.54 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 233.68 134.62 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 233.68 134.62 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 233.68 134.62 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "a3b0f5fa-1099-4ee0-a2a7-bb6fe1f933c3")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "#PWR045")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "0_passives:C_0402")
 		(at 161.29 52.07 0)
 		(unit 1)
@@ -8211,7 +8048,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.5x1.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 60.96 201.93 0)
 			(hide yes)
 			(show_name no)
@@ -8262,96 +8099,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
 					(reference "TP9")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 60.96 186.69 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "1df16351-2cbf-4b14-93f8-a3505cef94ef")
-		(property "Reference" "TP5"
-			(at 66.04 186.69 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "tp_round_70"
-			(at 57.15 185.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.5x1.5mm"
-			(at 60.96 186.69 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 60.96 186.69 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Test Point, Round, 0.7mm"
-			(at 60.96 186.69 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" ""
-			(at 60.96 186.69 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "cf27b7f0-79da-465e-9b44-159f2c9c1780")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "TP5")
 					(unit 1)
 				)
 			)
@@ -8680,7 +8427,7 @@
 	)
 	(symbol
 		(lib_id "power:VBUS")
-		(at 260.35 46.99 0)
+		(at 260.35 43.18 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -8690,7 +8437,7 @@
 		(dnp no)
 		(uuid "2a6852a0-bdbb-4ced-a967-a30c03b364f3")
 		(property "Reference" "#PWR047"
-			(at 260.35 46.99 0)
+			(at 260.35 43.18 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8701,7 +8448,7 @@
 			)
 		)
 		(property "Value" "+VBUS"
-			(at 260.35 43.18 0)
+			(at 260.35 39.37 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8711,7 +8458,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 260.35 46.99 0)
+			(at 260.35 43.18 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8721,7 +8468,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 260.35 46.99 0)
+			(at 260.35 43.18 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8731,7 +8478,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 260.35 46.99 0)
+			(at 260.35 43.18 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -9127,7 +8874,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.5x1.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 60.96 222.25 0)
 			(hide yes)
 			(show_name no)
@@ -9445,7 +9192,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.5x1.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 60.96 212.09 0)
 			(hide yes)
 			(show_name no)
@@ -9668,96 +9415,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 102.87 181.61 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "51c35eee-a96e-4562-b127-2b71820b0349")
-		(property "Reference" "TP4"
-			(at 107.95 181.61 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "tp_round_70"
-			(at 99.06 180.34 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.5x1.5mm"
-			(at 102.87 181.61 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 102.87 181.61 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Test Point, Round, 0.7mm"
-			(at 102.87 181.61 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" ""
-			(at 102.87 181.61 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "03180ec7-0c95-4b11-b6af-8fd10f4da2ca")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "TP4")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "0_passives:C_0805")
 		(at 161.29 176.53 0)
 		(unit 1)
@@ -9940,96 +9597,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
 					(reference "#PWR055")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 102.87 186.69 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "5e80b5a2-7aea-4a0c-86f5-b15ef71b3652")
-		(property "Reference" "TP6"
-			(at 107.95 186.69 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "tp_round_70"
-			(at 99.06 185.42 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.5x1.5mm"
-			(at 102.87 186.69 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 102.87 186.69 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Test Point, Round, 0.7mm"
-			(at 102.87 186.69 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" ""
-			(at 102.87 186.69 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "1c0d0ba5-5157-4d21-af0d-1c4e281bc8a0")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "TP6")
 					(unit 1)
 				)
 			)
@@ -11756,96 +11323,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 60.96 191.77 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "c369173d-4e32-4b84-b8f1-e6b770e30caa")
-		(property "Reference" "TP7"
-			(at 66.04 191.77 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "tp_round_70"
-			(at 57.15 190.5 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.5x1.5mm"
-			(at 60.96 191.77 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 60.96 191.77 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Test Point, Round, 0.7mm"
-			(at 60.96 191.77 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" ""
-			(at 60.96 191.77 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "6d444fda-e377-4e5a-97a0-5519a77d9f1e")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "TP7")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "0_passives:C_0603")
 		(at 300.99 173.99 0)
 		(unit 1)
@@ -12075,96 +11552,6 @@
 	)
 	(symbol
 		(lib_id "Connector:TestPoint")
-		(at 60.96 196.85 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "cbaf8486-e4ed-47ba-a16c-d5ed3fe7a3f8")
-		(property "Reference" "TP8"
-			(at 66.04 196.85 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "tp_round_70"
-			(at 57.15 195.58 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.5x1.5mm"
-			(at 60.96 196.85 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 60.96 196.85 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Test Point, Round, 0.7mm"
-			(at 60.96 196.85 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" ""
-			(at 60.96 196.85 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "80ee997e-14e9-4921-aa28-3e476d45aab3")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "TP8")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:TestPoint")
 		(at 60.96 207.01 270)
 		(unit 1)
 		(body_style 1)
@@ -12197,7 +11584,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.5x1.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 60.96 207.01 0)
 			(hide yes)
 			(show_name no)
@@ -12248,96 +11635,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
 					(reference "TP10")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 60.96 181.61 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "ce34d339-5305-47bc-93c2-d760d37c925b")
-		(property "Reference" "TP3"
-			(at 66.04 181.61 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "tp_round_70"
-			(at 57.15 180.34 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.5x1.5mm"
-			(at 60.96 181.61 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 60.96 181.61 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Test Point, Round, 0.7mm"
-			(at 60.96 181.61 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" ""
-			(at 60.96 181.61 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "9820290a-88ff-46b3-a00a-9904fc5edcb3")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "TP3")
 					(unit 1)
 				)
 			)
@@ -12911,7 +12208,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_1.5x1.5mm"
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 60.96 217.17 0)
 			(hide yes)
 			(show_name no)
