@@ -3332,6 +3332,12 @@
 		(uuid "0ffbd1ce-17d2-42a9-a95c-decaf72cf51c")
 	)
 	(junction
+		(at 358.14 95.25)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "10666111-f3e9-43b0-9b73-cb3d1e957539")
+	)
+	(junction
 		(at 149.86 36.83)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -3402,12 +3408,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "3b73d763-da51-4604-b126-c172c3f3b853")
-	)
-	(junction
-		(at 351.79 106.68)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "3dd25ef7-81d2-4f9a-a539-6d9e7738da9d")
 	)
 	(junction
 		(at 133.35 36.83)
@@ -3584,6 +3584,12 @@
 		(uuid "b73bac20-3964-4b3b-af03-c2a47f517342")
 	)
 	(junction
+		(at 345.44 113.03)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "b81fd494-eb25-427c-aa7d-9fb4aa4521eb")
+	)
+	(junction
 		(at 283.21 144.78)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -3752,16 +3758,6 @@
 			(type default)
 		)
 		(uuid "001da1b6-0a42-4a77-8808-30817b787f1a")
-	)
-	(wire
-		(pts
-			(xy 345.44 102.87) (xy 345.44 106.68)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "00aa7514-3f1f-4e6a-a260-4aeaafb02bb9")
 	)
 	(wire
 		(pts
@@ -4235,6 +4231,16 @@
 	)
 	(wire
 		(pts
+			(xy 342.9 118.11) (xy 345.44 118.11)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3376fb3b-fd2a-45c1-9331-5fa58cfbeeba")
+	)
+	(wire
+		(pts
 			(xy 168.91 179.07) (xy 168.91 196.85)
 		)
 		(stroke
@@ -4352,6 +4358,16 @@
 			(type default)
 		)
 		(uuid "3edb3680-e0c4-470e-a100-a10e1f60f179")
+	)
+	(wire
+		(pts
+			(xy 345.44 95.25) (xy 345.44 88.9)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3f7f006d-2c05-4655-89f2-5d86ac39404c")
 	)
 	(wire
 		(pts
@@ -4552,16 +4568,6 @@
 			(type default)
 		)
 		(uuid "511c7f78-a50a-487b-9b98-c6eb7700e6e7")
-	)
-	(wire
-		(pts
-			(xy 351.79 106.68) (xy 351.79 107.95)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "51b99531-23dd-4ff2-b71e-65bcbda6924e")
 	)
 	(wire
 		(pts
@@ -4835,7 +4841,7 @@
 	)
 	(wire
 		(pts
-			(xy 351.79 106.68) (xy 351.79 102.87)
+			(xy 351.79 102.87) (xy 351.79 107.95)
 		)
 		(stroke
 			(width 0)
@@ -5035,6 +5041,16 @@
 	)
 	(wire
 		(pts
+			(xy 340.36 72.39) (xy 351.79 72.39)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7ad600af-cd83-45fa-8d91-e6fac4bfcb00")
+	)
+	(wire
+		(pts
 			(xy 133.35 214.63) (xy 127 214.63)
 		)
 		(stroke
@@ -5085,13 +5101,13 @@
 	)
 	(wire
 		(pts
-			(xy 351.79 113.03) (xy 351.79 118.11)
+			(xy 351.79 72.39) (xy 351.79 74.93)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "832b1c4e-b3d8-4585-b6f7-24ea39c252bb")
+		(uuid "82a7a5ae-ffe4-4bee-ab3f-598dc021d412")
 	)
 	(wire
 		(pts
@@ -5325,6 +5341,16 @@
 	)
 	(wire
 		(pts
+			(xy 345.44 113.03) (xy 351.79 113.03)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9aaf5c19-f275-4d4b-8170-639412b0b0e0")
+	)
+	(wire
+		(pts
 			(xy 181.61 138.43) (xy 181.61 173.99)
 		)
 		(stroke
@@ -5392,6 +5418,16 @@
 			(type default)
 		)
 		(uuid "a00af2d6-37dc-4661-a156-8c09e9dfe2de")
+	)
+	(wire
+		(pts
+			(xy 356.87 88.9) (xy 358.14 88.9)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a01b0471-4948-4b93-8bd9-25ae6aa08d6e")
 	)
 	(wire
 		(pts
@@ -5542,6 +5578,16 @@
 			(type default)
 		)
 		(uuid "a7843310-da3f-4d6c-8b7d-fa7a20d8e118")
+	)
+	(wire
+		(pts
+			(xy 351.79 80.01) (xy 351.79 81.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a7f63042-f64a-45ec-8e4c-1589b78a8979")
 	)
 	(wire
 		(pts
@@ -5802,6 +5848,16 @@
 			(type default)
 		)
 		(uuid "b83272fc-55b0-4934-ade0-f3c939533f72")
+	)
+	(wire
+		(pts
+			(xy 345.44 113.03) (xy 345.44 102.87)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b942553a-26ce-487c-962e-c391bace373d")
 	)
 	(wire
 		(pts
@@ -6215,6 +6271,16 @@
 	)
 	(wire
 		(pts
+			(xy 358.14 95.25) (xy 360.68 95.25)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d7fd273b-c6c1-43fd-ad08-81bb3b6b1809")
+	)
+	(wire
+		(pts
 			(xy 231.14 87.63) (xy 231.14 110.49)
 		)
 		(stroke
@@ -6315,16 +6381,6 @@
 	)
 	(wire
 		(pts
-			(xy 351.79 118.11) (xy 350.52 118.11)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "dfc5f6df-80da-424b-81de-bfbf7b448a6c")
-	)
-	(wire
-		(pts
 			(xy 252.73 144.78) (xy 259.08 144.78)
 		)
 		(stroke
@@ -6355,7 +6411,7 @@
 	)
 	(wire
 		(pts
-			(xy 356.87 95.25) (xy 360.68 95.25)
+			(xy 356.87 95.25) (xy 358.14 95.25)
 		)
 		(stroke
 			(width 0)
@@ -6455,6 +6511,16 @@
 	)
 	(wire
 		(pts
+			(xy 345.44 118.11) (xy 345.44 113.03)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ec29ac0b-7b61-4af7-bdca-91aa20c39571")
+	)
+	(wire
+		(pts
 			(xy 68.58 138.43) (xy 68.58 139.7)
 		)
 		(stroke
@@ -6475,6 +6541,16 @@
 	)
 	(wire
 		(pts
+			(xy 358.14 88.9) (xy 358.14 95.25)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ee6906cc-d77e-4f3f-870a-a4244c130b7a")
+	)
+	(wire
+		(pts
 			(xy 224.79 71.12) (xy 231.14 71.12)
 		)
 		(stroke
@@ -6492,6 +6568,16 @@
 			(type default)
 		)
 		(uuid "ef50ddc4-761c-4ec3-93e8-3ef0399c4614")
+	)
+	(wire
+		(pts
+			(xy 345.44 88.9) (xy 346.71 88.9)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f0826e19-eb11-4add-a3dc-8495a2c6ecc1")
 	)
 	(wire
 		(pts
@@ -6575,16 +6661,6 @@
 	)
 	(wire
 		(pts
-			(xy 345.44 106.68) (xy 351.79 106.68)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "fd63ba04-edfc-4ef8-934b-9c5293e5f8ca")
-	)
-	(wire
-		(pts
 			(xy 114.3 194.31) (xy 119.38 194.31)
 		)
 		(stroke
@@ -6664,7 +6740,7 @@
 		(uuid "4324f009-1ab4-493a-96bc-22d9bf572f4e")
 	)
 	(label "LOADTG"
-		(at 350.52 118.11 180)
+		(at 342.9 118.11 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -6672,6 +6748,16 @@
 			(justify right bottom)
 		)
 		(uuid "4b62a35e-69c3-44f5-a9cf-8269caa8ca61")
+	)
+	(label "LOADTG"
+		(at 340.36 72.39 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "85a074f6-4df2-4d45-8a45-541b4e942bf1")
 	)
 	(label "VREF"
 		(at 157.48 184.15 0)
@@ -6722,6 +6808,17 @@
 			(justify left bottom)
 		)
 		(uuid "ebda2f79-83dd-4a34-8246-4880c06b8c6d")
+	)
+	(hierarchical_label "Curr_FB"
+		(shape output)
+		(at 91.44 154.94 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "0772b2b0-c847-4667-82c2-631fbc395565")
 	)
 	(hierarchical_label "CC_Set"
 		(shape input)
@@ -7298,6 +7395,102 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
 					(reference "#PWR07")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:Q_PMOS")
+		(at 351.79 86.36 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "0c05934c-8c3b-4877-afde-383421c86c0b")
+		(property "Reference" "Q12"
+			(at 345.948 90.678 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "HUASHUO HSBB0115"
+			(at 337.82 82.804 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "thommys-parts2:PRPAK-8_L3.0-W3.0-P0.65-BL-EP"
+			(at 354.33 91.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 351.79 86.36 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "P-MOSFET transistor"
+			(at 351.79 86.36 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLC" "C22359236"
+			(at 351.79 86.36 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "S"
+			(uuid "d9193e17-1d1c-4d5f-b3b2-81b2e9783a5f")
+		)
+		(pin "G"
+			(uuid "a42aec4c-183b-424d-9dd8-4c3fdb37b2e3")
+		)
+		(pin "D"
+			(uuid "756d0c2c-07a7-48da-9520-7f962e2609f5")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
+					(reference "Q12")
 					(unit 1)
 				)
 			)
@@ -13655,6 +13848,88 @@
 	)
 	(symbol
 		(lib_id "Device:R_Small")
+		(at 351.79 77.47 180)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "b0dcee43-39f6-4227-a3d9-e0a8278b9dc3")
+		(property "Reference" "R57"
+			(at 354.33 76.1999 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "3.3"
+			(at 354.33 78.7399 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 351.79 77.47 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 351.79 77.47 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor, small symbol"
+			(at 351.79 77.47 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "611aeaca-588a-4465-af81-fd93f3340d75")
+		)
+		(pin "2"
+			(uuid "a0a5eb22-57c6-4d62-a731-bdc245297fce")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
+					(reference "R57")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R_Small")
 		(at 351.79 110.49 180)
 		(unit 1)
 		(body_style 1)
@@ -14434,7 +14709,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "thommys-parts2:IND-SMD_SL1265-101M"
 			(at 248.92 144.78 0)
 			(hide yes)
 			(show_name no)
@@ -14458,6 +14733,17 @@
 		)
 		(property "Description" "Inductor"
 			(at 248.92 144.78 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLC" "C22463848"
+			(at 248.92 144.78 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14881,7 +15167,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "PCM_JLCPCB:DFN2020-3_L2.0-W2.0-P0.65-BR-1"
 			(at 276.86 118.11 0)
 			(hide yes)
 			(show_name no)
@@ -16187,7 +16473,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "PCM_JLCPCB:DFN2020-3_L2.0-W2.0-P0.65-BR-1"
 			(at 210.82 157.48 0)
 			(hide yes)
 			(show_name no)
@@ -16258,7 +16544,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "Q_PMOS"
+		(property "Value" "HUASHUO HSBB0115"
 			(at 354.33 99.822 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16269,7 +16555,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "thommys-parts2:PRPAK-8_L3.0-W3.0-P0.65-BL-EP"
 			(at 354.33 92.71 0)
 			(hide yes)
 			(show_name no)
@@ -16293,6 +16579,17 @@
 		)
 		(property "Description" "P-MOSFET transistor"
 			(at 351.79 97.79 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLC" "C22359236"
+			(at 351.79 97.79 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)

@@ -1,0 +1,229 @@
+(footprint "IND-SMD_SL1265-101M"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at 0 -4 0)
+		(layer "F.SilkS")
+		(uuid "ac261c43-2985-47b4-9a4a-e5410ea224c0")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "IND-SMD_SL1265-101M"
+		(at 0 4 0)
+		(layer "F.Fab")
+		(uuid "e836c2ef-a97a-4288-ab62-406999aaebec")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "2cf35c16-b73a-4e31-8287-baae8933828e")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "1a9fa4e9-7bb3-43e9-8dda-5ce06851897e")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "LCSC Part" "C22463848"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "f797c9fd-bac9-4544-b7c0-1d2cc8a2bd5a")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(attr smd)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -6.48 -6.48)
+		(end 6.48 -6.48)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "c7f541f1-7460-4340-b03a-0eb2939b8eb7")
+	)
+	(fp_line
+		(start -6.48 -2.48)
+		(end -6.48 -2.54)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "ecd14470-1a8a-401b-a45d-529162cb09ed")
+	)
+	(fp_line
+		(start -6.48 -2.41)
+		(end -6.48 -6.48)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "52e1ebf5-41a0-49a6-9fc7-748e57a76f7b")
+	)
+	(fp_line
+		(start -6.48 6.35)
+		(end -6.48 2.48)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "90993b95-546b-44bf-b0c7-9f3b0ac68e2e")
+	)
+	(fp_line
+		(start -6.35 6.35)
+		(end -6.48 6.35)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "fa76addb-6608-46fa-8824-dcd3d92582f4")
+	)
+	(fp_line
+		(start 6.48 -6.48)
+		(end 6.48 -2.48)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "1f34e8d4-e297-4224-9452-283a5d2728cb")
+	)
+	(fp_line
+		(start 6.48 2.48)
+		(end 6.48 6.35)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "baccbb26-f819-4718-aef3-0317b9d729cf")
+	)
+	(fp_line
+		(start 6.48 6.35)
+		(end -6.35 6.35)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "cf20df69-04a1-410a-9dcb-fa55a9d3d18a")
+	)
+	(fp_circle
+		(center 6.72 -6.4)
+		(end 6.75 -6.4)
+		(stroke
+			(width 0.06)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.SilkS")
+		(uuid "f770d193-40a6-4ca4-88b9-872e693c02b7")
+	)
+	(fp_line
+		(start -6.4 -6.4)
+		(end 6.4 -6.4)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "1d2fc8b7-d467-4f8e-99ea-ed3470ebe2de")
+	)
+	(fp_line
+		(start -6.4 6.4)
+		(end -6.4 -6.4)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "6b7f2d0c-2b76-4abf-a1df-7de059b3f737")
+	)
+	(fp_line
+		(start 6.4 -6.4)
+		(end 6.4 6.4)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "c2898d6a-599a-4017-a63b-3e25565e7e8d")
+	)
+	(fp_line
+		(start 6.4 6.4)
+		(end -6.4 6.4)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(layer "F.CrtYd")
+		(uuid "1baa74f4-42a8-46eb-a4bc-cb542a6db8ad")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(uuid "bce23375-4f01-4ab6-88c4-ee68351a050c")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" smd rect
+		(at 6 0)
+		(size 2.924 4.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "e486e959-ef80-4d84-8b7a-9da7bbc295d5")
+	)
+	(pad "2" smd rect
+		(at -6 0)
+		(size 2.924 4.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "4c5b83bd-88b5-4481-967c-b927a876aee0")
+	)
+	(embedded_fonts no)
+	(model "${KIPRJMOD}/EasyedaFootprints/EasyEDA.3dshapes/IND-SMD_SL1265-101M.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 0)
+		)
+	)
+)

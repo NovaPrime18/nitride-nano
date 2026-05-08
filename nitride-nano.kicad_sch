@@ -478,6 +478,16 @@
 	)
 	(wire
 		(pts
+			(xy 242.57 149.86) (xy 242.57 115.57)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "335bc9d3-d8d7-4c08-a76c-ddb3f44ea364")
+	)
+	(wire
+		(pts
 			(xy 240.03 110.49) (xy 252.73 110.49)
 		)
 		(stroke
@@ -515,6 +525,16 @@
 			(type default)
 		)
 		(uuid "4a019698-13ff-4846-999e-7492a0d639af")
+	)
+	(wire
+		(pts
+			(xy 242.57 115.57) (xy 252.73 115.57)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4ddac502-6cc0-4986-8935-77106dfbb840")
 	)
 	(wire
 		(pts
@@ -595,6 +615,16 @@
 			(type default)
 		)
 		(uuid "91c2c8b7-8049-4c28-a675-bcf5065caa30")
+	)
+	(wire
+		(pts
+			(xy 228.6 149.86) (xy 242.57 149.86)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9d526ca2-9288-4d42-a498-3f791abaa7c9")
 	)
 	(bus
 		(pts
@@ -972,6 +1002,16 @@
 					(size 1.27 1.27)
 				)
 				(justify left)
+			)
+		)
+		(pin "Current_Feedback" input
+			(at 228.6 149.86 0)
+			(uuid "443cf768-cb46-4067-86c8-85476bcbfc93")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
 			)
 		)
 		(instances
@@ -1386,6 +1426,16 @@
 					(size 1.27 1.27)
 				)
 				(justify right)
+			)
+		)
+		(pin "Curr_FB" output
+			(at 252.73 115.57 180)
+			(uuid "82f47b20-12ff-44c9-853a-75c4fc919793")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
 			)
 		)
 		(instances
