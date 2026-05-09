@@ -595,7 +595,43 @@
       "sort_asc": true,
       "sort_field": "Reference"
     },
-    "bus_aliases": {},
+    "bus_aliases": {
+      "BUTTONS_SIGNALS": [
+        "BUTTON_1",
+        "BUTTON_2"
+      ],
+      "ENCODER_SIGNALS": [
+        "ENCODER_A",
+        "ENCODER_B",
+        "ENCODER_BUTTON"
+      ],
+      "I2C0": [
+        "I2C0_SDA",
+        "I2C0_SCL"
+      ],
+      "I2C1": [
+        "I2CC_SDA_MCU",
+        "I2CC_SCL_MCU"
+      ],
+      "LCD_CONTROL": [
+        "LCD_RST",
+        "LCD_SDA",
+        "LCD_SCL",
+        "LCD_RS",
+        "LCD_CS",
+        "LCD_BACKLIGHT_EN"
+      ],
+      "SAFE_USB_SIGNALS": [
+        "CC1",
+        "CC2",
+        "EPR_EN",
+        "~{FLT}"
+      ],
+      "USB_DATA": [
+        "USB_D_P",
+        "USB_D_N"
+      ]
+    },
     "connection_grid_size": 50.0,
     "drawing": {
       "dashed_lines_dash_length_ratio": 12.0,
@@ -636,7 +672,7 @@
         "uuid": "aaad0350-e7db-44d5-b7ef-99e6416f6948"
       }
     ],
-    "used_designators": "#PWR45,#PWR74,#PWR77-78,#PWR84,#PWR95-96,#PWR158,#PWR162-164,C65-70,R57-58,Q12",
+    "used_designators": "SW1,H1-4,J4-6,R58-60,Y1,#PWR11-12,#PWR97,#PWR101,#PWR104-107,#PWR110-111,#PWR117-126,#PWR168-172,D15,C14,C71-78,F1,U12",
     "variants": []
   },
   "sheets": [

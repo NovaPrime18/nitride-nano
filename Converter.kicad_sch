@@ -3452,12 +3452,6 @@
 		(uuid "54f8727a-1df9-444c-b729-18a8fe1330c7")
 	)
 	(junction
-		(at 316.23 63.5)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "57f99d9e-cd12-4356-9eb4-ba6c5d2cf0b7")
-	)
-	(junction
 		(at 293.37 110.49)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -5031,16 +5025,6 @@
 	)
 	(wire
 		(pts
-			(xy 316.23 63.5) (xy 334.01 63.5)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "7a6ec685-2196-43b7-b776-72db1b66931c")
-	)
-	(wire
-		(pts
 			(xy 340.36 72.39) (xy 351.79 72.39)
 		)
 		(stroke
@@ -5438,16 +5422,6 @@
 			(type default)
 		)
 		(uuid "a0344a0a-651f-4be1-b230-ae9864bcd76c")
-	)
-	(wire
-		(pts
-			(xy 334.01 63.5) (xy 334.01 66.04)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a0afc341-69df-484f-a356-aca428e744e6")
 	)
 	(wire
 		(pts
@@ -6668,16 +6642,6 @@
 			(type default)
 		)
 		(uuid "fe0bd863-660c-4bd4-8276-18978013daff")
-	)
-	(wire
-		(pts
-			(xy 334.01 73.66) (xy 334.01 74.93)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "fe812699-25df-4767-bbdc-8822e9ed7234")
 	)
 	(wire
 		(pts
@@ -10425,83 +10389,6 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 334.01 74.93 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "5ba02420-a608-456b-bf5a-d7e971b5b604")
-		(property "Reference" "#PWR021"
-			(at 334.01 81.28 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND"
-			(at 334.01 78.486 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 334.01 74.93 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 334.01 74.93 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 334.01 74.93 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "2cda4ae8-9efb-4597-a1d5-67e842210a6c")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
-					(reference "#PWR021")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:GND")
 		(at 111.76 91.44 0)
 		(unit 1)
 		(body_style 1)
@@ -11992,109 +11879,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Device:C_Polarized")
-		(at 334.01 69.85 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "8290d924-fea2-4e03-bb4e-e2bcf4347c88")
-		(property "Reference" "C14"
-			(at 331.216 67.564 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Value" "100uF"
-			(at 333.502 72.39 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" ""
-			(at 334.9752 73.66 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 334.01 69.85 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Polarized capacitor"
-			(at 334.01 69.85 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Field5" "63SXV100M"
-			(at 334.01 69.85 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Voltage" "100V"
-			(at 334.01 69.85 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "1c219012-ef8f-40e7-a1df-4c25fa7d0792")
-		)
-		(pin "2"
-			(uuid "f361f68f-d759-4881-a5b5-4a1e3eb87d0f")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
-					(reference "C14")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:C_Small")
 		(at 139.7 82.55 0)
 		(unit 1)
@@ -13044,7 +12828,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Capacitor_SMD:CP_Elec_10x12.6"
 			(at 121.6152 46.99 0)
 			(hide yes)
 			(show_name no)
@@ -13089,6 +12873,17 @@
 			)
 		)
 		(property "Voltage" "100V"
+			(at 120.65 43.18 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLC" "C3274502"
 			(at 120.65 43.18 0)
 			(hide yes)
 			(show_name no)
