@@ -2121,145 +2121,6 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "power:VBUS"
-			(power global)
-			(pin_numbers
-				(hide yes)
-			)
-			(pin_names
-				(offset 0)
-				(hide yes)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "#PWR"
-				(at 0 -3.81 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "VBUS"
-				(at 0 3.556 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "Power symbol creates a global label with name \"VBUS\""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_keywords" "global power"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "VBUS_0_1"
-				(polyline
-					(pts
-						(xy -0.762 1.27) (xy 0 2.54)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 2.54) (xy 0.762 1.27)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 0) (xy 0 2.54)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(symbol "VBUS_1_1"
-				(pin power_in line
-					(at 0 0 90)
-					(length 0)
-					(name ""
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 	)
 	(text "85-V, 20-Bit, Ultra-Precise Power/Energy/Charge Monitor With I²C Interface"
 		(exclude_from_sim no)
@@ -2328,6 +2189,12 @@
 		(uuid "01b20e1e-6040-4a4b-9a8a-7793bcac378f")
 	)
 	(junction
+		(at 34.29 43.18)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "1dccacaf-84ed-42ea-8d2a-401b2d41af53")
+	)
+	(junction
 		(at 194.31 60.96)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2338,12 +2205,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "2af20366-1586-4585-ae40-4a8d7fcb2526")
-	)
-	(junction
-		(at 80.01 191.77)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "2bf21cb5-18af-4c2f-bdac-835f5be9c05e")
 	)
 	(junction
 		(at 76.2 43.18)
@@ -2358,16 +2219,10 @@
 		(uuid "4ebf5fb8-e574-4e55-a158-7b9d50928abe")
 	)
 	(junction
-		(at 87.63 181.61)
+		(at 46.99 157.48)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "580d04e5-4cdb-41bb-aeea-f4265ddfa4f3")
-	)
-	(junction
-		(at 74.93 162.56)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "62654157-6d9b-4bc9-8be4-ae46b1674651")
 	)
 	(junction
 		(at 64.77 43.18)
@@ -2376,13 +2231,25 @@
 		(uuid "65b46de6-6fa4-485a-bc8a-09244e6eb82e")
 	)
 	(junction
+		(at 39.37 167.64)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "6c7ccaee-3ff5-43ac-b51d-3e5a826113c0")
+	)
+	(junction
 		(at 44.45 60.96)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "73928eed-65e8-4f0b-bb66-b079adc6b111")
 	)
 	(junction
-		(at 74.93 181.61)
+		(at 44.45 43.18)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "76d022d5-d442-40c5-8b3e-39e6ec610a85")
+	)
+	(junction
+		(at 34.29 157.48)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "7f709ad0-6879-47e1-95c4-159269391c1d")
@@ -2394,7 +2261,7 @@
 		(uuid "8297abdc-5de2-42a7-8082-6fa03a59308b")
 	)
 	(junction
-		(at 93.98 181.61)
+		(at 53.34 157.48)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "aacf4979-7bb5-4d0d-8c62-a5c935ebfb45")
@@ -2412,7 +2279,7 @@
 		(uuid "b23c2677-ed80-4c67-ac42-60206ba2eea1")
 	)
 	(junction
-		(at 74.93 172.72)
+		(at 34.29 148.59)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "c43d25e1-bc98-4b93-8645-12a8d76cf990")
@@ -2424,16 +2291,16 @@
 		(uuid "c9b1195c-5baa-43b1-ae4e-7f8357f58fd7")
 	)
 	(junction
+		(at 34.29 139.7)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "ce5d2afb-04c0-449b-9e87-ebe0897d7aa5")
+	)
+	(junction
 		(at 121.92 101.6)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "d06c4ec3-3a75-4f78-9367-6c0ef8a36d66")
-	)
-	(junction
-		(at 44.45 43.18)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "d8dcfd7e-3906-46ff-873e-51ae628dd763")
 	)
 	(junction
 		(at 140.97 172.72)
@@ -2483,7 +2350,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 191.77) (xy 80.01 191.77)
+			(xy 34.29 167.64) (xy 39.37 167.64)
 		)
 		(stroke
 			(width 0)
@@ -2493,7 +2360,7 @@
 	)
 	(wire
 		(pts
-			(xy 69.85 170.18) (xy 69.85 172.72)
+			(xy 29.21 146.05) (xy 29.21 148.59)
 		)
 		(stroke
 			(width 0)
@@ -2503,13 +2370,23 @@
 	)
 	(wire
 		(pts
-			(xy 80.01 170.18) (xy 80.01 172.72)
+			(xy 39.37 146.05) (xy 39.37 148.59)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
 		(uuid "066b761c-68d8-4678-a4a5-38f0a95c1bff")
+	)
+	(wire
+		(pts
+			(xy 34.29 43.18) (xy 34.29 139.7)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0691397b-0024-48af-ac67-86048f2bbf95")
 	)
 	(wire
 		(pts
@@ -2553,16 +2430,6 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 162.56) (xy 80.01 162.56)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "137b47e9-5232-4ae1-b15a-bbd270f592ab")
-	)
-	(wire
-		(pts
 			(xy 121.92 96.52) (xy 121.92 101.6)
 		)
 		(stroke
@@ -2573,7 +2440,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 181.61) (xy 87.63 181.61)
+			(xy 34.29 157.48) (xy 46.99 157.48)
 		)
 		(stroke
 			(width 0)
@@ -2593,7 +2460,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 181.61) (xy 74.93 184.15)
+			(xy 34.29 157.48) (xy 34.29 160.02)
 		)
 		(stroke
 			(width 0)
@@ -2630,6 +2497,16 @@
 			(type default)
 		)
 		(uuid "28ac49db-2c65-43d5-ac9e-fa44b6ddfb36")
+	)
+	(wire
+		(pts
+			(xy 34.29 43.18) (xy 44.45 43.18)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "28c0fe6d-f9b8-4e1d-8d51-a04a22752b29")
 	)
 	(wire
 		(pts
@@ -2703,7 +2580,7 @@
 	)
 	(wire
 		(pts
-			(xy 41.91 43.18) (xy 44.45 43.18)
+			(xy 30.48 43.18) (xy 34.29 43.18)
 		)
 		(stroke
 			(width 0)
@@ -2723,7 +2600,7 @@
 	)
 	(wire
 		(pts
-			(xy 69.85 162.56) (xy 69.85 165.1)
+			(xy 29.21 139.7) (xy 29.21 140.97)
 		)
 		(stroke
 			(width 0)
@@ -2753,7 +2630,7 @@
 	)
 	(wire
 		(pts
-			(xy 87.63 181.61) (xy 93.98 181.61)
+			(xy 46.99 157.48) (xy 53.34 157.48)
 		)
 		(stroke
 			(width 0)
@@ -2763,7 +2640,7 @@
 	)
 	(wire
 		(pts
-			(xy 87.63 181.61) (xy 87.63 184.15)
+			(xy 46.99 157.48) (xy 46.99 160.02)
 		)
 		(stroke
 			(width 0)
@@ -2793,7 +2670,7 @@
 	)
 	(wire
 		(pts
-			(xy 80.01 162.56) (xy 80.01 165.1)
+			(xy 39.37 139.7) (xy 39.37 140.97)
 		)
 		(stroke
 			(width 0)
@@ -2913,7 +2790,7 @@
 	)
 	(wire
 		(pts
-			(xy 93.98 181.61) (xy 106.68 181.61)
+			(xy 53.34 157.48) (xy 66.04 157.48)
 		)
 		(stroke
 			(width 0)
@@ -2933,7 +2810,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 180.34) (xy 74.93 181.61)
+			(xy 34.29 156.21) (xy 34.29 157.48)
 		)
 		(stroke
 			(width 0)
@@ -2993,7 +2870,7 @@
 	)
 	(wire
 		(pts
-			(xy 69.85 172.72) (xy 74.93 172.72)
+			(xy 29.21 148.59) (xy 34.29 148.59)
 		)
 		(stroke
 			(width 0)
@@ -3003,7 +2880,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 189.23) (xy 74.93 191.77)
+			(xy 34.29 165.1) (xy 34.29 167.64)
 		)
 		(stroke
 			(width 0)
@@ -3013,17 +2890,7 @@
 	)
 	(wire
 		(pts
-			(xy 44.45 43.18) (xy 44.45 52.07)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a7589c1d-9551-4609-931b-0c8b3c918dfa")
-	)
-	(wire
-		(pts
-			(xy 80.01 191.77) (xy 87.63 191.77)
+			(xy 39.37 167.64) (xy 46.99 167.64)
 		)
 		(stroke
 			(width 0)
@@ -3050,6 +2917,16 @@
 			(type default)
 		)
 		(uuid "ae0452f7-fa89-41c8-a45b-bcbfa56064ae")
+	)
+	(wire
+		(pts
+			(xy 39.37 139.7) (xy 34.29 139.7)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "af0f95a4-a074-4707-b1cb-bea7ac270dbc")
 	)
 	(wire
 		(pts
@@ -3123,6 +3000,16 @@
 	)
 	(wire
 		(pts
+			(xy 44.45 43.18) (xy 44.45 52.07)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c79da0a1-4bb2-4d9b-8cf0-f2bb2a67787c")
+	)
+	(wire
+		(pts
 			(xy 120.65 81.28) (xy 123.19 81.28)
 		)
 		(stroke
@@ -3183,7 +3070,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 172.72) (xy 74.93 175.26)
+			(xy 34.29 148.59) (xy 34.29 151.13)
 		)
 		(stroke
 			(width 0)
@@ -3203,7 +3090,7 @@
 	)
 	(wire
 		(pts
-			(xy 87.63 189.23) (xy 87.63 191.77)
+			(xy 46.99 165.1) (xy 46.99 167.64)
 		)
 		(stroke
 			(width 0)
@@ -3223,7 +3110,7 @@
 	)
 	(wire
 		(pts
-			(xy 74.93 172.72) (xy 80.01 172.72)
+			(xy 34.29 148.59) (xy 39.37 148.59)
 		)
 		(stroke
 			(width 0)
@@ -3253,7 +3140,7 @@
 	)
 	(wire
 		(pts
-			(xy 69.85 162.56) (xy 74.93 162.56)
+			(xy 29.21 139.7) (xy 34.29 139.7)
 		)
 		(stroke
 			(width 0)
@@ -3341,7 +3228,7 @@
 		)
 		(uuid "ff79ea69-672b-4642-849d-4ecd4d8b6696")
 	)
-	(hierarchical_label "TEMP_SENSE"
+	(hierarchical_label "TEMP_SENSE_PWRIN"
 		(shape output)
 		(at 148.59 172.72 0)
 		(effects
@@ -3371,7 +3258,7 @@
 	)
 	(hierarchical_label "+VBUS_SENSED"
 		(shape input)
-		(at 41.91 43.18 180)
+		(at 30.48 43.18 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -3396,7 +3283,7 @@
 	)
 	(hierarchical_label "V_SENSE"
 		(shape output)
-		(at 106.68 181.61 0)
+		(at 66.04 157.48 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -3526,7 +3413,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 80.01 191.77 0)
+		(at 39.37 167.64 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -3536,7 +3423,7 @@
 		(dnp no)
 		(uuid "0d8467de-08a0-4036-b46d-ac12cdd80cb0")
 		(property "Reference" "#PWR0103"
-			(at 80.01 191.77 0)
+			(at 39.37 167.64 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3547,7 +3434,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 80.01 198.12 0)
+			(at 39.37 173.99 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3558,7 +3445,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 80.01 191.77 0)
+			(at 39.37 167.64 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3568,7 +3455,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 80.01 191.77 0)
+			(at 39.37 167.64 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -3578,7 +3465,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 80.01 191.77 0)
+			(at 39.37 167.64 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4218,7 +4105,7 @@
 	)
 	(symbol
 		(lib_id "0_passives:R_0402")
-		(at 80.01 167.64 0)
+		(at 39.37 143.51 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4228,7 +4115,7 @@
 		(dnp no)
 		(uuid "3e9aa48d-feac-42f4-89ae-bba38e118e19")
 		(property "Reference" "R49"
-			(at 81.915 167.165 0)
+			(at 41.275 143.035 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4239,7 +4126,7 @@
 			)
 		)
 		(property "Value" "100k 1%"
-			(at 81.915 169.705 0)
+			(at 41.275 145.575 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4250,7 +4137,7 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 80.01 167.64 0)
+			(at 39.37 143.51 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4261,7 +4148,7 @@
 			)
 		)
 		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8579705919464263680"
-			(at 80.01 167.64 0)
+			(at 39.37 143.51 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4272,7 +4159,7 @@
 			)
 		)
 		(property "Description" "Resistor, 100k, 1%, 100ppm, 1/16W, 1005, 0402"
-			(at 80.01 167.64 0)
+			(at 39.37 143.51 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4283,7 +4170,7 @@
 			)
 		)
 		(property "LCSC" "C25741"
-			(at 80.01 167.64 0)
+			(at 39.37 143.51 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4294,7 +4181,7 @@
 			)
 		)
 		(property "Manufacturer" "UNI-ROYAL(Uniroyal Elec)"
-			(at 80.01 167.64 0)
+			(at 39.37 143.51 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4305,7 +4192,7 @@
 			)
 		)
 		(property "Manufacturer Part Number" "0402WGF1003TCE"
-			(at 80.01 167.64 0)
+			(at 39.37 143.51 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4637,7 +4524,7 @@
 	)
 	(symbol
 		(lib_id "Connector:TestPoint")
-		(at 93.98 181.61 0)
+		(at 53.34 157.48 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4647,7 +4534,7 @@
 		(dnp no)
 		(uuid "4f467a59-105a-4cc3-bcfb-985c92becbc8")
 		(property "Reference" "TP27"
-			(at 93.98 176.53 90)
+			(at 53.34 152.4 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4658,7 +4545,7 @@
 			)
 		)
 		(property "Value" "tp_round_70"
-			(at 92.71 185.42 0)
+			(at 52.07 161.29 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4670,7 +4557,7 @@
 			)
 		)
 		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
-			(at 93.98 181.61 0)
+			(at 53.34 157.48 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4681,7 +4568,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 93.98 181.61 0)
+			(at 53.34 157.48 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4692,7 +4579,7 @@
 			)
 		)
 		(property "Description" "Test Point, Round, 0.7mm"
-			(at 93.98 181.61 0)
+			(at 53.34 157.48 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4703,7 +4590,7 @@
 			)
 		)
 		(property "LCSC" ""
-			(at 93.98 181.61 0)
+			(at 53.34 157.48 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4726,82 +4613,8 @@
 		)
 	)
 	(symbol
-		(lib_id "power:VBUS")
-		(at 74.93 162.56 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "51b2c80e-7beb-4717-a5c7-a2275ee4b118")
-		(property "Reference" "#PWR0102"
-			(at 74.93 162.56 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+VBUS"
-			(at 74.93 158.75 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 74.93 162.56 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 74.93 162.56 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 74.93 162.56 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "ef46835d-26cb-454d-8885-4c4bb19e5e81")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
-					(reference "#PWR0102")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "0_passives:R_0402")
-		(at 74.93 177.8 0)
+		(at 34.29 153.67 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4811,7 +4624,7 @@
 		(dnp no)
 		(uuid "6d7ddcd3-5b56-45f0-9921-a5b6341c0f0f")
 		(property "Reference" "R47"
-			(at 76.835 177.165 0)
+			(at 36.195 153.035 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4822,7 +4635,7 @@
 			)
 		)
 		(property "Value" "100k 1%"
-			(at 76.835 179.705 0)
+			(at 36.195 155.575 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4833,7 +4646,7 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 74.93 177.8 0)
+			(at 34.29 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4844,7 +4657,7 @@
 			)
 		)
 		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8579705919464263680"
-			(at 74.93 177.8 0)
+			(at 34.29 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4855,7 +4668,7 @@
 			)
 		)
 		(property "Description" "Resistor, 100k, 1%, 100ppm, 1/16W, 1005, 0402"
-			(at 74.93 177.8 0)
+			(at 34.29 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4866,7 +4679,7 @@
 			)
 		)
 		(property "LCSC" "C25741"
-			(at 74.93 177.8 0)
+			(at 34.29 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4877,7 +4690,7 @@
 			)
 		)
 		(property "Manufacturer" "UNI-ROYAL(Uniroyal Elec)"
-			(at 74.93 177.8 0)
+			(at 34.29 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4888,7 +4701,7 @@
 			)
 		)
 		(property "Manufacturer Part Number" "0402WGF1003TCE"
-			(at 74.93 177.8 0)
+			(at 34.29 153.67 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4915,7 +4728,7 @@
 	)
 	(symbol
 		(lib_id "0_passives:R_0402")
-		(at 69.85 167.64 0)
+		(at 29.21 143.51 0)
 		(mirror y)
 		(unit 1)
 		(body_style 1)
@@ -4926,7 +4739,7 @@
 		(dnp no)
 		(uuid "75672fd2-faa3-43db-b5ba-e17372db24b2")
 		(property "Reference" "R46"
-			(at 67.945 167.165 0)
+			(at 27.305 143.035 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4937,7 +4750,7 @@
 			)
 		)
 		(property "Value" "100k 1%"
-			(at 67.945 169.705 0)
+			(at 27.305 145.575 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4948,7 +4761,7 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 69.85 167.64 0)
+			(at 29.21 143.51 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4959,7 +4772,7 @@
 			)
 		)
 		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8579705919464263680"
-			(at 69.85 167.64 0)
+			(at 29.21 143.51 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4970,7 +4783,7 @@
 			)
 		)
 		(property "Description" "Resistor, 100k, 1%, 100ppm, 1/16W, 1005, 0402"
-			(at 69.85 167.64 0)
+			(at 29.21 143.51 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4981,7 +4794,7 @@
 			)
 		)
 		(property "LCSC" "C25741"
-			(at 69.85 167.64 0)
+			(at 29.21 143.51 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4992,7 +4805,7 @@
 			)
 		)
 		(property "Manufacturer" "UNI-ROYAL(Uniroyal Elec)"
-			(at 69.85 167.64 0)
+			(at 29.21 143.51 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5003,7 +4816,7 @@
 			)
 		)
 		(property "Manufacturer Part Number" "0402WGF1003TCE"
-			(at 69.85 167.64 0)
+			(at 29.21 143.51 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5107,7 +4920,7 @@
 	)
 	(symbol
 		(lib_id "0_passives:C_0603")
-		(at 87.63 186.69 0)
+		(at 46.99 162.56 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -5117,7 +4930,7 @@
 		(dnp no)
 		(uuid "90fc76a3-c5d3-4941-b1af-6c1b4643ea0d")
 		(property "Reference" "C52"
-			(at 90.805 186.055 0)
+			(at 50.165 161.925 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5128,7 +4941,7 @@
 			)
 		)
 		(property "Value" "100n X7R 100V"
-			(at 90.805 188.595 0)
+			(at 50.165 164.465 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5139,7 +4952,7 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 87.63 186.69 0)
+			(at 46.99 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5150,7 +4963,7 @@
 			)
 		)
 		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8586178586332446721"
-			(at 87.63 186.69 0)
+			(at 46.99 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5161,7 +4974,7 @@
 			)
 		)
 		(property "Description" "Capacitor, 100nF, 10%, X7R, 100V, 1608, 0603"
-			(at 87.63 186.69 0)
+			(at 46.99 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5172,7 +4985,7 @@
 			)
 		)
 		(property "LCSC" "C15725"
-			(at 87.63 186.69 0)
+			(at 46.99 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5183,7 +4996,7 @@
 			)
 		)
 		(property "Manufacturer" "Samsung Electro-Mechanics"
-			(at 87.63 186.69 0)
+			(at 46.99 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5194,7 +5007,7 @@
 			)
 		)
 		(property "Manufacturer Part Number" "CL10B104KC8NNNC"
-			(at 87.63 186.69 0)
+			(at 46.99 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6563,7 +6376,7 @@
 	)
 	(symbol
 		(lib_id "0_passives:R_0402")
-		(at 74.93 186.69 0)
+		(at 34.29 162.56 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -6573,7 +6386,7 @@
 		(dnp no)
 		(uuid "fa102daf-c8b0-4d5f-a568-e400471af07d")
 		(property "Reference" "R48"
-			(at 76.835 186.055 0)
+			(at 36.195 161.925 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6584,7 +6397,7 @@
 			)
 		)
 		(property "Value" "10k 1%"
-			(at 76.835 188.595 0)
+			(at 36.195 164.465 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6595,7 +6408,7 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 74.93 186.69 0)
+			(at 34.29 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6606,7 +6419,7 @@
 			)
 		)
 		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8556212101498380288"
-			(at 74.93 186.69 0)
+			(at 34.29 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6617,7 +6430,7 @@
 			)
 		)
 		(property "Description" "Resistor, 10k, 1%, ±25ppm, 1/16W, 1005, 0402"
-			(at 74.93 186.69 0)
+			(at 34.29 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6628,7 +6441,7 @@
 			)
 		)
 		(property "LCSC" "C25744"
-			(at 74.93 186.69 0)
+			(at 34.29 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6639,7 +6452,7 @@
 			)
 		)
 		(property "Manufacturer" "UNI-ROYAL(Uniroyal Elec)"
-			(at 74.93 186.69 0)
+			(at 34.29 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6650,7 +6463,7 @@
 			)
 		)
 		(property "Manufacturer Part Number" "0402WGF1002TCE"
-			(at 74.93 186.69 0)
+			(at 34.29 162.56 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)

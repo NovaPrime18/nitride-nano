@@ -50,7 +50,23 @@
         "silk_text_thickness": 0.1,
         "silk_text_upright": false,
         "zones": {
-          "min_clearance": 0.5
+          "border_display_style": 2,
+          "border_hatch_pitch": 0.5,
+          "corner_radius": 0.0,
+          "corner_smoothing": 0,
+          "fill_mode": 0,
+          "hatch_gap": 1.5,
+          "hatch_orientation": 0.0,
+          "hatch_smoothing_level": 0,
+          "hatch_smoothing_value": 0.1,
+          "hatch_thickness": 1.0,
+          "min_clearance": 0.3,
+          "min_island_area": 10.0,
+          "min_thickness": 0.25,
+          "pad_connection": 1,
+          "remove_islands": 0,
+          "thermal_relief_gap": 0.3,
+          "thermal_relief_spoke_width": 0.5
         }
       },
       "diff_pair_dimensions": [],
@@ -140,7 +156,7 @@
         "min_track_width": 0.2,
         "min_via_annular_width": 0.1,
         "min_via_diameter": 0.5,
-        "solder_mask_to_copper_clearance": 0.0,
+        "solder_mask_to_copper_clearance": 0.005,
         "use_height_for_length_calcs": true
       },
       "teardrop_options": [
@@ -672,7 +688,7 @@
         "uuid": "aaad0350-e7db-44d5-b7ef-99e6416f6948"
       }
     ],
-    "used_designators": "SW1,H1-4,J4-6,R58-60,Y1,#PWR11-12,#PWR97,#PWR101,#PWR104-107,#PWR110-111,#PWR117-126,#PWR168-172,D15,C14,C71-78,F1,U12",
+    "used_designators": "NT2,S1-3,C79-85,#PWR12,#PWR21,#PWR55,#PWR127-139,#PWR173-177,JP13,R53,R61-73",
     "variants": []
   },
   "sheets": [
