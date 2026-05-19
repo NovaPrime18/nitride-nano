@@ -4,6 +4,11 @@
 	(generator_version "10.0")
 	(uuid "890438b5-9a92-4e6c-8160-3638b53484f3")
 	(paper "A3")
+	(title_block
+		(title "Nitride-Nano")
+		(date "2026-05-07")
+		(rev "R1")
+	)
 	(lib_symbols
 		(symbol "0_PD240W:74LVC1G08SE-7"
 			(exclude_from_sim no)
