@@ -8146,6 +8146,16 @@
 		)
 		(uuid "ff674b9f-f9dd-4051-b56f-943d981fccbb")
 	)
+	(label "VREF"
+		(at 104.14 194.31 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "04a62c9f-b047-426a-8522-00cb19882b1a")
+	)
 	(label "LOADTG"
 		(at 96.52 184.15 180)
 		(effects
@@ -8155,16 +8165,6 @@
 			(justify right bottom)
 		)
 		(uuid "0e2e8e53-252f-49ef-857e-f2f449796c8f")
-	)
-	(label "Vref"
-		(at 104.14 194.31 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "2677bbe5-9ebe-45e1-8bee-9b7fbeeaa1fb")
 	)
 	(label "INTVCC"
 		(at 241.3 71.12 180)

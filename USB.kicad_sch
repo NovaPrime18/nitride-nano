@@ -4594,12 +4594,6 @@
 		(uuid "8d295abf-b2b9-4776-a803-fdba507ef843")
 	)
 	(junction
-		(at 281.94 144.78)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "8e848f27-50e4-48ac-b192-cc7a81b9ec44")
-	)
-	(junction
 		(at 161.29 46.99)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -4622,12 +4616,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "a39d0096-0aff-4e48-a22e-b53efc27e6a4")
-	)
-	(junction
-		(at 292.1 144.78)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "a49d0fbc-a8ab-461c-8124-a9ca9c91cec8")
 	)
 	(junction
 		(at 95.25 96.52)
@@ -4876,26 +4864,6 @@
 	)
 	(wire
 		(pts
-			(xy 292.1 142.24) (xy 281.94 142.24)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "0ec1bc6f-8df3-4ef2-9bc2-d7ff83079636")
-	)
-	(wire
-		(pts
-			(xy 35.56 207.01) (xy 60.96 207.01)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "113c570e-a31c-4b51-b4f5-eab0000d6740")
-	)
-	(wire
-		(pts
 			(xy 226.06 194.31) (xy 238.76 194.31)
 		)
 		(stroke
@@ -4903,16 +4871,6 @@
 			(type default)
 		)
 		(uuid "116ec1d2-f325-4664-9593-f4bda95049a7")
-	)
-	(wire
-		(pts
-			(xy 35.56 222.25) (xy 60.96 222.25)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "11764515-6969-48ed-8c10-4ce092e974ba")
 	)
 	(wire
 		(pts
@@ -4983,16 +4941,6 @@
 			(type default)
 		)
 		(uuid "1dbf60eb-e765-4501-9837-6af0a2496844")
-	)
-	(wire
-		(pts
-			(xy 281.94 142.24) (xy 281.94 144.78)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "1f1fee29-00fe-493f-854e-05ab916af92d")
 	)
 	(wire
 		(pts
@@ -5823,16 +5771,6 @@
 			(type default)
 		)
 		(uuid "ab4aba15-a5ac-4ad7-8fbe-48882380b58a")
-	)
-	(wire
-		(pts
-			(xy 292.1 144.78) (xy 292.1 142.24)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "ab9547a5-4d8b-4909-92db-c7752bd72221")
 	)
 	(wire
 		(pts
@@ -7434,16 +7372,6 @@
 		)
 		(uuid "b3ef9e39-5d41-4442-92c8-cef254990c8e")
 	)
-	(label "+VBUS_LV/2"
-		(at 35.56 222.25 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "b9e85e1f-56cd-40a1-a947-d80afcb12d65")
-	)
 	(label "USB_D_C_N"
 		(at 208.28 179.07 0)
 		(effects
@@ -7463,16 +7391,6 @@
 			(justify right bottom)
 		)
 		(uuid "c6ee7753-127b-432a-bff0-87adb6ca10fc")
-	)
-	(label "EPR_BLK_G"
-		(at 35.56 207.01 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "c8060a69-7520-4025-a9b0-524073415198")
 	)
 	(label "CC1_C"
 		(at 50.8 74.93 0)
@@ -8143,7 +8061,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "Altium_port:SolderJumper-2_P1.3mm_Bridged2Bar_RoundedPad1.0x1.5mm"
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Bridged2Bar_RoundedPad1.0x1.5mm"
 			(at 287.02 144.78 0)
 			(hide yes)
 			(show_name no)
@@ -8916,96 +8834,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
 					(reference "#PWR0140")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 60.96 222.25 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "3f5c7c99-77c4-4b17-b6b2-be8be430d1f5")
-		(property "Reference" "TP13"
-			(at 66.04 222.25 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "tp_round_70"
-			(at 57.15 220.98 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
-			(at 60.96 222.25 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 60.96 222.25 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Test Point, Round, 0.7mm"
-			(at 60.96 222.25 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" ""
-			(at 60.96 222.25 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "fed948c5-fde6-4d78-b3f3-67db6a4a95b3")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "TP13")
 					(unit 1)
 				)
 			)
@@ -11339,96 +11167,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
 					(reference "C36")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 60.96 207.01 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "cc417fb4-cf78-4aaf-90ca-9e9575e2261e")
-		(property "Reference" "TP10"
-			(at 66.04 207.01 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "tp_round_70"
-			(at 57.15 205.74 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
-			(at 60.96 207.01 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 60.96 207.01 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Test Point, Round, 0.7mm"
-			(at 60.96 207.01 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" ""
-			(at 60.96 207.01 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "15114599-911d-403d-a3fb-143ae9295835")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "TP10")
 					(unit 1)
 				)
 			)
