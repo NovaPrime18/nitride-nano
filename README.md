@@ -1,4 +1,4 @@
-# Nitride-nano
+# nitride-nano
 
 **Pocket-sized GaN buck/boost converter with USB-C PD input**
 
