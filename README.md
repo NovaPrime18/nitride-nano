@@ -1,9 +1,14 @@
-# nitride-nano
+# Nitride-nano
 
 **Pocket-sized GaN buck/boost converter with USB-C PD input**
 
 [![License: CERN-OHL-S v2.0](https://img.shields.io/badge/License-CERN--OHL--S%20v2.0-blue.svg)](https://ohwr.org/cern_ohl_s_v2.txt)
 [![KiCad](https://img.shields.io/badge/Made%20with-KiCad-blue)](https://www.kicad.org/)
+
+<table><tr>
+<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Screenshot_20260521_165111.png" width="100%"></td>
+<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Screenshot_20260521_165131.png" width="100%"></td>
+</tr></table>
 
 ---
 
