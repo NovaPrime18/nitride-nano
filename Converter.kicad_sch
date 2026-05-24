@@ -4559,6 +4559,17 @@
 		)
 		(uuid "39e3f083-88a9-4783-a258-34a64f479676")
 	)
+	(text "5A standard limit"
+		(exclude_from_sim no)
+		(at 80.01 148.082 0)
+		(effects
+			(font
+				(face "Comfortaa Light")
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "656cf9e8-54d5-468f-8793-968cf5373fa3")
+	)
 	(text "5V standard output"
 		(exclude_from_sim no)
 		(at 337.058 193.04 0)
@@ -4570,7 +4581,7 @@
 		)
 		(uuid "82bb3761-5577-420d-b63b-cd3f3c8807e5")
 	)
-	(text "SSFM On"
+	(text "SSFM Off\n"
 		(exclude_from_sim no)
 		(at 77.978 176.784 0)
 		(effects
@@ -5908,16 +5919,6 @@
 	)
 	(wire
 		(pts
-			(xy 72.39 181.61) (xy 71.12 181.61)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "4de03ed7-013a-4e3a-ac7f-6480405f64d4")
-	)
-	(wire
-		(pts
 			(xy 184.15 157.48) (xy 184.15 130.81)
 		)
 		(stroke
@@ -6398,6 +6399,16 @@
 	)
 	(wire
 		(pts
+			(xy 62.23 173.99) (xy 67.31 173.99)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "792a0a26-1d82-45d7-a113-00a41b665512")
+	)
+	(wire
+		(pts
 			(xy 88.9 102.87) (xy 88.9 106.68)
 		)
 		(stroke
@@ -6615,16 +6626,6 @@
 			(type default)
 		)
 		(uuid "8a9c358a-c08e-4ef4-9305-ceccecf06f0b")
-	)
-	(wire
-		(pts
-			(xy 60.96 175.26) (xy 60.96 173.99)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8bfd5f62-f48f-456e-998f-765f361f8672")
 	)
 	(wire
 		(pts
@@ -7018,16 +7019,6 @@
 	)
 	(wire
 		(pts
-			(xy 60.96 173.99) (xy 67.31 173.99)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a8785eb3-115e-411c-adb0-0694ae6c78dd")
-	)
-	(wire
-		(pts
 			(xy 328.93 95.25) (xy 335.28 95.25)
 		)
 		(stroke
@@ -7215,16 +7206,6 @@
 			(type default)
 		)
 		(uuid "b3f1d815-ae08-4ea1-afde-83d0d54bbc99")
-	)
-	(wire
-		(pts
-			(xy 72.39 177.8) (xy 72.39 181.61)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "b4c92ed2-64d1-434f-bfe5-687088349a0b")
 	)
 	(wire
 		(pts
@@ -8098,6 +8079,16 @@
 	)
 	(wire
 		(pts
+			(xy 72.39 180.34) (xy 72.39 177.8)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f962d03a-2d6e-4eaa-ad6a-9c25e8b652c5")
+	)
+	(wire
+		(pts
 			(xy 231.14 71.12) (xy 241.3 71.12)
 		)
 		(stroke
@@ -8167,6 +8158,16 @@
 		(uuid "0e2e8e53-252f-49ef-857e-f2f449796c8f")
 	)
 	(label "INTVCC"
+		(at 62.23 173.99 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "1079621b-932d-4a22-a114-65789b1f86ea")
+	)
+	(label "INTVCC"
 		(at 241.3 71.12 180)
 		(effects
 			(font
@@ -8215,16 +8216,6 @@
 			(justify left bottom)
 		)
 		(uuid "b61ba6b4-1ce4-4c97-9010-14cc6a6bb026")
-	)
-	(label "INTVCC"
-		(at 71.12 181.61 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "cb94b441-4a37-4d0a-b55f-856203d59b5f")
 	)
 	(label "VREF"
 		(at 68.58 129.54 180)
@@ -8622,6 +8613,83 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
 					(reference "R24")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 72.39 180.34 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "035f43ba-249b-457e-b3a7-06b37eb78f10")
+		(property "Reference" "#PWR022"
+			(at 72.39 186.69 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 72.39 183.896 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 72.39 180.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 72.39 180.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 72.39 180.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "f725e717-8a6a-47b1-93e6-fa8b1728167e")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
+					(reference "#PWR022")
 					(unit 1)
 				)
 			)
@@ -9957,7 +10025,7 @@
 				)
 			)
 		)
-		(property "Value" "6.2"
+		(property "Value" "1.5"
 			(at 281.94 153.67 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13001,7 +13069,7 @@
 				)
 			)
 		)
-		(property "Value" "3.3"
+		(property "Value" "0.5"
 			(at 190.5 127 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13462,83 +13530,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
 					(reference "R15")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:GND")
-		(at 60.96 175.26 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "7e4a1e23-5e0b-45b1-aa1f-8b4165292b73")
-		(property "Reference" "#PWR037"
-			(at 60.96 181.61 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND"
-			(at 60.96 178.816 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 60.96 175.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 60.96 175.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 60.96 175.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "017d5ed2-a45b-4931-b7ab-3621768c45c9")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
-					(reference "#PWR037")
 					(unit 1)
 				)
 			)
@@ -15555,7 +15546,6 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "ab7b4533-b912-44f6-a32d-2414f7b747f9")
 		(property "Reference" "JP1"
 			(at 72.39 167.64 0)

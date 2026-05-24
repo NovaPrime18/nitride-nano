@@ -1,0 +1,26 @@
+24Vin 2MHz 5A 24Vout = 4.63W verlies 680nH 11A ripple OG Fets
+
+24Vin 1MHz 10A 24Vout = 3.3W verlies
+
+28Vin 1MHz 14.5A 14.2Vout = 6.98W verlies
+
+28Vin 1MHz 14.5A 14.2Vout = 5.4259608W Verlies met nieuwe fets
+
+28Vin 1MHz 20A 14.2Vout = 6.61 Verlies met nieuwe fets
+
+28Vin 1MHz 3A 44Vout = 31.73W Verlies met nieuwe fets
+
+28Vin 1MHz 2A 53Vout = 37.34 Verlies met nieuwe fets
+
+28Vin 600kHz 2A 53Vout = 22.95 Verlies met nieuwe fets
+
+28Vin 600kHz 2A 53Vout = 24.89 Verlies met nieuwe fets gigantische 10u inductor
+
+
+
+48Vin 600KHz 57Vout 4A = 5.07W Met 2Ohm Q3 weerstand en ongeveer 16App ripple op L1
+
+48Vin 1MHz 5Vout 20A = 11W L1 1uH 5A ripple
+20Vin 1MHz 5Vout 20A = 4.78W total Fet losses
+48Vin 1MHz 18Vout 18A = 8.91W Total Fet losses
+48Vin 1MHz 14.5Vout 14.5A = 9.61W Total Fet losses
