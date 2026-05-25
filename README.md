@@ -6,10 +6,10 @@
 [![KiCad](https://img.shields.io/badge/Made%20with-KiCad-blue)](https://www.kicad.org/)
 
 <table><tr>
-<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Screenshot_20260521_165111.png" width="100%"></td>
-<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Screenshot_20260521_165131.png" width="100%"></td>
+<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/nitride-nano-f-n.png" width="100%"></td>
+<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/nitride-nano-b.png" width="100%"></td>
 </tr></table>
-
+<img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/nitride-nano-f.png" width="100%">
 ---
 
 ## Overview
