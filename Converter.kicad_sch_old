@@ -4559,16 +4559,6 @@
 		)
 		(uuid "39e3f083-88a9-4783-a258-34a64f479676")
 	)
-	(text "Was; CMOZ5L1"
-		(exclude_from_sim no)
-		(at 236.474 114.554 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-		)
-		(uuid "63771b99-89b0-4bfa-acb6-aaf1526603bc")
-	)
 	(text "5A standard limit"
 		(exclude_from_sim no)
 		(at 80.01 148.082 0)
@@ -12677,7 +12667,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C77131"
+		(property "LCSC" "C95939"
 			(at 254 267.97 0)
 			(hide yes)
 			(show_name no)
@@ -13376,7 +13366,7 @@
 				)
 			)
 		)
-		(property "Value" "0"
+		(property "Value" "0.5"
 			(at 190.5 127 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13410,17 +13400,6 @@
 		)
 		(property "Description" "Resistor, small symbol"
 			(at 190.5 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "JLC" "C60485"
-			(at 190.5 129.54 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13545,8 +13524,8 @@
 				(justify left)
 			)
 		)
-		(property "Value" "BZX58550-C5V1X"
-			(at 258.318 132.334 90)
+		(property "Value" "CMOZ5L1"
+			(at 255.016 129.794 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -13580,17 +13559,6 @@
 		)
 		(property "Description" "Zener diode"
 			(at 250.19 123.19 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "JLC" "C3736541"
-			(at 250.19 123.19 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16479,8 +16447,8 @@
 				(justify left)
 			)
 		)
-		(property "Value" "BZX58550-C5V1X"
-			(at 228.854 129.794 90)
+		(property "Value" "CMOZ5L1"
+			(at 232.918 129.794 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -16514,17 +16482,6 @@
 		)
 		(property "Description" "Zener diode"
 			(at 237.49 123.19 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "JLC" "C3736541"
-			(at 237.49 123.19 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
