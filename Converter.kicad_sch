@@ -4580,9 +4580,9 @@
 		)
 		(uuid "656cf9e8-54d5-468f-8793-968cf5373fa3")
 	)
-	(text "5V standard output"
+	(text "36.7V standard output"
 		(exclude_from_sim no)
-		(at 337.058 193.04 0)
+		(at 340.36 194.056 0)
 		(effects
 			(font
 				(face "Comfortaa Light")
@@ -16025,7 +16025,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "40k"
+		(property "Value" "357k"
 			(at 324.104 193.802 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -16069,7 +16069,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C137983"
+		(property "LCSC" "C27005"
 			(at 323.596 192.024 0)
 			(hide yes)
 			(show_name no)

@@ -1604,6 +1604,12 @@
 		(uuid "434dc6c2-4420-4dfd-9ed7-4abca51fa2b1")
 	)
 	(junction
+		(at 171.45 119.38)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "6492db82-dc3b-4fdb-9b56-5848127104da")
+	)
+	(junction
 		(at 177.8 104.14)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -1758,6 +1764,16 @@
 			(type default)
 		)
 		(uuid "2b3f2c09-7eef-44a0-826a-ac69f78fab73")
+	)
+	(bus
+		(pts
+			(xy 182.88 161.29) (xy 171.45 161.29)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2eab8265-0f6c-41fb-8c93-d950afb71be3")
 	)
 	(wire
 		(pts
@@ -2161,7 +2177,7 @@
 	)
 	(bus
 		(pts
-			(xy 163.83 119.38) (xy 186.69 119.38)
+			(xy 163.83 119.38) (xy 171.45 119.38)
 		)
 		(stroke
 			(width 0)
@@ -2289,6 +2305,16 @@
 		)
 		(uuid "b9fc9916-3bf5-40b2-9551-affdb13a006c")
 	)
+	(bus
+		(pts
+			(xy 171.45 161.29) (xy 171.45 119.38)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bcfc3f94-38f8-4366-abe9-935e4529f143")
+	)
 	(wire
 		(pts
 			(xy 166.37 81.28) (xy 166.37 82.55)
@@ -2378,6 +2404,16 @@
 			(type default)
 		)
 		(uuid "eb00ad0b-20f9-4b1f-861b-75919804de95")
+	)
+	(bus
+		(pts
+			(xy 171.45 119.38) (xy 186.69 119.38)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "eb24677e-7720-43f8-9642-9bb85c0d62d3")
 	)
 	(wire
 		(pts
@@ -4916,6 +4952,16 @@
 					(size 1.27 1.27)
 				)
 				(justify right)
+			)
+		)
+		(pin "{I2C0}" bidirectional
+			(at 182.88 161.29 180)
+			(uuid "2c1dc01d-eda4-487c-b881-202839b8d102")
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
 			)
 		)
 		(instances
