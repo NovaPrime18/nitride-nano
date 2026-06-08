@@ -11,19 +11,25 @@ use embassy_stm32::timer::qei::{Qei, QeiPin};
 use embassy_stm32::pac::vrefbuf::vals::{Hiz, Vrs};
 use embassy_stm32::vrefbuf::VoltageReferenceBuffer;
 use embassy_stm32::{bind_interrupts, peripherals, Config};
+use embassy_stm32::rcc::*;
 use embassy_time::{Duration, Instant, Timer};
-use panic_halt as _;
+use defmt_rtt as _;
+use panic_probe as _;
+// remove: use panic_halt as _;
 
 use nitride_firmware::board;
 use nitride_firmware::control::supply::SupplyController;
 use nitride_firmware::drivers::ssd1306_ui::Ssd1306Ui;
+//use nitride_firmware::drivers::ssd1306_init::initialize_ssd1306;  // Correct the import
+// use nitride_firmware::drivers::ssd1306_init::initialize_ssd1306;  // Comment out the unused import for now
 use nitride_firmware::drivers::tps26750::Tps26750;
 use nitride_firmware::hal::converter_enable::ConverterEnable;
 use nitride_firmware::pd::manager::PdManager;
 use nitride_firmware::sense::adc_sense::AdcSense;
 use nitride_firmware::state::AppState;
 use nitride_firmware::ui::input::InputHandler;
-use nitride_firmware::ui::menu::{apply_input, UiTask};
+use nitride_firmware::ui::menu::apply_input;
+
 
 bind_interrupts!(struct Irqs {
     I2C3_EV => embassy_stm32::i2c::EventInterruptHandler<peripherals::I2C3>;
@@ -32,7 +38,11 @@ bind_interrupts!(struct Irqs {
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
-    let p = embassy_stm32::init(Config::default());
+    let mut config = Config::default();
+    config.rcc.mux.adc12sel = mux::Adcsel::SYS; 
+    config.rcc.mux.adc345sel = mux::Adcsel::SYS;
+    
+    let p = embassy_stm32::init(config);
 
     let _vref = VoltageReferenceBuffer::new(p.VREFBUF, Vrs::VREF1, Hiz::CONNECTED);
 
@@ -42,6 +52,7 @@ async fn main(_spawner: Spawner) {
         DacChannel::new_blocking(p.DAC2, p.PA6);
     dac_cv.set(Value::Bit12Right(0));
     dac_cc.set(Value::Bit12Right(0));
+
 
     let mut adc1 = Adc::new(p.ADC1);
     adc1.set_resolution(Resolution::BITS12);
@@ -58,6 +69,10 @@ async fn main(_spawner: Spawner) {
     let mut pin_isense = p.PA3;
     let mut pin_vbus = p.PA7;
     let mut pin_temp_in = p.PA9;
+
+    defmt::timestamp!("{=u64:us}", {
+    embassy_time::Instant::now().as_micros()
+    });
 
     let mut conv_en = ConverterEnable::new(Output::new(
         p.PA11,
@@ -97,11 +112,22 @@ async fn main(_spawner: Spawner) {
     let mut supply = SupplyController::new();
     let mut sense = AdcSense::new();
     let mut input = InputHandler::new();
-    let mut ui = Ssd1306Ui::new();
+    // No change needed here, but ensure the function is correctly imported
+let mut ui = Ssd1306Ui::new();  // Remove the display argument
     let mut pd_mgr = PdManager::new();
     let mut tps = Tps26750::new(board::TPS26750_ADDR);
+    defmt::info!("Display init OK");
 
-    let _ = ui.init(&mut i2c).await;
+    // in your draw loop, temporarily:
+    defmt::info!("Drawing frame...");
+    let result = ui.init(&mut i2c).await;
+    match result {
+    Ok(_) => defmt::info!("Flush OK"),
+    Err(_) => defmt::error!("Flush FAILED - I2C error"),
+}
+if let Err(e) = result {
+    panic!("Failed to initialize SSD1306: {:?}", e);
+}
     if tps.init(&mut i2c).await {
         app.pd_cap_count = tps.get_source_capabilities(&mut i2c, &mut app.pd_caps).await;
     }
@@ -153,10 +179,10 @@ async fn main(_spawner: Spawner) {
                 .await;
         }
 
-        if now.duration_since(t_ui) >= Duration::from_millis(board::UI_REFRESH_MS) {
-            t_ui = now;
-            let _ = UiTask::draw(&mut ui, &mut i2c, &app).await;
-        }
+if now.duration_since(t_ui) >= Duration::from_millis(board::UI_REFRESH_MS) {
+    t_ui = now;
+    ui.draw_power_screen(&mut i2c, &app).await.ok();
+}
 
         Timer::after(Duration::from_micros(100)).await;
     }

@@ -5293,6 +5293,16 @@
 			(embedded_fonts no)
 		)
 	)
+	(text "Reset button please\nand tagconnect reset"
+		(exclude_from_sim no)
+		(at 194.056 93.98 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "a4cb933f-4d84-4090-ba0f-f02a7d3c8787")
+	)
 	(junction
 		(at 190.5 111.76)
 		(diameter 0)
