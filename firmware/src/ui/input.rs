@@ -57,6 +57,10 @@ impl InputHandler {
                 self.debounce[idx] = now;
             }
         } else if !pressed {
+            if self.held[idx] {
+                // ADD THIS: Reset the debounce timer upon release
+                self.debounce[idx] = now; 
+            }
             self.held[idx] = false;
         }
     }

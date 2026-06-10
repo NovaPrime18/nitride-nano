@@ -14,6 +14,7 @@ use ssd1306::{prelude::*, I2CDisplay};
 /// * `display` - A mutable reference to the SSD1306 display instance.
 /// * `message` - The message to display.
 pub fn show_message(display: &mut I2CDisplay<_, ssd1306::prelude::I2CInterface<_>>, message: &str) {
+    println!("Displaying message: {}", message);
     let style = MonoTextStyleBuilder::new()
         .font(&FONT_6X8)
         .text_color(BinaryColor::On)

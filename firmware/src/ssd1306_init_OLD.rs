@@ -18,6 +18,8 @@ pub fn initialize_ssd1306() -> I2CDisplay<I2c<pac::I2C3>, ssd1306::prelude::I2CI
 
     let interface = ssd1306::I2CInterface::new(i2c);
     let mut display = I2CDisplay::new(interface, DisplaySize128x64, DisplayRotation::Rotate0);
+display.clear().unwrap(); // Clear the display after initialization
+println!("Display initialized successfully");
 
     // Initialize the display
     display.init().unwrap();

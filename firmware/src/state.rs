@@ -78,8 +78,8 @@ impl Default for SupplyState {
         Self {
             mode: SupplyMode::Off,
             enabled: false,
-            v_set_mv: 5_000,
-            i_set_ma: 1_000,
+            v_set_mv: 30_000,
+            i_set_ma: 5_000,
             v_slewed_mv: 0,
             fault: Fault::None,
             input_power_cap_mw: board::POWER_MAX_MW,

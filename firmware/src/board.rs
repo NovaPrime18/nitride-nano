@@ -13,7 +13,7 @@ pub const CV_SLEW_MV_PER_S: u32 = 1_000;
 pub const NTC_BETA: f32 = 3950.0;
 pub const NTC_R25_OHM: f32 = 10_000.0;
 pub const NTC_PULLUP_OHM: f32 = 10_000.0;
-pub const NTC_OVERTEMP_C: i32 = 85;
+pub const NTC_OVERTEMP_C: i32 = 110;
 pub const NTC_DERATE_START_C: i32 = 70;
 
 /// ADC full-scale reference (VREF+ = VDDA unless VREFBUF used for DAC only).
@@ -24,7 +24,7 @@ pub const ADC_MAX: u32 = 65535; // 16-bit oversampled
 /// TODO: derive from Converter.kicad_sch resistor networks.
 pub const VOUT_SENSE_NUM: u32 = 60_000; // mV at full scale
 pub const ISENSE_MV_PER_A: u32 = 50; // mV/A at ISMON node (placeholder)
-pub const VBUS_SENSE_NUM: u32 = 60_000;
+pub const VBUS_SENSE_NUM: u32 = 69_600;
 
 /// DAC 12-bit, VREFBUF target ~2.5 V
 pub const DAC_MAX_CODE: u16 = 4095;

@@ -2,7 +2,7 @@ use embassy_stm32::i2c::{I2c, Master};
 use embassy_stm32::mode::Async;
 
 use crate::drivers::ssd1306_ui::Ssd1306Ui;
-use crate::state::{AppState, MenuScreen, SupplyMode};
+use crate::state::{AppState, MenuScreen, SupplyMode, Fault};
 use crate::ui::input::InputEvent;
 
 pub struct UiTask;
@@ -31,7 +31,12 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
                 app.supply.mode = SupplyMode::Cc;
             }
             InputEvent::EncBtn => {
-                app.supply.enabled = !app.supply.enabled;
+                if app.supply.fault != Fault::None {
+                    app.supply.fault = Fault::None; // Clear the fault state
+                    app.supply.enabled = !app.supply.enabled; // Normal toggle
+                } else {
+                    app.supply.enabled = !app.supply.enabled; // Normal toggle
+                }
             }
             InputEvent::EncTurn(d) => {
                 let step = step_fine_v;
@@ -42,8 +47,19 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
                 }
             }
         },
-        MenuScreen::CvSetpoint => adjust_voltage(app, ev, step_coarse_v, step_fine_v),
-        MenuScreen::CcLimit => adjust_current(app, ev, step_coarse_i, step_fine_i),
+        // Inside menu.rs -> apply_input -> MenuScreen::CvSetpoint
+        MenuScreen::CvSetpoint => {
+            adjust_voltage(app, ev, step_coarse_v, step_fine_v);
+            if ev == InputEvent::Btn3 {
+                app.ui.screen = MenuScreen::CcLimit; // Move to the next setting
+            }
+        },
+        MenuScreen::CcLimit => {
+            adjust_current(app, ev, step_coarse_i, step_fine_i);
+            if ev == InputEvent::Btn3 {
+                app.ui.screen = MenuScreen::Enable; // Move to the next setting
+            }
+        },
         MenuScreen::Enable => match ev {
             InputEvent::Btn1 | InputEvent::EncBtn => {
                 app.supply.enabled = true;

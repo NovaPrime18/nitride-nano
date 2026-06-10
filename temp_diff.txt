@@ -1,0 +1,6 @@
+------- SEARCH
+use crate::eeprom_loader::{EepromLoader, LoaderState};
+=======
+use crate::eeprom_loader::{EepromLoader, LoaderState};
+use crate::ui::input::{InputEvent, InputHandler};
++++++++ REPLACE

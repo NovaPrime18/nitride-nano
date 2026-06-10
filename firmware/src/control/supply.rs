@@ -32,19 +32,28 @@ impl SupplyController {
 
         if tele.iout_ma > crate::board::IOUT_MAX_MA {
             app.supply.fault = Fault::OverCurrent;
+            defmt::info!("Fault::OverCurrent");
         } else if tele.vout_mv > crate::board::VOUT_MAX_MV {
             app.supply.fault = Fault::OverVoltage;
+            defmt::info!("Fault::OverVoltage");
         } else if tele.pout_mw > crate::board::POWER_MAX_MW {
             app.supply.fault = Fault::OverPower;
+            defmt::info!("Fault::OverPower");
         } else if tele.temp_conv_c > crate::board::NTC_OVERTEMP_C
             || tele.temp_input_c > crate::board::NTC_OVERTEMP_C
         {
             app.supply.fault = Fault::OverTemp;
+            defmt::info!(
+                "Fault::OverTemp! conv_c: {}, input_c: {}, limit: {}", 
+                tele.temp_conv_c, 
+                tele.temp_input_c,
+                crate::board::NTC_OVERTEMP_C
+            );
         }
-
+        
         if app.supply.fault != Fault::None {
             app.supply.enabled = false;
-            app.supply.mode = SupplyMode::Off;
+            //app.supply.mode = SupplyMode::Off;
         }
 
         let enabled = app.supply.enabled && app.supply.fault == Fault::None;

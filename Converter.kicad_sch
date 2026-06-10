@@ -4613,6 +4613,17 @@
 		)
 		(uuid "e7bfdc0d-6bac-43ca-8903-decde6a22a04")
 	)
+	(text "Change to allow for 12V input voltage\n that still enables CNV"
+		(exclude_from_sim no)
+		(at 75.438 75.692 0)
+		(effects
+			(font
+				(face "Comfortaa Light")
+				(size 2 2)
+			)
+		)
+		(uuid "f6fc7079-cb2f-4320-84f1-b61e94a199b6")
+	)
 	(junction
 		(at 157.48 36.83)
 		(diameter 0)

@@ -2282,6 +2282,16 @@
 		)
 		(uuid "7220cef2-a51c-468d-847c-8c32d018db25")
 	)
+	(text "Change to 200k"
+		(exclude_from_sim no)
+		(at 81.026 102.108 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "fe2d8427-2f80-46ca-b776-ea581040582a")
+	)
 	(text_box "ALERT is open-drain and can be configured to latch or not latch the overcurrent event."
 		(exclude_from_sim no)
 		(at 199.39 134.62 0)

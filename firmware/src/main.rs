@@ -56,7 +56,7 @@ async fn main(_spawner: Spawner) {
 
     let mut adc1 = Adc::new(p.ADC1);
     adc1.set_resolution(Resolution::BITS12);
-    adc1.set_sample_time(SampleTime::CYCLES47_5);
+    adc1.set_sample_time(SampleTime::CYCLES640_5);
     let mut adc2 = Adc::new(p.ADC2);
     adc2.set_resolution(Resolution::BITS12);
     adc2.set_sample_time(SampleTime::CYCLES47_5);
