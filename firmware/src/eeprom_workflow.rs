@@ -1,118 +1,105 @@
-//! Port of the tps_eeprom_workflow C++ module.
-//! Manages high-level states like Compare, Confirm, Flash logic.
+//! High-level EEPROM upload workflow used by the OLED UI.
+
+use embassy_stm32::i2c::{I2c, Master};
+use embassy_stm32::mode::Async;
 
 use crate::eeprom_loader::{EepromLoader, LoaderState};
-use crate::ui::input::{InputEvent, InputHandler};
+use crate::ui::input::InputEvent;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorkflowState {
-    Comparing,
     Confirming,
-    LoadingConfig,
     Flashing,
     Done,
     Error,
 }
 
-pub trait ProgressReporter {
-    fn report_progress(&mut self, message: &str);
-}
-
-/// Basic console reporter for progress messages
-pub struct ConsoleProgressReporter;
-
-impl ProgressReporter for ConsoleProgressReporter {
-    fn report_progress(&mut self, message: &str) {
-        println!("{}", message);
-    }
-}
-
-pub struct EepromWorkflow<'a> {
+pub struct EepromWorkflow {
     pub state: WorkflowState,
     pub loader: EepromLoader,
-    pub progress_message: String,
-    input_handler: &'a mut InputHandler,
-    reporter: Option<Box<dyn ProgressReporter>>,
-    display: &'a mut I2CDisplay<_, ssd1306::prelude::I2CInterface<_>>,
 }
 
-impl<'a> EepromWorkflow<'a> {
-
-    pub fn new(loader: EepromLoader, input_handler: &'a mut InputHandler, display: &'a mut I2CDisplay<_, ssd1306::prelude::I2CInterface<_>>) -> Self {
+impl EepromWorkflow {
+    pub fn new() -> Self {
+        let loader = EepromLoader::full_flash();
+        defmt::info!(
+            "EEPROM workflow ready: TPS26750 full-flash image={} bytes",
+            loader.total_size()
+        );
         Self {
-            state: WorkflowState::LoadingConfig,
+            state: WorkflowState::Confirming,
             loader,
-            progress_message: String::from("Loading configuration..."),
-            input_handler,
-            reporter: None,
-            display,
         }
     }
 
-    pub fn set_reporter(&mut self, reporter: Box<dyn ProgressReporter>) {
-        self.reporter = Some(reporter);
+    pub fn handle_input(&mut self, event: InputEvent) {
+        match (self.state, event) {
+            (
+                WorkflowState::Confirming | WorkflowState::Done | WorkflowState::Error,
+                InputEvent::Btn1,
+            )
+            | (
+                WorkflowState::Confirming | WorkflowState::Done | WorkflowState::Error,
+                InputEvent::EncBtn,
+            ) => {
+                defmt::info!("EEPROM workflow start requested");
+                self.loader.start();
+                self.state = WorkflowState::Flashing;
+            }
+            _ => {}
+        }
     }
 
-    /// Executes one iteration of the workflow state machine.
-    pub fn update(&mut self) -> WorkflowState {
-        if let Some(ref mut reporter) = self.reporter {
-            reporter.report_progress(&self.progress_message);
+    pub async fn update(&mut self, i2c: &mut I2c<'_, Async, Master>) -> WorkflowState {
+        if self.state != WorkflowState::Flashing {
+            return self.state;
         }
 
+        match self.loader.update_step(i2c).await {
+            LoaderState::Complete => {
+                defmt::info!("EEPROM workflow complete");
+                self.state = WorkflowState::Done;
+            }
+            LoaderState::Error => {
+                defmt::error!("EEPROM workflow error");
+                self.state = WorkflowState::Error;
+            }
+            _ => {}
+        }
+
+        self.state
+    }
+
+    pub fn title(&self) -> &'static str {
         match self.state {
-            WorkflowState::LoadingConfig => {
-                let mut buffer = [0; EEPROM_PAGE_SIZE];
-                if let Err(e) = self.loader.load_config(&mut buffer) {
-                    if let Some(ref mut reporter) = self.reporter {
-                        reporter.report_progress("Configuration Load Failed.");
-                    }
-                    self.state = WorkflowState::Error;
-                    return WorkflowState::Error;
-                }
-                // Assuming configuration is loaded, proceed to compare
-                self.state = WorkflowState::Comparing;
-                self.progress_message = "Checking EEPROM...";        
-            }
-            WorkflowState::Comparing => {
-                // Logic to check if data is consistent
-                self.state = WorkflowState::Confirming;
-                self.progress_message = "Ready to flash. Press confirm.";
-                WorkflowState::Confirming
-            }
-            WorkflowState::Confirming => {
-                // Check for user input here (e.g., GPIO buttons)
-                let event = self.input_handler.get_event();
-                if event.is_some() && event.as_ref().unwrap().is_confirmation() {
-                    self.state = WorkflowState::Flashing;
-                    self.progress_message = "Flash initiated. Please wait...";
-                }
-                WorkflowState::Confirming
-            }
-            WorkflowState::Flashing => {
-                let loader_status = self.loader.update_step();
-                match loader_status {
-                    LoaderState::Complete => {
-                        if let Some(ref mut reporter) = self.reporter {
-                            reporter.report_progress("Flash Complete!");
-                        }
-                        self.state = WorkflowState::Done;
-                        WorkflowState::Done
-                    }
-                    LoaderState::Error => {
-                        if let Some(ref mut reporter) = self.reporter {
-                            reporter.report_progress("Flash Error.");
-                        }
-                        self.state = WorkflowState::Error;
-                        WorkflowState::Error
-                    }
-                    _ => WorkflowState::Flashing,
-                }
-            }
-            WorkflowState::Done | WorkflowState::Error => self.state.clone(),
+            WorkflowState::Confirming => "EEPROM FLASH",
+            WorkflowState::Flashing => "EEPROM BUSY",
+            WorkflowState::Done => "EEPROM DONE",
+            WorkflowState::Error => "EEPROM ERROR",
         }
     }
 
-    pub fn report_progress(&mut self, message: &str) {
-        ssd1306_ui::show_message(self.display, message);
+    pub fn message(&self) -> &'static str {
+        match self.state {
+            WorkflowState::Confirming => "BTN1 TO START",
+            WorkflowState::Flashing => match self.loader.state {
+                LoaderState::Writing => "WRITING IMAGE",
+                LoaderState::Verifying => "VERIFYING",
+                _ => "STARTING",
+            },
+            WorkflowState::Done => "VERIFY OK",
+            WorkflowState::Error => self.loader.last_error.unwrap_or("FAILED"),
+        }
+    }
+
+    pub fn progress_percent(&self) -> u8 {
+        let total = self.loader.total_size().max(1);
+        ((self.loader.progress_bytes() * 100) / total).min(100) as u8
+    }
+}
+
+impl Default for EepromWorkflow {
+    fn default() -> Self {
+        Self::new()
     }
 }

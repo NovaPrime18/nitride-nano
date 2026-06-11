@@ -36,6 +36,7 @@ pub enum MenuScreen {
     Enable,
     PdProfile,
     Settings,
+    EepromFlash,
 }
 
 #[derive(Clone, Copy, Debug)]

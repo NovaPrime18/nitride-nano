@@ -1,14 +1,19 @@
-//! Port of the tps_eeprom_loader C++ module for EEPROM management.
-//! This handles low-level I2C communication, page management, and write cycles for the CAT24C512.
+//! CAT24C512 EEPROM writer for the TPS26750 full-flash image.
 
-use embedded_hal::i2c::I2c;
+use embassy_stm32::i2c::{Error as I2cError, I2c, Master};
+use embassy_stm32::mode::Async;
+use embassy_time::{Duration, Timer};
 
-pub const EEPROM_I2C_ADDR: u8 = 0x50;
+use crate::board::CAT24C512_ADDR;
+
 pub const EEPROM_PAGE_SIZE: usize = 128;
-pub const EEPROM_WRITE_DELAY_MS: u32 = 6;
-pub const EEPROM_I2C_TIMEOUT_US: u32 = 50_000;
+pub const EEPROM_WRITE_DELAY_MS: u64 = 6;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+include!(concat!(env!("OUT_DIR"), "/tps26750_full_flash.rs"));
+
+pub const TPS26750_FULL_FLASH: &[u8] = &TPS26750_FULL_FLASH_BYTES;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoaderState {
     Idle,
     Writing,
@@ -18,150 +23,270 @@ pub enum LoaderState {
 }
 
 pub struct EepromLoader {
-    /// The I2C peripheral instance.
-    pub i2c: I2c,
+    image: &'static [u8],
     pub state: LoaderState,
-    pub write_offset: usize,
-    pub total_size: usize,
+    pub offset: usize,
     pub last_error: Option<&'static str>,
-    pub buffer: [u8; EEPROM_PAGE_SIZE],
+    probed: bool,
 }
 
 impl EepromLoader {
-    /// Creates a new instance of the `EepromLoader`.
-    ///
-    /// # Arguments
-    /// * `i2c` - The I2C peripheral instance to use for communication with the EEPROM.
-    /// * `total_size` - The total size of the EEPROM in bytes.
-    pub fn new(i2c: I2c, total_size: usize) -> Self {
+    pub const fn new(image: &'static [u8]) -> Self {
         Self {
-            i2c,
+            image,
             state: LoaderState::Idle,
-            write_offset: 0,
-            total_size,
+            offset: 0,
             last_error: None,
-            buffer: [0; EEPROM_PAGE_SIZE],
+            probed: false,
         }
     }
 
-    /// Writes a block of data to the EEPROM.
-    ///
-    /// # Arguments
-    /// * `address` - The starting address in the EEPROM where the data should be written.
-    /// * `data` - A slice of bytes containing the data to write to the EEPROM.
-    pub fn write_block(&mut self, address: u32, data: &[u8]) -> Result<(), &'static str> {
-        if data.is_empty() || data.len() % EEPROM_PAGE_SIZE != 0 {
-            return Err("Invalid data length for EEPROM");
-        }
-        
-        let mut current_addr = address as usize;
-        let mut data_idx = 0;
-
-        while data_idx < data.len() {
-            let page_offset = current_addr % EEPROM_PAGE_SIZE;
-            let remaining_in_page = EEPROM_PAGE_SIZE - page_offset;
-            let chunk_size = if (data.len() - data_idx) > remaining_in_page {
-                remaining_in_page
-            } else {
-                data.len() - data_idx
-            };
-
-            let &chunk = &data[data_idx..data_idx + chunk_size];
-            
-            // Perform the I2C write
-            match self.i2c.write(EEPROM_I2C_ADDR, &data_len_bytes_for_address(current_addr).to_be_bytes()).and_then(|_| {
-                self.i2c.write(EEPROM_I2C_ADDR, &chunk)
-            }) {
-                Ok(_) => (),
-                Err(e) => {
-                    self.last_error = Some("I2C Write Failed");
-                    return Err(e);
-                }
-            }
-
-            current_addr += chunk_size;
-            data_idx += chunk_size;
-
-            // Add delay to respect EEPROM write cycle time
-            delay_ms(EEPROM_WRITE_DELAY_MS);
-        }
-
-        Ok(())
+    pub fn full_flash() -> Self {
+        Self::new(TPS26750_FULL_FLASH)
     }
 
-    /// Reads a block of data from the EEPROM.
-    ///
-    /// # Arguments
-    /// * `address` - The starting address in the EEPROM from which to read the data.
-    /// * `buffer` - A mutable slice of bytes where the read data will be stored.
-    pub fn read_block(&mut self, address: u32, buffer: &mut [u8]) -> Result<(), &'static str> {
-        // Using "Repeated Start" logic as seen in original code
-        self.i2c.write_read(EEPROM_I2C_ADDR, &address.to_be_bytes(), buffer).map_err(|_| "I2C Read Failed")
+    pub fn total_size(&self) -> usize {
+        self.image.len()
     }
 
-    /// Loads configuration data from the EEPROM.
-    pub fn load_config(&mut self, buffer: &mut [u8]) -> Result<(), &'static str> {
-        if buffer.len() != EEPROM_PAGE_SIZE {
-            return Err("Invalid buffer size for config");
-        }
-        self.read_block(0, buffer)
+    pub fn progress_bytes(&self) -> usize {
+        self.offset.min(self.image.len())
     }
 
-    /// Processes one step of the flash state machine.
-    pub fn update_step(&mut self) -> LoaderState {
+    pub fn start(&mut self) {
+        self.offset = 0;
+        self.last_error = None;
+        self.probed = false;
+        self.state = LoaderState::Writing;
+        defmt::info!(
+            "EEPROM flash start: addr=0x{:02x}, image={} bytes, page={} bytes",
+            CAT24C512_ADDR,
+            self.image.len(),
+            EEPROM_PAGE_SIZE
+        );
+    }
+
+    pub async fn update_step(&mut self, i2c: &mut I2c<'_, Async, Master>) -> LoaderState {
         match self.state {
-            LoaderState::Idle => {
-                self.state = LoaderState::LoadingConfig;
-                LoaderState::LoadingConfig
-            }
-            LoaderState::LoadingConfig => {
-                if let Err(e) = self.load_config(&mut self.buffer) {
-                    self.last_error = Some("Load Config Failed");
-                    return LoaderState::Error;
-                }
-                self.state = LoaderState::Writing;
-                self.write_offset = 0;
-                LoaderState::Writing
-            }
+            LoaderState::Idle => self.start(),
             LoaderState::Writing => {
-                if self.write_offset < self.total_size {
-                    // Logic for handling write cycles and updates
-                    let write_result = self.write_block(self.write_offset as u32, &self.buffer[self.write_offset..self.write_offset + EEPROM_PAGE_SIZE]);
-                    match write_result {
-                        Ok(_) => {
-                            self.write_offset += EEPROM_PAGE_SIZE;
-                            LoaderState::Writing
-                        },
-                        Err(e) => {
-                            self.last_error = Some("Write Block Failed");
-                            return LoaderState::Error;
-                        }
+                if !self.probed {
+                    if self.validate_eeprom_presence(i2c).await.is_err() {
+                        defmt::error!("EEPROM validation probe failed before first page");
+                        self.state = LoaderState::Error;
                     }
-                } else {
+                } else if self.offset >= self.image.len() {
+                    defmt::info!("EEPROM write phase complete; starting verify");
+                    self.offset = 0;
                     self.state = LoaderState::Verifying;
-                    LoaderState::Verifying
+                } else if self.write_next_page(i2c).await.is_err() {
+                    defmt::error!("EEPROM write phase failed at offset=0x{:04x}", self.offset);
+                    self.state = LoaderState::Error;
                 }
             }
             LoaderState::Verifying => {
-                // Verification logic
-                if verify_data(&self.buffer, &self.i2c) {
+                if self.offset >= self.image.len() {
+                    defmt::info!("EEPROM verify complete");
                     self.state = LoaderState::Complete;
-                    LoaderState::Complete
-                } else {
-                    self.last_error = Some("Verification Failed");
+                } else if self.verify_next_page(i2c).await.is_err() {
+                    defmt::error!("EEPROM verify phase failed at offset=0x{:04x}", self.offset);
                     self.state = LoaderState::Error;
-                    LoaderState::Error
                 }
             }
-            _ => self.state,
+            LoaderState::Complete | LoaderState::Error => {}
         }
+
+        self.state
+    }
+
+    async fn validate_eeprom_presence(
+        &mut self,
+        i2c: &mut I2c<'_, Async, Master>,
+    ) -> Result<(), ()> {
+        let address_pointer = [0x00, 0x00];
+        let mut byte = [0u8; 1];
+
+        defmt::info!(
+            "EEPROM validation: zero-length write probe to dev=0x{:02x}",
+            CAT24C512_ADDR
+        );
+
+        match i2c.write(CAT24C512_ADDR, &[]).await {
+            Ok(()) => defmt::info!(
+                "EEPROM validation OK: dev=0x{:02x} ACKed zero-length write",
+                CAT24C512_ADDR
+            ),
+            Err(err) => defmt::warn!(
+                "EEPROM zero-length write probe failed: dev=0x{:02x}, err={}",
+                CAT24C512_ADDR,
+                i2c_error_label(err)
+            ),
+        }
+
+        defmt::info!(
+            "EEPROM validation: address-pointer write probe to dev=0x{:02x}",
+            CAT24C512_ADDR
+        );
+
+        if let Err(err) = i2c.write(CAT24C512_ADDR, &address_pointer).await {
+            self.last_error = Some("EEPROM address probe failed");
+            defmt::error!(
+                "EEPROM address-pointer probe failed: dev=0x{:02x}, err={}",
+                CAT24C512_ADDR,
+                i2c_error_label(err)
+            );
+            self.scan_address_pins(i2c).await;
+            return Err(());
+        }
+
+        defmt::info!(
+            "EEPROM validation OK: dev=0x{:02x} ACKed address-pointer write",
+            CAT24C512_ADDR
+        );
+
+        defmt::info!(
+            "EEPROM validation: 1-byte random read probe from addr=0x0000"
+        );
+
+        if let Err(err) = i2c
+            .write_read(CAT24C512_ADDR, &address_pointer, &mut byte)
+            .await
+        {
+            self.last_error = Some("EEPROM read probe failed");
+            defmt::error!(
+                "EEPROM 1-byte read probe failed: dev=0x{:02x}, err={}",
+                CAT24C512_ADDR,
+                i2c_error_label(err)
+            );
+            return Err(());
+        }
+
+        self.probed = true;
+        defmt::info!(
+            "EEPROM validation OK: read addr=0x0000 -> 0x{:02x}",
+            byte[0]
+        );
+        Ok(())
+    }
+
+    async fn scan_address_pins(&mut self, i2c: &mut I2c<'_, Async, Master>) {
+        let address_pointer = [0x00, 0x00];
+
+        defmt::info!("EEPROM validation: scanning 0x50..0x57 with address-pointer writes");
+        for address in 0x50..=0x57 {
+            match i2c.write(address, &address_pointer).await {
+                Ok(()) => defmt::info!("EEPROM scan: ACK at dev=0x{:02x}", address),
+                Err(I2cError::Nack) => {}
+                Err(err) => defmt::warn!(
+                    "EEPROM scan: dev=0x{:02x}, err={}",
+                    address,
+                    i2c_error_label(err)
+                ),
+            }
+            Timer::after(Duration::from_millis(1)).await;
+        }
+    }
+
+    async fn write_next_page(&mut self, i2c: &mut I2c<'_, Async, Master>) -> Result<(), ()> {
+        let end = (self.offset + EEPROM_PAGE_SIZE).min(self.image.len());
+        let chunk = &self.image[self.offset..end];
+        let page_start = self.offset;
+        let mut write = [0u8; EEPROM_PAGE_SIZE + 2];
+        write[0] = (self.offset >> 8) as u8;
+        write[1] = self.offset as u8;
+        write[2..2 + chunk.len()].copy_from_slice(chunk);
+
+        if page_start % 1024 == 0 {
+            defmt::info!(
+                "EEPROM writing: offset=0x{:04x}, len={}, progress={}/{}",
+                page_start,
+                chunk.len(),
+                page_start,
+                self.image.len()
+            );
+        }
+
+        if let Err(err) = i2c
+            .write(CAT24C512_ADDR, &write[..2 + chunk.len()])
+            .await
+        {
+            defmt::error!(
+                "EEPROM I2C write failed: dev=0x{:02x}, offset=0x{:04x}, len={}, err={}",
+                CAT24C512_ADDR,
+                page_start,
+                chunk.len(),
+                i2c_error_label(err)
+            );
+            self.last_error = Some("EEPROM write failed");
+            return Err(());
+        }
+
+        Timer::after(Duration::from_millis(EEPROM_WRITE_DELAY_MS)).await;
+        self.offset = end;
+        Ok(())
+    }
+
+    async fn verify_next_page(&mut self, i2c: &mut I2c<'_, Async, Master>) -> Result<(), ()> {
+        let end = (self.offset + EEPROM_PAGE_SIZE).min(self.image.len());
+        let expected = &self.image[self.offset..end];
+        let page_start = self.offset;
+        let addr = [(self.offset >> 8) as u8, self.offset as u8];
+        let mut read = [0u8; EEPROM_PAGE_SIZE];
+
+        if page_start % 1024 == 0 {
+            defmt::info!(
+                "EEPROM verifying: offset=0x{:04x}, len={}, progress={}/{}",
+                page_start,
+                expected.len(),
+                page_start,
+                self.image.len()
+            );
+        }
+
+        if let Err(err) = i2c
+            .write_read(CAT24C512_ADDR, &addr, &mut read[..expected.len()])
+            .await
+        {
+            defmt::error!(
+                "EEPROM I2C readback failed: dev=0x{:02x}, offset=0x{:04x}, len={}, err={}",
+                CAT24C512_ADDR,
+                page_start,
+                expected.len(),
+                i2c_error_label(err)
+            );
+            self.last_error = Some("EEPROM readback failed");
+            return Err(());
+        }
+
+        if &read[..expected.len()] != expected {
+            for idx in 0..expected.len() {
+                if read[idx] != expected[idx] {
+                    defmt::error!(
+                        "EEPROM verify mismatch: offset=0x{:04x}, expected=0x{:02x}, got=0x{:02x}",
+                        page_start + idx,
+                        expected[idx],
+                        read[idx]
+                    );
+                    break;
+                }
+            }
+            self.last_error = Some("EEPROM verify mismatch");
+            return Err(());
+        }
+
+        self.offset = end;
+        Ok(())
     }
 }
 
-/// Converts a memory address to its corresponding byte representation for I2C communication.
-///
-/// # Arguments
-/// * `addr` - The memory address to convert.
-fn data_len_bytes_for_address(addr: usize) -> [u8; 2] {
-    [(addr >> 8) as u8, addr as u8]
+fn i2c_error_label(err: I2cError) -> &'static str {
+    match err {
+        I2cError::Bus => "bus",
+        I2cError::Arbitration => "arbitration",
+        I2cError::Nack => "nack",
+        I2cError::Timeout => "timeout",
+        I2cError::Crc => "crc",
+        I2cError::Overrun => "overrun",
+        I2cError::ZeroLengthTransfer => "zero-length",
+    }
 }

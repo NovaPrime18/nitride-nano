@@ -2,7 +2,7 @@ use embassy_stm32::i2c::{I2c, Master};
 use embassy_stm32::mode::Async;
 
 use crate::drivers::ssd1306_ui::Ssd1306Ui;
-use crate::state::{AppState, MenuScreen, SupplyMode, Fault};
+use crate::state::{AppState, Fault, MenuScreen, SupplyMode};
 use crate::ui::input::InputEvent;
 
 pub struct UiTask;
@@ -53,13 +53,13 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
             if ev == InputEvent::Btn3 {
                 app.ui.screen = MenuScreen::CcLimit; // Move to the next setting
             }
-        },
+        }
         MenuScreen::CcLimit => {
             adjust_current(app, ev, step_coarse_i, step_fine_i);
             if ev == InputEvent::Btn3 {
                 app.ui.screen = MenuScreen::Enable; // Move to the next setting
             }
-        },
+        }
         MenuScreen::Enable => match ev {
             InputEvent::Btn1 | InputEvent::EncBtn => {
                 app.supply.enabled = true;
@@ -76,13 +76,9 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
             InputEvent::EncTurn(d) => {
                 if app.pd_cap_count > 0 {
                     if d > 0 {
-                        app.ui.pd_profile_index =
-                            (app.ui.pd_profile_index + 1) % app.pd_cap_count;
+                        app.ui.pd_profile_index = (app.ui.pd_profile_index + 1) % app.pd_cap_count;
                     } else if d < 0 {
-                        app.ui.pd_profile_index = app
-                            .ui
-                            .pd_profile_index
-                            .saturating_sub(1);
+                        app.ui.pd_profile_index = app.ui.pd_profile_index.saturating_sub(1);
                     }
                 }
             }
@@ -95,13 +91,21 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
             _ => {}
         },
         MenuScreen::Settings => match ev {
+            InputEvent::Btn1 | InputEvent::EncBtn => {
+                app.ui.screen = MenuScreen::EepromFlash;
+            }
             InputEvent::Btn3 => {
                 app.ui.screen = MenuScreen::Main;
             }
             _ => {}
         },
+        MenuScreen::EepromFlash => match ev {
+            InputEvent::Btn2 | InputEvent::Btn3 => {
+                app.ui.screen = MenuScreen::Main;
+            }
+            _ => {}
+        },
     }
-
 }
 
 fn adjust_voltage(app: &mut AppState, ev: InputEvent, coarse: u32, fine: u32) {
