@@ -26,6 +26,7 @@
 
 use embassy_stm32::i2c::{I2c, Master};
 use embassy_stm32::mode::Async;
+use embassy_time::{Duration, Timer};
 
 use crate::board::{
     IOUT_MAX_MA,
@@ -97,6 +98,8 @@ const IOUT_RANGE: (u32, u32) = (0, IOUT_MAX_MA);
 /// Pout bar spans 0 W → POWER_MAX_MW.
 const POUT_RANGE: (u32, u32) = (0, POWER_MAX_MW);
 
+const SSD1306_POWER_ON_DELAY_MS: u64 = 50;
+
 // ── Public type ───────────────────────────────────────────────────────────────
 
 pub struct Ssd1306Ui {
@@ -111,7 +114,7 @@ impl Ssd1306Ui {
     }
 
     pub async fn init(&mut self, i2c: &mut I2c<'_, Async, Master>) -> Result<(), ()> {
-        //Timer::after_millis(50).await;
+        Timer::after(Duration::from_millis(SSD1306_POWER_ON_DELAY_MS)).await;
         self.display.init(i2c).await
     }
 
