@@ -5132,6 +5132,172 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Jumper:Jumper_2_Bridged"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "JP"
+				(at 0 1.905 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "Jumper_2_Bridged"
+				(at 0 -2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 -5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Jumper, 2-pole, closed/bridged"
+				(at 0 -7.62 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "Jumper SPST"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Jumper* TestPoint*2Pads* TestPoint*Bridge*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "Jumper_2_Bridged_0_0"
+				(circle
+					(center -2.032 0)
+					(radius 0.508)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(circle
+					(center 2.032 0)
+					(radius 0.508)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "Jumper_2_Bridged_0_1"
+				(arc
+					(start -1.524 0.254)
+					(mid 0 0.762)
+					(end 1.524 0.254)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "Jumper_2_Bridged_1_1"
+				(pin passive line
+					(at -5.08 0 0)
+					(length 2.54)
+					(name "A"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 5.08 0 180)
+					(length 2.54)
+					(name "B"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Jumper:Jumper_2_Open"
 			(pin_numbers
 				(hide yes)
@@ -7290,6 +7456,12 @@
 		(uuid "c90ae6da-2689-4b70-b7fd-a27f44a7dfed")
 	)
 	(junction
+		(at 270.51 135.89)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "d36a032f-7df7-492c-8307-1f0000b1802a")
+	)
+	(junction
 		(at 78.74 92.71)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -7375,7 +7547,7 @@
 		(uuid "82f53a0b-adb8-4235-9a29-dbbf60760579")
 	)
 	(bus_entry
-		(at 163.83 154.94)
+		(at 171.45 154.94)
 		(size 2.54 2.54)
 		(stroke
 			(width 0)
@@ -7393,7 +7565,7 @@
 		(uuid "aa9c9d5f-1f6f-42d4-9896-ed033b1b17ce")
 	)
 	(bus_entry
-		(at 163.83 157.48)
+		(at 171.45 157.48)
 		(size 2.54 2.54)
 		(stroke
 			(width 0)
@@ -7442,7 +7614,7 @@
 	)
 	(bus
 		(pts
-			(xy 167.64 152.4) (xy 170.18 152.4)
+			(xy 175.26 152.4) (xy 177.8 152.4)
 		)
 		(stroke
 			(width 0)
@@ -7922,7 +8094,7 @@
 	)
 	(bus
 		(pts
-			(xy 166.37 160.02) (xy 166.37 154.94)
+			(xy 173.99 160.02) (xy 173.99 154.94)
 		)
 		(stroke
 			(width 0)
@@ -7969,16 +8141,6 @@
 			(type default)
 		)
 		(uuid "242dc63e-43d0-4351-9a7d-e94c53c2dc30")
-	)
-	(wire
-		(pts
-			(xy 148.59 157.48) (xy 163.83 157.48)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "245d2edf-a60c-456d-84d5-a665e233494c")
 	)
 	(wire
 		(pts
@@ -8202,6 +8364,16 @@
 	)
 	(wire
 		(pts
+			(xy 287.02 130.81) (xy 287.02 135.89)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3a0955b6-ada3-4db4-86d7-6986eb2c891c")
+	)
+	(wire
+		(pts
 			(xy 308.61 129.54) (xy 311.15 129.54)
 		)
 		(stroke
@@ -8302,7 +8474,7 @@
 	)
 	(bus
 		(pts
-			(xy 167.64 152.4) (xy 167.64 154.94)
+			(xy 175.26 152.4) (xy 175.26 154.94)
 		)
 		(stroke
 			(width 0)
@@ -8509,6 +8681,16 @@
 			(type default)
 		)
 		(uuid "57fb0917-b4fd-4196-8cd8-261421c2b571")
+	)
+	(wire
+		(pts
+			(xy 287.02 135.89) (xy 283.21 135.89)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "585c112b-b7bc-4260-b5af-0f884324b867")
 	)
 	(wire
 		(pts
@@ -8792,6 +8974,16 @@
 	)
 	(wire
 		(pts
+			(xy 270.51 135.89) (xy 270.51 138.43)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "77173dee-8645-446c-98eb-003ca10aef46")
+	)
+	(wire
+		(pts
 			(xy 27.94 264.16) (xy 53.34 264.16)
 		)
 		(stroke
@@ -8809,6 +9001,16 @@
 			(type default)
 		)
 		(uuid "797b6fa4-a5cb-4d9c-ab44-4cbee2abe3ee")
+	)
+	(wire
+		(pts
+			(xy 171.45 154.94) (xy 148.59 154.94)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7a48e213-319c-4eba-8c90-bebc2653a3e4")
 	)
 	(wire
 		(pts
@@ -9232,6 +9434,16 @@
 	)
 	(wire
 		(pts
+			(xy 270.51 135.89) (xy 273.05 135.89)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "986cabb8-4220-410e-957c-d1df13170a76")
+	)
+	(wire
+		(pts
 			(xy 68.58 134.62) (xy 68.58 137.16)
 		)
 		(stroke
@@ -9269,6 +9481,16 @@
 			(type default)
 		)
 		(uuid "9a43a181-4c53-4d26-af61-9d4b708439a1")
+	)
+	(wire
+		(pts
+			(xy 148.59 157.48) (xy 171.45 157.48)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9aa366e4-5f40-45fe-b2ac-136588b592a1")
 	)
 	(wire
 		(pts
@@ -9412,7 +9634,7 @@
 	)
 	(bus
 		(pts
-			(xy 166.37 154.94) (xy 167.64 154.94)
+			(xy 173.99 154.94) (xy 175.26 154.94)
 		)
 		(stroke
 			(width 0)
@@ -9512,7 +9734,7 @@
 	)
 	(wire
 		(pts
-			(xy 270.51 116.84) (xy 270.51 138.43)
+			(xy 270.51 116.84) (xy 270.51 135.89)
 		)
 		(stroke
 			(width 0)
@@ -9740,16 +9962,6 @@
 			(type default)
 		)
 		(uuid "ca4f09bd-4836-4e63-88f0-97416ab03bd4")
-	)
-	(wire
-		(pts
-			(xy 148.59 154.94) (xy 163.83 154.94)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "cd05bc98-faec-48c5-8f57-6ab3ea46b495")
 	)
 	(wire
 		(pts
@@ -10301,16 +10513,6 @@
 		)
 		(uuid "120ab058-a739-42b2-9870-f2540c0dc1d1")
 	)
-	(label "I2CC_SDA_MCU"
-		(at 163.83 154.94 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "270048bb-ba49-46c1-b70d-bf89810f8d06")
-	)
 	(label "LTC_GATE"
 		(at 358.14 87.63 0)
 		(effects
@@ -10320,16 +10522,6 @@
 			(justify left bottom)
 		)
 		(uuid "29954a8b-ace7-45a0-9b96-032bbd897a2f")
-	)
-	(label "I2CC_SCL_MCU"
-		(at 163.83 157.48 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "35d70c64-04d0-4762-9a4a-e4f75eb479ec")
 	)
 	(label "I2C0_SDA"
 		(at 316.23 184.15 0)
@@ -10360,6 +10552,16 @@
 			(justify left bottom)
 		)
 		(uuid "4771da44-c1a9-400b-a437-46379cdc51d5")
+	)
+	(label "I2CC_SDA_MCU"
+		(at 171.45 157.48 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "5106a9a5-64a4-48a6-84db-a15b5f02c1c6")
 	)
 	(label "TS"
 		(at 363.22 127 180)
@@ -10591,6 +10793,16 @@
 		)
 		(uuid "ce7d1aec-f85e-4af3-9974-53ee9724286e")
 	)
+	(label "I2CC_SCL_MCU"
+		(at 171.45 154.94 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "d69c6342-caf5-4b81-befb-562d8b2047e9")
+	)
 	(label "I2CC_SDA"
 		(at 151.13 134.62 0)
 		(effects
@@ -10809,7 +11021,7 @@
 	)
 	(hierarchical_label "{I2C1}"
 		(shape bidirectional)
-		(at 170.18 152.4 0)
+		(at 177.8 152.4 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -11932,7 +12144,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "Altium_port:jumper_solder_2pad_no_40x40_20"
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
 			(at 143.51 134.62 0)
 			(hide yes)
 			(show_name no)
@@ -15730,7 +15942,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "Altium_port:jumper_solder_2pad_no_40x40_20"
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
 			(at 143.51 137.16 0)
 			(hide yes)
 			(show_name no)
@@ -16663,6 +16875,86 @@
 		)
 	)
 	(symbol
+		(lib_id "Jumper:Jumper_2_Bridged")
+		(at 278.13 135.89 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "92d2db93-99bd-43ea-9c93-caabece0e2ad")
+		(property "Reference" "JP14"
+			(at 278.13 130.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "Jumper_2_Bridged"
+			(at 278.13 133.35 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm"
+			(at 278.13 135.89 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 278.13 140.97 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Jumper, 2-pole, closed/bridged"
+			(at 278.13 143.51 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "52c65db9-343e-4cb8-99b6-7f8d29d07577")
+		)
+		(pin "1"
+			(uuid "e37f004f-cd4f-4403-b936-b92fb223aa52")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
+					(reference "JP14")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GND")
 		(at 180.34 194.31 0)
 		(unit 1)
@@ -17404,6 +17696,80 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
 					(reference "D13")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+3V3")
+		(at 287.02 130.81 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "a84c324b-2d88-4cd2-8f5b-a2500a64bf30")
+		(property "Reference" "#PWR0147"
+			(at 287.02 130.81 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+3V3_LDO"
+			(at 287.02 127 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 287.02 130.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 287.02 130.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" ""
+			(at 287.02 130.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "d62da185-dcb7-4e44-baa7-8256455cacfc")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
+					(reference "#PWR0147")
 					(unit 1)
 				)
 			)
@@ -20742,7 +21108,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "Altium_port:jumper_solder_2pad_no_40x40_20"
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
 			(at 143.51 157.48 0)
 			(hide yes)
 			(show_name no)
@@ -20984,7 +21350,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Footprint" "Altium_port:jumper_solder_2pad_no_40x40_20"
+		(property "Footprint" "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm"
 			(at 143.51 154.94 0)
 			(hide yes)
 			(show_name no)

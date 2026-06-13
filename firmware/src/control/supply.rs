@@ -30,12 +30,15 @@ impl SupplyController {
         let tele = app.telemetry;
         let now = embassy_time::Instant::now();
 
+        // Hard overvoltage guard with 5% safety margin below design max.
+        // This trips BEFORE VOUT_MAX_MV to catch runaway before damage.
+        let ov_threshold = crate::board::VOUT_MAX_MV * 105 / 100;
         if tele.iout_ma > crate::board::IOUT_MAX_MA {
             app.supply.fault = Fault::OverCurrent;
             defmt::info!("Fault::OverCurrent");
-        } else if tele.vout_mv > crate::board::VOUT_MAX_MV {
+        } else if tele.vout_mv > ov_threshold {
             app.supply.fault = Fault::OverVoltage;
-            defmt::info!("Fault::OverVoltage");
+            defmt::info!("Fault::OverVoltage: {} mV > {} mV threshold", tele.vout_mv, ov_threshold);
         } else if tele.pout_mw > crate::board::POWER_MAX_MW {
             app.supply.fault = Fault::OverPower;
             defmt::info!("Fault::OverPower");
@@ -95,13 +98,14 @@ impl SupplyController {
                 }
             }
             SupplyMode::Cc => {
+                // Disable CV DAC in CC mode to prevent it from overriding the CC controller.
+                // The CV DAC must NOT be driven from measured Vout here — if Vout spikes,
+                // a high DAC code would tell the converter to drive even harder, causing runaway.
+                self.cv.code = 0;
+                dac_cv.set(Value::Bit12Right(0));
+
                 self.cc.set_current(app.supply.i_set_ma.min(i_limit));
                 dac_cc.set(Value::Bit12Right(self.cc.code));
-                self.cv.code = self.cv.mv_to_code(tele.vout_mv.min(crate::board::VOUT_MAX_MV));
-                dac_cv.set(Value::Bit12Right(self.cv.code));
-                if tele.vout_mv > app.supply.v_set_mv {
-                    app.supply.fault = Fault::OverVoltage;
-                }
             }
             SupplyMode::Off => {
                 self.cv.code = 0;

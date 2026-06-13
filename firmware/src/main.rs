@@ -195,6 +195,8 @@ async fn main(_spawner: Spawner) {
                 )
                 .await
                 .ok();
+            } else if app.ui.screen == MenuScreen::PdContract {
+                ui.draw_pd_contract_screen(&mut i2c, &app).await.ok();
             } else {
                 ui.draw_power_screen(&mut i2c, &app).await.ok();
             }

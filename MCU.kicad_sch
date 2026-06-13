@@ -5394,6 +5394,12 @@
 		(uuid "7b93264b-bd23-4774-81a7-697563bf6fd0")
 	)
 	(junction
+		(at 217.17 102.87)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "80e0e421-f3d6-4b8c-8771-5dddfb3d92d2")
+	)
+	(junction
 		(at 34.29 212.09)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -5440,12 +5446,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "b81c5bb4-636e-446e-b1d9-c7c67bb63f58")
-	)
-	(junction
-		(at 217.17 105.41)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "ceaa4a41-5e9c-44c7-ad1d-bd39996a9ede")
 	)
 	(junction
 		(at 78.74 241.3)
@@ -5550,6 +5550,16 @@
 			(type default)
 		)
 		(uuid "c4d6f1a4-7d25-490c-b074-3aec45feb399")
+	)
+	(wire
+		(pts
+			(xy 210.82 128.27) (xy 234.95 128.27)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0069006f-8fab-44f8-90d1-3c5da14e6c0d")
 	)
 	(wire
 		(pts
@@ -5663,7 +5673,7 @@
 	)
 	(wire
 		(pts
-			(xy 217.17 111.76) (xy 217.17 113.03)
+			(xy 217.17 109.22) (xy 217.17 110.49)
 		)
 		(stroke
 			(width 0)
@@ -5883,13 +5893,23 @@
 	)
 	(wire
 		(pts
-			(xy 217.17 106.68) (xy 217.17 105.41)
+			(xy 217.17 104.14) (xy 217.17 102.87)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
 		(uuid "21da6001-9084-4d67-a1c5-0290cb5e23ca")
+	)
+	(wire
+		(pts
+			(xy 160.02 130.81) (xy 210.82 130.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "228d1874-05a2-4c5f-8724-e3a5aa6753fb")
 	)
 	(wire
 		(pts
@@ -6113,6 +6133,16 @@
 	)
 	(wire
 		(pts
+			(xy 210.82 130.81) (xy 210.82 128.27)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3b96e8b4-3507-490c-b683-cfbf43ae8ccd")
+	)
+	(wire
+		(pts
 			(xy 346.71 38.1) (xy 341.63 38.1)
 		)
 		(stroke
@@ -6273,6 +6303,16 @@
 	)
 	(wire
 		(pts
+			(xy 217.17 93.98) (xy 217.17 102.87)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "5372f76d-9b7c-414f-ac1e-215f91fa309e")
+	)
+	(wire
+		(pts
 			(xy 171.45 118.11) (xy 171.45 119.38)
 		)
 		(stroke
@@ -6413,16 +6453,6 @@
 	)
 	(wire
 		(pts
-			(xy 160.02 128.27) (xy 234.95 128.27)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "5b517f08-c2d7-4378-b653-643ef5faa73c")
-	)
-	(wire
-		(pts
 			(xy 190.5 118.11) (xy 190.5 119.38)
 		)
 		(stroke
@@ -6513,7 +6543,7 @@
 	)
 	(wire
 		(pts
-			(xy 217.17 105.41) (xy 231.14 105.41)
+			(xy 217.17 102.87) (xy 231.14 102.87)
 		)
 		(stroke
 			(width 0)
@@ -6873,6 +6903,16 @@
 	)
 	(wire
 		(pts
+			(xy 234.95 130.81) (xy 214.63 130.81)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "921f4aa4-aab0-4d25-bf55-30cdd433a57b")
+	)
+	(wire
+		(pts
 			(xy 125.73 222.25) (xy 125.73 223.52)
 		)
 		(stroke
@@ -6890,6 +6930,16 @@
 			(type default)
 		)
 		(uuid "945d6b85-d9b6-4d08-9825-bce462a91dba")
+	)
+	(wire
+		(pts
+			(xy 203.2 129.54) (xy 203.2 128.27)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "94dd36a2-1498-481f-a3f0-8908ad6a1ee5")
 	)
 	(wire
 		(pts
@@ -6933,7 +6983,17 @@
 	)
 	(wire
 		(pts
-			(xy 231.14 105.41) (xy 231.14 110.49)
+			(xy 203.2 128.27) (xy 160.02 128.27)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "9aef196a-e116-44d4-82d8-1fbea9736a13")
+	)
+	(wire
+		(pts
+			(xy 231.14 102.87) (xy 231.14 110.49)
 		)
 		(stroke
 			(width 0)
@@ -7301,6 +7361,16 @@
 		)
 		(uuid "be372d4c-c9ec-4a07-aa95-83893eb61a1d")
 	)
+	(wire
+		(pts
+			(xy 214.63 129.54) (xy 203.2 129.54)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bf4e628f-757b-4c2e-8af8-05fa773fe707")
+	)
 	(bus
 		(pts
 			(xy 85.09 134.62) (xy 85.09 132.08)
@@ -7323,6 +7393,16 @@
 	)
 	(wire
 		(pts
+			(xy 217.17 85.09) (xy 217.17 88.9)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c06213b4-7e50-4a00-ae7b-e5868a098ef4")
+	)
+	(wire
+		(pts
 			(xy 328.93 38.1) (xy 326.39 38.1)
 		)
 		(stroke
@@ -7330,16 +7410,6 @@
 			(type default)
 		)
 		(uuid "c121934f-1385-4689-9003-38b0225dc7af")
-	)
-	(wire
-		(pts
-			(xy 217.17 85.09) (xy 217.17 105.41)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "c19aefbc-0d3d-404e-80dd-c0bfb3e6a3e9")
 	)
 	(wire
 		(pts
@@ -7380,6 +7450,16 @@
 			(type default)
 		)
 		(uuid "c5a831d4-1c49-431f-9446-20e2f136a55b")
+	)
+	(wire
+		(pts
+			(xy 214.63 130.81) (xy 214.63 129.54)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c6c9544f-282f-44ad-b20a-ff92df944bca")
 	)
 	(wire
 		(pts
@@ -7740,16 +7820,6 @@
 			(type default)
 		)
 		(uuid "f4820da9-4088-4ae9-8505-7b23836034b1")
-	)
-	(wire
-		(pts
-			(xy 160.02 130.81) (xy 234.95 130.81)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f4b0fbd1-9120-4130-b753-5504dc280683")
 	)
 	(wire
 		(pts
@@ -13829,7 +13899,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 217.17 113.03 0)
+		(at 217.17 110.49 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -13839,7 +13909,7 @@
 		(dnp no)
 		(uuid "2d62feb5-bf95-4af1-a553-6803290767a6")
 		(property "Reference" "#PWR0119"
-			(at 217.17 119.38 0)
+			(at 217.17 116.84 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13850,7 +13920,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 217.17 116.586 0)
+			(at 217.17 114.046 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13861,7 +13931,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 217.17 113.03 0)
+			(at 217.17 110.49 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13872,7 +13942,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 217.17 113.03 0)
+			(at 217.17 110.49 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13883,7 +13953,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 217.17 113.03 0)
+			(at 217.17 110.49 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -14769,6 +14839,108 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/3a861f51-e5a4-496f-9a67-940dce85a220"
 					(reference "C66")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C_Small")
+		(at 217.17 106.68 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "46d9aed9-215a-4429-b751-b083d7963aa2")
+		(property "Reference" "C77"
+			(at 217.678 104.902 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100nF"
+			(at 217.424 108.712 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 217.17 106.68 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 217.17 106.68 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor, small symbol"
+			(at 217.17 106.68 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Voltage" "100V"
+			(at 220.726 110.49 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C162178"
+			(at 217.678 104.902 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "c7f1c88c-b5ff-4a52-b06f-eced7c20de50")
+		)
+		(pin "2"
+			(uuid "4add2d76-a181-4d85-8f99-96ea16b32302")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/3a861f51-e5a4-496f-9a67-940dce85a220"
+					(reference "C77")
 					(unit 1)
 				)
 			)
@@ -16534,6 +16706,98 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/3a861f51-e5a4-496f-9a67-940dce85a220"
 					(reference "C67")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R_Small")
+		(at 217.17 91.44 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "7a330dd8-3727-4ec2-9b4b-09fe02a3c97e")
+		(property "Reference" "R33"
+			(at 218.694 90.424 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "10k"
+			(at 218.186 92.202 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 217.17 91.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 217.17 91.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor, small symbol"
+			(at 217.17 91.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C2906861"
+			(at 218.694 90.424 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "4f269446-1890-47b4-9483-a34076753828")
+		)
+		(pin "2"
+			(uuid "dd2bcc18-39a2-40ef-90fc-1e8663c6a22d")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/3a861f51-e5a4-496f-9a67-940dce85a220"
+					(reference "R33")
 					(unit 1)
 				)
 			)
@@ -21452,108 +21716,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/3a861f51-e5a4-496f-9a67-940dce85a220"
 					(reference "R59")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:C_Small")
-		(at 217.17 109.22 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "f1a4780c-89d8-450c-9bf6-8d5539d6aa2c")
-		(property "Reference" "C77"
-			(at 217.678 107.442 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "10uF"
-			(at 217.424 111.252 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Capacitor_SMD:C_1210_3225Metric"
-			(at 217.17 109.22 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 217.17 109.22 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Unpolarized capacitor, small symbol"
-			(at 217.17 109.22 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Voltage" "100V"
-			(at 220.726 113.03 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C5156756"
-			(at 217.678 107.442 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "75cb7e65-027a-4087-ac2e-a700c3ead89c")
-		)
-		(pin "2"
-			(uuid "177a930c-31f1-4c5b-abe1-6b32a4e5acfd")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/3a861f51-e5a4-496f-9a67-940dce85a220"
-					(reference "C77")
 					(unit 1)
 				)
 			)

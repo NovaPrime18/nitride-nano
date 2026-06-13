@@ -28,15 +28,23 @@ pub enum PdState {
     Fault,
 }
 
+/// USB-PD contract preset voltages in millivolts.
+pub const PD_PRESET_VOLTAGES_MV: [u32; 6] = [12_000, 15_000, 20_000, 28_000, 36_000, 48_000];
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MenuScreen {
     Main,
     CvSetpoint,
     CcLimit,
-    Enable,
-    PdProfile,
+    PdContract,
     Settings,
     EepromFlash,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StepMode {
+    Fine,
+    Coarse,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -94,6 +102,7 @@ pub struct UiState {
     pub screen: MenuScreen,
     pub editing: bool,
     pub pd_profile_index: u8,
+    pub encoder_step_mode: StepMode,
 }
 
 impl Default for UiState {
@@ -102,6 +111,7 @@ impl Default for UiState {
             screen: MenuScreen::Main,
             editing: false,
             pd_profile_index: 0,
+            encoder_step_mode: StepMode::Fine,
         }
     }
 }

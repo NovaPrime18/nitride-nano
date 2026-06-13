@@ -2,7 +2,7 @@ use embassy_stm32::i2c::{I2c, Master};
 use embassy_stm32::mode::Async;
 
 use crate::drivers::ssd1306_ui::Ssd1306Ui;
-use crate::state::{AppState, Fault, MenuScreen, SupplyMode};
+use crate::state::{AppState, Fault, MenuScreen, PD_PRESET_VOLTAGES_MV, StepMode, SupplyMode};
 use crate::ui::input::InputEvent;
 
 pub struct UiTask;
@@ -14,11 +14,6 @@ impl UiTask {
 }
 
 pub fn apply_input(app: &mut AppState, ev: InputEvent) {
-    let step_coarse_v: u32 = 100;
-    let step_fine_v: u32 = 10;
-    let step_coarse_i: u32 = 100;
-    let step_fine_i: u32 = 10;
-
     match app.ui.screen {
         MenuScreen::Main => match ev {
             InputEvent::Btn3 => {
@@ -39,59 +34,74 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
                 }
             }
             InputEvent::EncTurn(d) => {
-                let step = step_fine_v;
                 if d > 0 {
-                    app.supply.v_set_mv = (app.supply.v_set_mv + step).min(60_000);
+                    app.supply.v_set_mv = (app.supply.v_set_mv + 10).min(60_000);
                 } else {
-                    app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(step);
+                    app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(10);
                 }
             }
         },
         // Inside menu.rs -> apply_input -> MenuScreen::CvSetpoint
         MenuScreen::CvSetpoint => {
-            adjust_voltage(app, ev, step_coarse_v, step_fine_v);
+            let step = match app.ui.encoder_step_mode {
+                StepMode::Fine => 100u32,    // 100 mV per click
+                StepMode::Coarse => 1_000u32, // 1 V per click
+            };
+            adjust_voltage_dynamic(app, ev, step);
+            if ev == InputEvent::EncBtn {
+                app.ui.encoder_step_mode = match app.ui.encoder_step_mode {
+                    StepMode::Fine => StepMode::Coarse,
+                    StepMode::Coarse => StepMode::Fine,
+                };
+            }
             if ev == InputEvent::Btn3 {
+                app.ui.encoder_step_mode = StepMode::Fine; // Reset on exit
                 app.ui.screen = MenuScreen::CcLimit; // Move to the next setting
             }
         }
         MenuScreen::CcLimit => {
-            adjust_current(app, ev, step_coarse_i, step_fine_i);
+            let step = match app.ui.encoder_step_mode {
+                StepMode::Fine => 100u32,    // 100 mA per click
+                StepMode::Coarse => 1_000u32, // 1 A per click
+            };
+            adjust_current_dynamic(app, ev, step);
+            if ev == InputEvent::EncBtn {
+                app.ui.encoder_step_mode = match app.ui.encoder_step_mode {
+                    StepMode::Fine => StepMode::Coarse,
+                    StepMode::Coarse => StepMode::Fine,
+                };
+            }
             if ev == InputEvent::Btn3 {
-                app.ui.screen = MenuScreen::Enable; // Move to the next setting
+                app.ui.encoder_step_mode = StepMode::Fine; // Reset on exit
+                app.ui.screen = MenuScreen::PdContract; // Move to the next setting
             }
         }
-        MenuScreen::Enable => match ev {
-            InputEvent::Btn1 | InputEvent::EncBtn => {
-                app.supply.enabled = true;
-            }
-            InputEvent::Btn2 => {
-                app.supply.enabled = false;
-            }
-            InputEvent::Btn3 => {
-                app.ui.screen = MenuScreen::PdProfile;
-            }
-            _ => {}
-        },
-        MenuScreen::PdProfile => match ev {
+        MenuScreen::PdContract => match ev {
             InputEvent::EncTurn(d) => {
-                if app.pd_cap_count > 0 {
-                    if d > 0 {
-                        app.ui.pd_profile_index = (app.ui.pd_profile_index + 1) % app.pd_cap_count;
-                    } else if d < 0 {
-                        app.ui.pd_profile_index = app.ui.pd_profile_index.saturating_sub(1);
-                    }
+                if d > 0 {
+                    app.ui.pd_profile_index = (app.ui.pd_profile_index + 1) % PD_PRESET_VOLTAGES_MV.len() as u8;
+                } else if d < 0 {
+                    app.ui.pd_profile_index = if app.ui.pd_profile_index > 0 {
+                        app.ui.pd_profile_index - 1
+                    } else {
+                        (PD_PRESET_VOLTAGES_MV.len() - 1) as u8
+                    };
                 }
             }
             InputEvent::Btn3 => {
                 app.ui.screen = MenuScreen::Settings;
             }
             InputEvent::EncBtn => {
+                // Confirm: request the selected PD contract via I2C
                 app.ui.screen = MenuScreen::Main;
             }
             _ => {}
         },
         MenuScreen::Settings => match ev {
             InputEvent::Btn1 | InputEvent::EncBtn => {
+                app.ui.screen = MenuScreen::PdContract;
+            }
+            InputEvent::Btn2 => {
                 app.ui.screen = MenuScreen::EepromFlash;
             }
             InputEvent::Btn3 => {
@@ -108,38 +118,26 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
     }
 }
 
-fn adjust_voltage(app: &mut AppState, ev: InputEvent, coarse: u32, fine: u32) {
+fn adjust_voltage_dynamic(app: &mut AppState, ev: InputEvent, step: u32) {
     match ev {
-        InputEvent::Btn1 => {
-            app.supply.v_set_mv = (app.supply.v_set_mv + coarse).min(60_000);
-        }
-        InputEvent::Btn2 => {
-            app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(coarse);
-        }
         InputEvent::EncTurn(d) => {
             if d > 0 {
-                app.supply.v_set_mv = (app.supply.v_set_mv + fine).min(60_000);
+                app.supply.v_set_mv = (app.supply.v_set_mv + step).min(60_000);
             } else {
-                app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(fine);
+                app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(step);
             }
         }
         _ => {}
     }
 }
 
-fn adjust_current(app: &mut AppState, ev: InputEvent, coarse: u32, fine: u32) {
+fn adjust_current_dynamic(app: &mut AppState, ev: InputEvent, step: u32) {
     match ev {
-        InputEvent::Btn1 => {
-            app.supply.i_set_ma = (app.supply.i_set_ma + coarse).min(20_000);
-        }
-        InputEvent::Btn2 => {
-            app.supply.i_set_ma = app.supply.i_set_ma.saturating_sub(coarse);
-        }
         InputEvent::EncTurn(d) => {
             if d > 0 {
-                app.supply.i_set_ma = (app.supply.i_set_ma + fine).min(20_000);
+                app.supply.i_set_ma = (app.supply.i_set_ma + step).min(20_000);
             } else {
-                app.supply.i_set_ma = app.supply.i_set_ma.saturating_sub(fine);
+                app.supply.i_set_ma = app.supply.i_set_ma.saturating_sub(step);
             }
         }
         _ => {}

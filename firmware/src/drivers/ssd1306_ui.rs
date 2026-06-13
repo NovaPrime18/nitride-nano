@@ -37,7 +37,7 @@ use crate::board::{
     VOUT_MIN_MV,
 };
 use crate::drivers::ssd1306::Ssd1306;
-use crate::state::{AppState, MenuScreen, SupplyMode};
+use crate::state::{AppState, MenuScreen, PD_PRESET_VOLTAGES_MV, StepMode, SupplyMode};
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
@@ -133,9 +133,18 @@ impl Ssd1306Ui {
 
     // ── Private drawing helpers ───────────────────────────────────────────────
 
-    /// Yellow zone: device name on the left, mode and enable badges on the right.
+    /// Yellow zone: device name (or step mode when editing) on the left,
+    /// mode and enable badges on the right.
     fn draw_header(&mut self, app: &AppState) {
-        self.display.draw_str(COL_LABEL, ROW_HEADER, "nitride-nano");
+        // Show "Fine" or "Coarse" when editing CV/CC setpoints, otherwise "nitride-nano"
+        let header_text = match app.ui.screen {
+            MenuScreen::CvSetpoint | MenuScreen::CcLimit => match app.ui.encoder_step_mode {
+                StepMode::Fine => "Fine",
+                StepMode::Coarse => "Coarse",
+            },
+            _ => "nitride-nano",
+        };
+        self.display.draw_str(COL_LABEL, ROW_HEADER, header_text);
 
         let mode = match app.supply.mode {
             SupplyMode::Cv => "CV",
@@ -209,8 +218,7 @@ impl Ssd1306Ui {
             MenuScreen::Main => "MAIN",
             MenuScreen::CvSetpoint => "V-SET",
             MenuScreen::CcLimit => "I-LIM",
-            MenuScreen::Enable => "ENBL",
-            MenuScreen::PdProfile => "PD",
+            MenuScreen::PdContract => "PD",
             MenuScreen::Settings => "CFG",
             MenuScreen::EepromFlash => "EE",
         };
@@ -253,6 +261,106 @@ impl Ssd1306Ui {
         self.display
             .draw_str(x + pct.len() as u8 * FONT_W, ROW_STATUS, "%");
 
+        self.display.flush(i2c).await
+    }
+
+    /// Fullscreen PD contract selection screen with 2×3 grid.
+    pub async fn draw_pd_contract_screen(
+        &mut self,
+        i2c: &mut I2c<'_, Async, Master>,
+        app: &AppState,
+    ) -> Result<(), ()> {
+        self.display.clear();
+        self.draw_pd_header(app);
+        self.draw_pd_grid(app);
+        self.draw_pd_footer(app);
+        self.display.flush(i2c).await
+    }
+
+    // ── PD screen private helpers ───────────────────────────────────────────
+
+    fn draw_pd_header(&mut self, _app: &AppState) {
+        self.display.draw_str(COL_LABEL, ROW_HEADER, "nitride-nano");
+        self.display.draw_str(92, ROW_HEADER, "PD");
+        self.display
+            .draw_line(0, ROW_DIVIDER, DISPLAY_W - 1, ROW_DIVIDER);
+    }
+
+    /// Draw 2×3 grid of preset voltage buttons with bordered boxes.
+    fn draw_pd_grid(&mut self, app: &AppState) {
+        // Grid layout: 3 columns × 2 rows
+        // Each box: ~22px wide × 10px tall (bordered)
+        const BOX_W: u8 = 22;
+        const BOX_H: u8 = 10;
+        const GAP_X: u8 = 10;
+        const GAP_Y: u8 = 14;
+        const START_X: u8 = 14; // center the 3 boxes
+        const START_Y_ROW0: u8 = 22;
+        const START_Y_ROW1: u8 = START_Y_ROW0 + GAP_Y;
+
+        for (idx, _volt_mv) in PD_PRESET_VOLTAGES_MV.iter().enumerate() {
+            let row = idx / 3;
+            let col = idx % 3;
+            let x = START_X + (col as u8 * (BOX_W + GAP_X));
+            let y = if row == 0 {
+                START_Y_ROW0
+            } else {
+                START_Y_ROW1
+            };
+            let is_selected = idx == app.ui.pd_profile_index as usize;
+
+            // Draw bordered box
+            self.display.draw_line(x, y, x + BOX_W - 1, y); // top
+            self.display.draw_line(x, y + BOX_H - 1, x + BOX_W - 1, y + BOX_H - 1); // bottom
+            self.display.draw_line(x, y, x, y + BOX_H - 1); // left
+            self.display.draw_line(x + BOX_W - 1, y, x + BOX_W - 1, y + BOX_H - 1); // right
+
+            // Fill selected box with white pixels
+            if is_selected {
+                let mut ry = y + 1;
+                while ry < y + BOX_H - 1 {
+                    self.display.draw_line(x + 1, ry, x + BOX_W - 2, ry);
+                    ry += 1;
+                }
+            }
+
+            // Draw label centered in box
+            let label = PRESET_LABELS[idx];
+            let label_w = (label.len() as u8) * FONT_W;
+            let lx = x + (BOX_W - label_w) / 2;
+            let ly = y + (BOX_H - 8) / 2; // 8 = font height
+            self.display.draw_str(lx, ly, label);
+        }
+    }
+
+    fn draw_pd_footer(&mut self, app: &AppState) {
+        // Row 50: Vin
+        let mut vin_buf = [0u8; 8];
+        let vin_str = fmt_decimal(&mut vin_buf, app.telemetry.vin_mv);
+        self.display.draw_str(0, 50, "Vin: ");
+        self.display.draw_str(12, 50, vin_str);
+        self.display.draw_str(12 + vin_str.len() as u8 * FONT_W, 50, " V");
+
+        // AUTO placeholder (right side)
+        self.display.draw_str(80, 50, "[AUTO]");
+    }
+
+    pub async fn draw_pd_contract_result(
+        &mut self,
+        i2c: &mut I2c<'_, Async, Master>,
+        title: &str,
+        message: &str,
+    ) -> Result<(), ()> {
+        self.display.clear();
+        self.display.draw_str(0, ROW_HEADER, "nitride-nano");
+        self.display.draw_str(92, ROW_HEADER, "PD");
+        self.display
+            .draw_line(0, ROW_DIVIDER, DISPLAY_W - 1, ROW_DIVIDER);
+
+        self.display.draw_str(0, 22, title);
+        self.display.draw_str(0, 34, message);
+
+        self.display.draw_str(0, ROW_STATUS, "ENC:OK  BTN3:BACK");
         self.display.flush(i2c).await
     }
 }
@@ -457,3 +565,6 @@ fn fmt_percent(buf: &mut [u8; 4], percent: u8) -> &str {
 
     core::str::from_utf8(&buf[..i]).unwrap_or("?")
 }
+
+/// Preset voltage labels for the PD screen.
+const PRESET_LABELS: [&str; 6] = ["12V", "15V", "20V", "28V", "36V", "48V"];
