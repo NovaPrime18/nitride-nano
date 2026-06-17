@@ -6,10 +6,10 @@
 [![KiCad](https://img.shields.io/badge/Made%20with-KiCad-blue)](https://www.kicad.org/)
 
 <table><tr>
-<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/pics/nitride-nano-f-n.png" width="100%"></td>
-<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/pics/nitride-nano-b.png" width="100%"></td>
+<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Pics/nitride-nano-f-n.png" width="100%"></td>
+<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Pics/nitride-nano-b.png" width="100%"></td>
 </tr></table>
-<img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/nitride-nano-f.jpg" width="100%">
+<img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Pics/nitride-nano-f.jpg" width="100%">
 
 ---
 
@@ -75,8 +75,8 @@ Nitride-nano negotiates full USB-C PD on the input side:
 
 ## Thermal Sim
 <table><tr>
-<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Screenshot_20260525_175715.png" width="100%"></td>
-<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Screenshot_20260525_180133.png" width="100%"></td>
+<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Pics/Screenshot_20260525_175715.png" width="100%"></td>
+<td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Pics/Screenshot_20260525_180133.png" width="100%"></td>
 </tr></table>
 
 Simulated with Freecad, the enclosure reaches about 38 Degrees C (with a fan) when there's 10W of of losses directly going into the heatsink from the GaNFETs. Real world performance is likely better, due to not all 10W leaving the Fets through the top.
