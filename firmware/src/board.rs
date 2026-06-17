@@ -9,12 +9,19 @@ pub const POWER_MAX_MW: u32 = 240_000;
 /// Default slew rate for CV setpoint changes (mV/s).
 pub const CV_SLEW_MV_PER_S: u32 = 1_000;
 
-/// NTC (placeholder — measure R25/Beta on bench).
+/// NTC thermistor settings (matches PD240W-Firmware-example).
+/// Circuit: 3.3V → R_PULLUP (4.7k) → NTC → GND, voltage at junction.
 pub const NTC_BETA: f32 = 3950.0;
 pub const NTC_R25_OHM: f32 = 10_000.0;
-pub const NTC_PULLUP_OHM: f32 = 10_000.0;
-pub const NTC_OVERTEMP_C: i32 = 110;
+pub const NTC_PULLUP_OHM: f32 = 4_700.0;
+pub const NTC_OVERTEMP_C: i32 = 80;
 pub const NTC_DERATE_START_C: i32 = 70;
+
+/// Graduated temperature thresholds (matches PD240W-Firmware-example AppConfig).
+pub const TEMP_CAUTION_C: i32 = 50;
+pub const TEMP_WARNING_C: i32 = 65;
+pub const TEMP_CRITICAL_C: i32 = 75;
+pub const TEMP_SHUTDOWN_C: i32 = 80;
 
 /// ADC full-scale reference (VREF+ = VDDA unless VREFBUF used for DAC only).
 pub const ADC_VREF_MV: u32 = 3300;
