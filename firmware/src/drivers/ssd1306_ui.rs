@@ -136,15 +136,21 @@ impl Ssd1306Ui {
     /// Yellow zone: device name (or step mode when editing) on the left,
     /// mode and enable badges on the right.
     fn draw_header(&mut self, app: &AppState) {
-        // Show "Fine" or "Coarse" when editing CV/CC setpoints, otherwise "nitride-nano"
-        let header_text = match app.ui.screen {
-            MenuScreen::CvSetpoint | MenuScreen::CcLimit => match app.ui.encoder_step_mode {
-                StepMode::Fine => "Fine",
-                StepMode::Coarse => "Coarse",
-            },
-            _ => "nitride-nano",
-        };
-        self.display.draw_str(COL_LABEL, ROW_HEADER, header_text);
+        // Show "Fine" or "Coarse" when editing CV/CC setpoints, otherwise temperature values
+        match app.ui.screen {
+            MenuScreen::CvSetpoint | MenuScreen::CcLimit => {
+                let mode_text = match app.ui.encoder_step_mode {
+                    StepMode::Fine => "Fine",
+                    StepMode::Coarse => "Coarse",
+                };
+                self.display.draw_str(COL_LABEL, ROW_HEADER, mode_text);
+            }
+            _ => {
+                let mut buf = [0u8; 20];
+                let text = fmt_temps(&mut buf, app.telemetry.temp_conv_c, app.telemetry.temp_input_c);
+                self.display.draw_str(COL_LABEL, ROW_HEADER, text);
+            }
+        }
 
         let mode = match app.supply.mode {
             SupplyMode::Cv => "CV",
@@ -245,10 +251,7 @@ impl Ssd1306Ui {
         progress_percent: u8,
     ) -> Result<(), ()> {
         self.display.clear();
-        self.display.draw_str(0, ROW_HEADER, "nitride-nano");
-        self.display.draw_str(92, ROW_HEADER, "EE");
-        self.display
-            .draw_line(0, ROW_DIVIDER, DISPLAY_W - 1, ROW_DIVIDER);
+        self.draw_temp_header("EE");
 
         self.display.draw_str(0, 22, title);
         self.display.draw_str(0, 34, message);
@@ -279,11 +282,8 @@ impl Ssd1306Ui {
 
     // ── PD screen private helpers ───────────────────────────────────────────
 
-    fn draw_pd_header(&mut self, _app: &AppState) {
-        self.display.draw_str(COL_LABEL, ROW_HEADER, "nitride-nano");
-        self.display.draw_str(92, ROW_HEADER, "PD");
-        self.display
-            .draw_line(0, ROW_DIVIDER, DISPLAY_W - 1, ROW_DIVIDER);
+    fn draw_pd_header(&mut self, app: &AppState) {
+        self.draw_temp_header_for_screen(app, "PD");
     }
 
     /// Draw 2×3 grid of preset voltage buttons with bordered boxes.
@@ -352,16 +352,35 @@ impl Ssd1306Ui {
         message: &str,
     ) -> Result<(), ()> {
         self.display.clear();
-        self.display.draw_str(0, ROW_HEADER, "nitride-nano");
-        self.display.draw_str(92, ROW_HEADER, "PD");
-        self.display
-            .draw_line(0, ROW_DIVIDER, DISPLAY_W - 1, ROW_DIVIDER);
+        self.draw_temp_header("PD");
 
         self.display.draw_str(0, 22, title);
         self.display.draw_str(0, 34, message);
 
         self.display.draw_str(0, ROW_STATUS, "ENC:OK  BTN3:BACK");
         self.display.flush(i2c).await
+    }
+
+    // ── Temperature header helpers ───────────────────────────────────────────
+
+    /// Draw temperature values in the header zone with a right-justified badge label.
+    fn draw_temp_header(&mut self, badge: &str) {
+        let mut buf = [0u8; 20];
+        let text = fmt_temps(&mut buf, 25, 25); // default temps for init phase
+        self.display.draw_str(COL_LABEL, ROW_HEADER, text);
+        self.display.draw_str(92, ROW_HEADER, badge);
+        self.display
+            .draw_line(0, ROW_DIVIDER, DISPLAY_W - 1, ROW_DIVIDER);
+    }
+
+    /// Draw temperature values from AppState with a given badge label.
+    fn draw_temp_header_for_screen(&mut self, app: &AppState, badge: &str) {
+        let mut buf = [0u8; 20];
+        let text = fmt_temps(&mut buf, app.telemetry.temp_conv_c, app.telemetry.temp_input_c);
+        self.display.draw_str(COL_LABEL, ROW_HEADER, text);
+        self.display.draw_str(92, ROW_HEADER, badge);
+        self.display
+            .draw_line(0, ROW_DIVIDER, DISPLAY_W - 1, ROW_DIVIDER);
     }
 }
 
@@ -370,7 +389,6 @@ impl Default for Ssd1306Ui {
         Self::new()
     }
 }
-
 // ── Unit type ─────────────────────────────────────────────────────────────────
 
 #[derive(Clone, Copy)]
@@ -564,6 +582,78 @@ fn fmt_percent(buf: &mut [u8; 4], percent: u8) -> &str {
     };
 
     core::str::from_utf8(&buf[..i]).unwrap_or("?")
+}
+
+/// Format both temperatures as "T1:XX.X T2:XX.X" (12 chars = 72px).
+/// `temp_c` values are in degrees Celsius (i32).
+fn fmt_temps(buf: &mut [u8; 20], t1: i32, t2: i32) -> &str {
+    let mut i = 0usize;
+
+    // "T1:" prefix
+    buf[i] = b'T'; i += 1;
+    buf[i] = b'1'; i += 1;
+    buf[i] = b':'; i += 1;
+
+    // First temperature: handle negative values
+    if t1 < 0 {
+        buf[i] = b'-'; i += 1;
+    }
+    let abs1 = t1.unsigned_abs();
+    let int1 = abs1 / 10;
+    let frac1 = abs1 % 10;
+    // Integer part (no leading zeros, at least one digit)
+    if int1 == 0 {
+        buf[i] = b'0'; i += 1;
+    } else {
+        let mut tmp = [0u8; 4];
+        let mut ti = tmp.len();
+        let mut n = int1;
+        while n > 0 && ti > 0 {
+            ti -= 1;
+            tmp[ti] = b'0' + (n % 10) as u8;
+            n /= 10;
+        }
+        for &byte in &tmp[ti..] {
+            buf[i] = byte; i += 1;
+        }
+    }
+    buf[i] = b'.'; i += 1;
+    buf[i] = b'0' + frac1 as u8; i += 1;
+
+    // Space separator
+    buf[i] = b' '; i += 1;
+
+    // "T2:" prefix
+    buf[i] = b'T'; i += 1;
+    buf[i] = b'2'; i += 1;
+    buf[i] = b':'; i += 1;
+
+    // Second temperature
+    if t2 < 0 {
+        buf[i] = b'-'; i += 1;
+    }
+    let abs2 = t2.unsigned_abs();
+    let int2 = abs2 / 10;
+    let frac2 = abs2 % 10;
+    if int2 == 0 {
+        buf[i] = b'0'; i += 1;
+    } else {
+        let mut tmp = [0u8; 4];
+        let mut ti = tmp.len();
+        let mut n = int2;
+        while n > 0 && ti > 0 {
+            ti -= 1;
+            tmp[ti] = b'0' + (n % 10) as u8;
+            n /= 10;
+        }
+        for &byte in &tmp[ti..] {
+            buf[i] = byte; i += 1;
+        }
+    }
+    buf[i] = b'.'; i += 1;
+    buf[i] = b'0' + frac2 as u8; i += 1;
+
+    core::str::from_utf8(&buf[..i]).unwrap_or("T1:?.? T2:?.?")
 }
 
 /// Preset voltage labels for the PD screen.
