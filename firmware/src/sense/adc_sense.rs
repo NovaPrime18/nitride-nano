@@ -54,12 +54,13 @@ fn scale(raw: u32, full_scale_phys: u32) -> u32 {
 }
 
 fn ntc_c(raw: u32) -> i32 {
-    let v = (raw as f32 * board::ADC_VREF_MV as f32) / 4096.0 / 1000.0;
+    let vref = board::ADC_VREF_MV as f32 / 1000.0;
+    let v = (raw as f32 * vref) / 4096.0;
     // Match PD240W example: return -273.15 (absolute zero) as error indicator
-    if v <= 0.01 || v >= board::ADC_VREF_MV as f32 / 1000.0 {
+    if v <= 0.01 || v >= vref {
         return -273;
     }
-    let r = board::NTC_PULLUP_OHM * v / (3.3 - v);
+    let r = board::NTC_PULLUP_OHM * v / (vref - v);
     let t0_kelvin = 298.15f32; // 25°C in Kelvin
     let r0 = board::NTC_R25_OHM;
     let beta = board::NTC_BETA;

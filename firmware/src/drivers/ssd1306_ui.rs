@@ -584,7 +584,7 @@ fn fmt_percent(buf: &mut [u8; 4], percent: u8) -> &str {
     core::str::from_utf8(&buf[..i]).unwrap_or("?")
 }
 
-/// Format both temperatures as "T1:XX.X T2:XX.X" (12 chars = 72px).
+/// Format both temperatures as "T1:XX.0 T2:XX.0".
 /// `temp_c` values are in degrees Celsius (i32).
 fn fmt_temps(buf: &mut [u8; 20], t1: i32, t2: i32) -> &str {
     let mut i = 0usize;
@@ -598,9 +598,7 @@ fn fmt_temps(buf: &mut [u8; 20], t1: i32, t2: i32) -> &str {
     if t1 < 0 {
         buf[i] = b'-'; i += 1;
     }
-    let abs1 = t1.unsigned_abs();
-    let int1 = abs1 / 10;
-    let frac1 = abs1 % 10;
+    let int1 = t1.unsigned_abs();
     // Integer part (no leading zeros, at least one digit)
     if int1 == 0 {
         buf[i] = b'0'; i += 1;
@@ -618,7 +616,7 @@ fn fmt_temps(buf: &mut [u8; 20], t1: i32, t2: i32) -> &str {
         }
     }
     buf[i] = b'.'; i += 1;
-    buf[i] = b'0' + frac1 as u8; i += 1;
+    buf[i] = b'0'; i += 1;
 
     // Space separator
     buf[i] = b' '; i += 1;
@@ -632,9 +630,7 @@ fn fmt_temps(buf: &mut [u8; 20], t1: i32, t2: i32) -> &str {
     if t2 < 0 {
         buf[i] = b'-'; i += 1;
     }
-    let abs2 = t2.unsigned_abs();
-    let int2 = abs2 / 10;
-    let frac2 = abs2 % 10;
+    let int2 = t2.unsigned_abs();
     if int2 == 0 {
         buf[i] = b'0'; i += 1;
     } else {
@@ -651,7 +647,7 @@ fn fmt_temps(buf: &mut [u8; 20], t1: i32, t2: i32) -> &str {
         }
     }
     buf[i] = b'.'; i += 1;
-    buf[i] = b'0' + frac2 as u8; i += 1;
+    buf[i] = b'0'; i += 1;
 
     core::str::from_utf8(&buf[..i]).unwrap_or("T1:?.? T2:?.?")
 }
