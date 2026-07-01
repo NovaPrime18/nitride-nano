@@ -1,8 +1,105 @@
 use embassy_stm32::adc::Adc;
 use embassy_stm32::Peri;
+use embassy_time::Instant;
 
 use crate::board;
 use crate::state::Telemetry;
+
+/// Time constant for the telemetry low-pass filter, in samples.
+/// With a 2 ms ADC period, TAU_SAMPLES = 100 gives ~200 ms settling —
+/// fast enough to track real load steps, slow enough to kill
+/// switching-noise jitter on the ADC readings.
+const TAU_MS: f32 = 200.0;
+
+
+/// Exponential moving average (EMA) low-pass filter for telemetry,
+/// with median-of-3 despiking ahead of the EMA to reject single-sample
+/// ADC glitches (common on switching supplies) before they enter the
+/// smoothed average.
+pub struct TelemetryFilter {
+    tau_ms: f32,
+    initialized: bool,
+    last_update: Instant,
+
+    vin: f32,
+    vout: f32,
+    iout: f32,
+
+    vin_hist: [f32; 2],
+    vout_hist: [f32; 2],
+    iout_hist: [f32; 2],
+}
+
+
+impl TelemetryFilter {
+    pub fn new() -> Self {
+        Self::with_tau_ms(TAU_MS)
+    }
+
+    pub fn with_tau_ms(tau_ms: f32) -> Self {
+        Self {
+            tau_ms,
+            initialized: false,
+            last_update: Instant::now(),
+            vin: 0.0,
+            vout: 0.0,
+            iout: 0.0,
+            vin_hist: [0.0; 2],
+            vout_hist: [0.0; 2],
+            iout_hist: [0.0; 2],
+        }
+    }
+
+    pub fn filter(&mut self, raw: Telemetry) -> Telemetry {
+        let vin_in = median3(self.vin_hist[0], self.vin_hist[1], raw.vin_mv as f32);
+        let vout_in = median3(self.vout_hist[0], self.vout_hist[1], raw.vout_mv as f32);
+        let iout_in = median3(self.iout_hist[0], self.iout_hist[1], raw.iout_ma as f32);
+
+        self.vin_hist = [self.vin_hist[1], raw.vin_mv as f32];
+        self.vout_hist = [self.vout_hist[1], raw.vout_mv as f32];
+        self.iout_hist = [self.iout_hist[1], raw.iout_ma as f32];
+
+        let now = Instant::now();
+
+        if !self.initialized {
+            self.vin = vin_in;
+            self.vout = vout_in;
+            self.iout = iout_in;
+            self.initialized = true;
+        } else {
+            let dt_ms = now.duration_since(self.last_update).as_micros() as f32 / 1000.0;
+            // alpha derived from actual elapsed time, not an assumed sample period
+            let a = 1.0 - libm::expf(-dt_ms / self.tau_ms);
+            self.vin += a * (vin_in - self.vin);
+            self.vout += a * (vout_in - self.vout);
+            self.iout += a * (iout_in - self.iout);
+        }
+        self.last_update = now;
+
+        let vout_mv = libm::roundf(self.vout) as u32;
+        let iout_ma = libm::roundf(self.iout) as u32;
+
+        Telemetry {
+            vin_mv: libm::roundf(self.vin) as u32,
+            vout_mv,
+            iout_ma,
+            pout_mw: vout_mv.saturating_mul(iout_ma) / 1000,
+            temp_conv_c: raw.temp_conv_c,
+            temp_input_c: raw.temp_input_c,
+        }
+    }
+}
+
+
+fn median3(a: f32, b: f32, c: f32) -> f32 {
+    a.max(b).min(a.min(b).max(c))
+}
+
+impl Default for TelemetryFilter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 pub struct AdcSense;
 
@@ -38,6 +135,8 @@ impl AdcSense {
             0
         };
 
+        // Instantaneous (unfiltered) power — useful for fast OCP/OPP checks
+        // that shouldn't wait for the smoothed value.
         let pout_mw = vout_mv.saturating_mul(iout_ma) / 1000;
 
         Telemetry {
@@ -58,19 +157,16 @@ fn scale(raw: u32, full_scale_phys: u32) -> u32 {
 fn ntc_c(raw: u32) -> i32 {
     let vref = board::ADC_VREF_MV as f32 / 1000.0;
     let v = (raw as f32 * vref) / 4096.0;
-    // Match PD240W example: return -273.15 (absolute zero) as error indicator
     if v <= 0.01 || v >= vref {
         return -273;
     }
     let r = board::NTC_PULLUP_OHM * v / (vref - v);
-    let t0_kelvin = 298.15f32; // 25°C in Kelvin
+    let t0_kelvin = 298.15f32;
     let r0 = board::NTC_R25_OHM;
     let beta = board::NTC_BETA;
-    // Beta parameter equation (simplified Steinhart-Hart)
-    // T = 1 / (1/T0 + (1/Beta) * ln(R/R0))
     let inv_t = 1.0 / t0_kelvin + libm::logf(r / r0) / beta;
     let t_kelvin = 1.0 / inv_t;
-    (t_kelvin - 273.15) as i32
+    libm::roundf(t_kelvin - 273.15) as i32
 }
 
 impl Default for AdcSense {

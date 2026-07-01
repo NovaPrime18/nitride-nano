@@ -26,7 +26,7 @@ use nitride_firmware::eeprom_workflow::EepromWorkflow;
 use nitride_firmware::drivers::tps26750::Tps26750;
 use nitride_firmware::hal::converter_enable::ConverterEnable;
 use nitride_firmware::pd::manager::PdManager;
-use nitride_firmware::sense::adc_sense::AdcSense;
+use nitride_firmware::sense::adc_sense::{AdcSense, TelemetryFilter};
 use nitride_firmware::state::{AppState, MenuScreen};
 use nitride_firmware::ui::input::InputHandler;
 use nitride_firmware::ui::menu::apply_input;
@@ -91,6 +91,9 @@ async fn main(_spawner: Spawner) {
     let mut enc_last: u16 = qei.count();
     let mut pd_irq = ExtiInput::new(p.PB13, p.EXTI13, Pull::Up);
 
+    let mut i2c_config = I2cConfig::default();
+    i2c_config.frequency = embassy_stm32::time::Hertz::khz(400);
+
     let mut i2c = I2c::new(
         p.I2C3,
         p.PA8,
@@ -98,15 +101,15 @@ async fn main(_spawner: Spawner) {
         Irqs,
         p.DMA1_CH3,
         p.DMA1_CH4,
-        I2cConfig::default(),
+        i2c_config, // <--- Pass it here
     );
-
     let mut app = AppState::default();
     let mut supply = SupplyController::new();
     let mut sense = AdcSense::new();
     let mut input = InputHandler::new();
     // No change needed here, but ensure the function is correctly imported
     let mut ui = Ssd1306Ui::new(); // Remove the display argument
+    let mut tele_filter = TelemetryFilter::new();
     let mut pd_mgr = PdManager::new();
     let mut tps = Tps26750::new(board::TPS26750_ADDR);
     let mut eeprom_workflow = EepromWorkflow::new();
@@ -158,7 +161,7 @@ async fn main(_spawner: Spawner) {
 
         if now.duration_since(t_adc) >= Duration::from_millis(board::ADC_SAMPLE_MS) {
             t_adc = now;
-            app.telemetry = sense.sample(
+            let raw = sense.sample(
                 &mut adc1,
                 &mut adc2,
                 &mut adc5,
@@ -168,6 +171,7 @@ async fn main(_spawner: Spawner) {
                 &mut pin_temp_conv,
                 &mut pin_temp_in,
             );
+            app.telemetry = tele_filter.filter(raw);
         }
 
         if now.duration_since(t_supply) >= Duration::from_millis(board::SUPPLY_TICK_MS) {
