@@ -31,7 +31,9 @@ impl AdcSense {
         let vout_mv = scale(vout_raw, board::VOUT_SENSE_NUM);
         let vbus_mv = scale(vbus_raw, board::VBUS_SENSE_NUM);
         let iout_ma = if board::ISENSE_MV_PER_A > 0 {
-            ((i_raw as u64 * board::ADC_VREF_MV as u64 * 10) / (4096 * board::ISENSE_MV_PER_A as u64)) as u32
+            let i_mv = (i_raw as u64 * board::ADC_VREF_MV as u64) / 4096;
+            let i_corr = i_mv.saturating_sub(board::ISENSE_OFFSET_MV as u64);
+            ((i_corr * 1000) / board::ISENSE_MV_PER_A as u64) as u32
         } else {
             0
         };
