@@ -25,6 +25,7 @@ embassy-executor = { version = "0.8", features = [
     "executor-thread",
 ] }
 embassy-sync = { version = "0.6" }
+static_cell = "2"
 embassy-time = { version = "0.4" }
 embassy-futures = "0.1"
 embassy-stm32 = { version = "0.3", features = [

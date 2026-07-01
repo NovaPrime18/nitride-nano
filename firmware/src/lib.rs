@@ -7,6 +7,7 @@ pub mod eeprom_loader;
 pub mod eeprom_workflow;
 pub mod hal;
 pub mod pd;
+pub mod runtime;
 pub mod sense;
 pub mod state;
 pub mod ui;

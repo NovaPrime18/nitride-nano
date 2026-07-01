@@ -9,7 +9,7 @@ use crate::state::Telemetry;
 /// With a 2 ms ADC period, TAU_SAMPLES = 100 gives ~200 ms settling —
 /// fast enough to track real load steps, slow enough to kill
 /// switching-noise jitter on the ADC readings.
-const TAU_MS: f32 = 200.0;
+const TAU_MS: f32 = 150.0;
 
 
 /// Exponential moving average (EMA) low-pass filter for telemetry,

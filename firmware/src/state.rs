@@ -116,6 +116,23 @@ impl Default for UiState {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct EepromUiSnapshot {
+    pub title: &'static str,
+    pub message: &'static str,
+    pub progress_percent: u8,
+}
+
+impl Default for EepromUiSnapshot {
+    fn default() -> Self {
+        Self {
+            title: "EEPROM FLASH",
+            message: "",
+            progress_percent: 0,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct AppState {
     pub supply: SupplyState,
@@ -125,6 +142,7 @@ pub struct AppState {
     pub pd_caps: [SourceCapability; 13],
     pub pd_cap_count: u8,
     pub encoder_delta: i16,
+    pub eeprom_ui: EepromUiSnapshot,
 }
 
 impl Default for AppState {
@@ -137,6 +155,7 @@ impl Default for AppState {
             pd_caps: [SourceCapability::EMPTY; 13],
             pd_cap_count: 0,
             encoder_delta: 0,
+            eeprom_ui: EepromUiSnapshot::default(),
         }
     }
 }

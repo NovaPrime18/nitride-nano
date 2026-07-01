@@ -30,8 +30,8 @@ pub const ADC_MAX: u32 = 65535; // 16-bit oversampled
 /// Divider ratios: physical = adc_counts * SCALE / ADC_MAX
 /// TODO: derive from Converter.kicad_sch resistor networks.
 pub const VOUT_SENSE_NUM: u32 = 85_140; // mV at full scale (248k/10k divider, 3.3V ref)
-pub const ISENSE_MV_PER_A: u32 = 20; // mV/A at ISMON node (PA3, calibrated)
-pub const ISENSE_OFFSET_MV: u32 = 250; // mV offset at 0A (PA3, calibrated)
+pub const ISENSE_MV_PER_A: u32 = 18; // mV/A at ISMON node (PA3, calibrated)
+pub const ISENSE_OFFSET_MV: u32 = 248; // mV offset at 0A (PA3, calibrated)
 pub const VBUS_SENSE_NUM: u32 = 69_600;
 
 /// DAC 12-bit, VREFBUF target ~2.5 V

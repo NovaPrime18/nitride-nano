@@ -1,17 +1,5 @@
-use embassy_stm32::i2c::{I2c, Master};
-use embassy_stm32::mode::Async;
-
-use crate::drivers::ssd1306_ui::Ssd1306Ui;
 use crate::state::{AppState, Fault, MenuScreen, PD_PRESET_VOLTAGES_MV, StepMode, SupplyMode};
 use crate::ui::input::InputEvent;
-
-pub struct UiTask;
-
-impl UiTask {
-    pub async fn draw(ui: &mut Ssd1306Ui, i2c: &mut I2c<'_, Async, Master>, app: &AppState) {
-        let _ = ui.draw_power_screen(i2c, app).await;
-    }
-}
 
 pub fn apply_input(app: &mut AppState, ev: InputEvent) {
     match app.ui.screen {
