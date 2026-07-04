@@ -4537,7 +4537,7 @@
 			(embedded_fonts no)
 		)
 	)
-	(text "Or Coilcraft: C6609502"
+	(text "Or Coilcraft: C3911537"
 		(exclude_from_sim no)
 		(at 254 147.574 0)
 		(effects
@@ -4602,7 +4602,7 @@
 		)
 		(uuid "d85e734a-e611-4248-beba-af6a7796e9b5")
 	)
-	(text "TODO: Recalc shunts"
+	(text "TODO: Recalc shunts\n2uH is meer beter\n"
 		(exclude_from_sim no)
 		(at 235.966 208.026 0)
 		(effects
@@ -10220,7 +10220,7 @@
 				)
 			)
 		)
-		(property "Value" "1.5"
+		(property "Value" "0"
 			(at 281.94 153.67 90)
 			(show_name no)
 			(do_not_autoplace no)

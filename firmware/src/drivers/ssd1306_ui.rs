@@ -118,17 +118,21 @@ impl Ssd1306Ui {
         self.display.init(i2c).await
     }
 
+    /// Redraw the power screen, reusing existing framebuffer content where possible.
+    ///
+    /// Unlike `clear()`-based redraws this only touches pages that actually changed,
+    /// so typical telemetry updates send a fraction of the 1024-byte framebuffer over I2C.
     pub async fn draw_power_screen(
         &mut self,
         i2c: &mut I2c<'_, Async, Master>,
         app: &AppState,
     ) -> Result<(), ()> {
-        self.display.clear();
+        // No clear() — only dirty pages are flushed at the end.
         self.draw_header(app);
         self.draw_telemetry(app);
         self.draw_power_bar(app);
         self.draw_status_bar(app);
-        self.display.flush(i2c).await
+        self.display.flush_partial(i2c).await
     }
 
     // ── Private drawing helpers ───────────────────────────────────────────────
@@ -136,6 +140,11 @@ impl Ssd1306Ui {
     /// Yellow zone: device name (or step mode when editing) on the left,
     /// mode and enable badges on the right.
     fn draw_header(&mut self, app: &AppState) {
+        // Clear any stale pixels in the header region before redrawing.
+        // This is needed because partial refresh only sends dirty pages to hardware,
+        // so text shorter than previous content (e.g. "OFF" → "ON") would leave ghost pixels.
+        self.display.fill_rect(0, 0, DISPLAY_W, ROW_DIVIDER);
+
         // Show "Fine" or "Coarse" when editing CV/CC setpoints, otherwise temperature values
         match app.ui.screen {
             MenuScreen::CvSetpoint | MenuScreen::CcLimit => {
@@ -250,6 +259,7 @@ impl Ssd1306Ui {
         message: &str,
         progress_percent: u8,
     ) -> Result<(), ()> {
+        // Full redraw — completely different layout from the power screen.
         self.display.clear();
         self.draw_temp_header("EE");
 
@@ -264,7 +274,8 @@ impl Ssd1306Ui {
         self.display
             .draw_str(x + pct.len() as u8 * FONT_W, ROW_STATUS, "%");
 
-        self.display.flush(i2c).await
+        // clear() marks everything dirty → flush_partial sends all pages (equivalent to full flush).
+        self.display.flush_partial(i2c).await
     }
 
     /// Fullscreen PD contract selection screen with 2×3 grid.
@@ -273,11 +284,12 @@ impl Ssd1306Ui {
         i2c: &mut I2c<'_, Async, Master>,
         app: &AppState,
     ) -> Result<(), ()> {
+        // Full redraw — completely different layout from the power screen.
         self.display.clear();
         self.draw_pd_header(app);
         self.draw_pd_grid(app);
         self.draw_pd_footer(app);
-        self.display.flush(i2c).await
+        self.display.flush_partial(i2c).await
     }
 
     // ── PD screen private helpers ───────────────────────────────────────────
@@ -351,6 +363,7 @@ impl Ssd1306Ui {
         title: &str,
         message: &str,
     ) -> Result<(), ()> {
+        // Full redraw — completely different layout from the power screen.
         self.display.clear();
         self.draw_temp_header("PD");
 
@@ -358,7 +371,8 @@ impl Ssd1306Ui {
         self.display.draw_str(0, 34, message);
 
         self.display.draw_str(0, ROW_STATUS, "ENC:OK  BTN3:BACK");
-        self.display.flush(i2c).await
+        // clear() marks everything dirty → flush_partial sends all pages (equivalent to full flush).
+        self.display.flush_partial(i2c).await
     }
 
     // ── Temperature header helpers ───────────────────────────────────────────

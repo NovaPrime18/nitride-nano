@@ -1,4 +1,4 @@
-//! Minimal SSD1306 128x64 I2C driver.
+//! Minimal SSD1306 128x64 I2C driver with partial refresh support.
 
 use embassy_stm32::i2c::{I2c, Master};
 use embassy_stm32::mode::Async;
@@ -6,9 +6,18 @@ use embassy_stm32::mode::Async;
 const CMD: u8 = 0x00;
 const DATA: u8 = 0x40;
 
+/// Number of pages in the SSD1306 framebuffer (64 rows / 8 pixels per page).
+const NUM_PAGES: u8 = 8;
+
+/// Bitmask with all page bits set — used to mark every page dirty after a clear.
+const DIRTY_ALL: u8 = 0xFF;
+
 pub struct Ssd1306 {
     addr: u8,
     fb: [u8; 1024],
+    /// Bitmap of pages that have been modified since the last flush.
+    /// Bit `n` corresponds to page `n` (rows `[n*8 .. (n+1)*8 - 1]`).
+    dirty_pages: u8,
 }
 
 impl Ssd1306 {
@@ -16,6 +25,8 @@ impl Ssd1306 {
         Self {
             addr,
             fb: [0; 1024],
+            // All pages start "dirty" so the first flush sends the entire framebuffer.
+            dirty_pages: DIRTY_ALL,
         }
     }
 
@@ -35,20 +46,45 @@ impl Ssd1306 {
         i2c.write(self.addr, &[CMD, c]).await.map_err(|_| ())
     }
 
+    /// Zero the framebuffer and mark every page as dirty so the next flush
+    /// sends all 1024 bytes to the hardware (cleans up any stale pixels).
     pub fn clear(&mut self) {
         self.fb.fill(0);
+        self.dirty_pages = DIRTY_ALL;
+    }
+
+    /// Mark a page as dirty.  Called by `set_pixel`, `draw_char`, etc.
+    #[inline(always)]
+    fn mark_page_dirty(&mut self, page: u8) {
+        if page < NUM_PAGES {
+            self.dirty_pages |= 1 << page;
+        }
     }
 
     pub fn set_pixel(&mut self, x: u8, y: u8, on: bool) {
         if x >= 128 || y >= 64 {
             return;
         }
-        let idx = (x as usize) + (y as usize / 8) * 128;
+        let page = y / 8;
+        self.mark_page_dirty(page);
+
+        let idx = (x as usize) + page as usize * 128;
         let bit = 1 << (y % 8);
         if on {
             self.fb[idx] |= bit;
         } else {
             self.fb[idx] &= !bit;
+        }
+    }
+
+    /// Fill a rectangular region with black pixels and mark all affected pages dirty.
+    pub fn fill_rect(&mut self, x: u8, y: u8, w: u8, h: u8) {
+        let x_end = (x as u16 + w as u16).saturating_sub(1).min(127);
+        let y_end = (y as u16 + h as u16).saturating_sub(1).min(63);
+        for px in x as u8..=x_end as u8 {
+            for py in y as u8..=y_end as u8 {
+                self.set_pixel(px, py, false);
+            }
         }
     }
 
@@ -99,11 +135,57 @@ impl Ssd1306 {
         }
     }
 
-    pub async fn flush(&self, i2c: &mut I2c<'_, Async, Master>) -> Result<(), ()> {
-        self.cmd(i2c, 0x21).await?;
+    /// Send only the dirty (changed) page ranges to the display hardware.
+    ///
+    /// Pages are grouped into contiguous runs so that a single I2C command
+    /// sequence covers each run instead of issuing one per page.  After
+    /// flushing, all dirty bits are cleared — subsequent draws will only
+    /// re-send pages they actually modified.
+    pub async fn flush_partial(&mut self, i2c: &mut I2c<'_, Async, Master>) -> Result<(), ()> {
+        let mut page = 0u8;
+        while page < NUM_PAGES {
+            if self.dirty_pages & (1 << page) != 0 {
+                // Found a dirty page — collect the contiguous range starting here.
+                let start = page;
+                while page < NUM_PAGES && self.dirty_pages & (1 << page) != 0 {
+                    page += 1;
+                }
+                let end = page - 1;
+
+                // Send this run: set column/page address, then write the bytes.
+                let offset = start as usize * 128;
+                let len = (end - start + 1) as usize * 128;
+
+                self.cmd(i2c, 0x22).await?; // page-addr-set
+                self.cmd(i2c, start).await?;
+                self.cmd(i2c, end).await?;
+
+                let fb_chunk = &self.fb[offset..offset + len];
+                for chunk in fb_chunk.chunks(16) {
+                    let mut buf = [0u8; 17];
+                    buf[0] = DATA;
+                    buf[1..=chunk.len()].copy_from_slice(chunk);
+                    i2c.write(self.addr, &buf[..chunk.len() + 1])
+                        .await
+                        .map_err(|_| ())?;
+                }
+            } else {
+                page += 1;
+            }
+        }
+
+        // All dirty pages have been sent — reset the bitmap.
+        self.dirty_pages = 0;
+        Ok(())
+    }
+
+    /// Full-screen flush (legacy). Sends every page unconditionally and clears all dirty bits.
+    /// Prefer `flush_partial` for incremental updates.
+    pub async fn flush(&mut self, i2c: &mut I2c<'_, Async, Master>) -> Result<(), ()> {
+        self.cmd(i2c, 0x21).await?; // col-addr-set (auto)
         self.cmd(i2c, 0x00).await?;
         self.cmd(i2c, 0x7F).await?;
-        self.cmd(i2c, 0x22).await?;
+        self.cmd(i2c, 0x22).await?; // page-addr-set
         self.cmd(i2c, 0x00).await?;
         self.cmd(i2c, 0x07).await?;
         for chunk in self.fb.chunks(16) {
@@ -112,7 +194,14 @@ impl Ssd1306 {
             buf[1..=chunk.len()].copy_from_slice(chunk);
             i2c.write(self.addr, &buf[..chunk.len() + 1]).await.map_err(|_| ())?;
         }
+        self.dirty_pages = 0;
         Ok(())
+    }
+
+    /// Returns true if any page has been modified since the last flush.
+    #[inline(always)]
+    pub fn is_dirty(&self) -> bool {
+        self.dirty_pages != 0
     }
 }
 
