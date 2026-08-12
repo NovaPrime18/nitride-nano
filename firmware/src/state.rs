@@ -3,6 +3,7 @@
 use crate::board;
 use crate::drivers::tps26750::SourceCapability;
 
+/// Output stage operating mode: which control loop drives the converter.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SupplyMode {
     Off,
@@ -10,6 +11,8 @@ pub enum SupplyMode {
     Cc,
 }
 
+/// Latched hardware fault. Set by [`crate::control::supply::SupplyController`];
+/// cleared from the UI (encoder button on the main screen).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Fault {
     None,
@@ -17,15 +20,21 @@ pub enum Fault {
     OverVoltage,
     OverPower,
     OverTemp,
-    UserOff,
+    // TODO(dead-code): reserved for a "user switched the output off" state, but the
+    // UI toggles `SupplyState::enabled` directly instead of raising a fault. Never
+    // constructed or matched anywhere.
+    // UserOff,
 }
 
+/// USB-PD connection state machine, driven by [`crate::pd::manager::PdManager`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PdState {
     NoCable,
     Negotiating,
     ContractActive,
-    Fault,
+    // TODO(dead-code): no PD error path currently transitions into this state;
+    // failures are only logged via defmt. Preserved for future error reporting.
+    // Fault,
 }
 
 /// USB-PD contract preset voltages in millivolts.
@@ -47,6 +56,7 @@ pub enum StepMode {
     Coarse,
 }
 
+/// Filtered analog telemetry snapshot shared with the UI and control loop.
 #[derive(Clone, Copy, Debug)]
 pub struct Telemetry {
     pub vin_mv: u32,
@@ -70,6 +80,7 @@ impl Default for Telemetry {
     }
 }
 
+/// Setpoints, slew state, and caps for the programmable output stage.
 #[derive(Clone, Copy, Debug)]
 pub struct SupplyState {
     pub mode: SupplyMode,
@@ -97,6 +108,7 @@ impl Default for SupplyState {
     }
 }
 
+/// Menu/navigation state for the OLED UI.
 #[derive(Clone, Copy, Debug)]
 pub struct UiState {
     pub screen: MenuScreen,
@@ -116,6 +128,10 @@ impl Default for UiState {
     }
 }
 
+/// Immutable snapshot of the EEPROM flashing workflow, for display on the OLED.
+///
+/// Kept separate from the workflow itself so the UI task never has to touch the
+/// loader state machine directly.
 #[derive(Clone, Copy, Debug)]
 pub struct EepromUiSnapshot {
     pub title: &'static str,
@@ -133,15 +149,20 @@ impl Default for EepromUiSnapshot {
     }
 }
 
+/// Root shared state, guarded by the `APP_STATE` mutex in [`crate::runtime`].
 #[derive(Clone)]
 pub struct AppState {
     pub supply: SupplyState,
     pub telemetry: Telemetry,
     pub ui: UiState,
     pub pd: PdState,
+    /// Parsed source capabilities from the PD controller (max 7 SPR + 7 EPR PDOs
+    /// would overflow the Rx Source Capabilities register; 13 covers what fits).
     pub pd_caps: [SourceCapability; 13],
     pub pd_cap_count: u8,
-    pub encoder_delta: i16,
+    // TODO(dead-code): written nowhere and read nowhere — encoder deltas are passed
+    // directly from the main loop into `ui::input::InputHandler::poll` instead.
+    // pub encoder_delta: i16,
     pub eeprom_ui: EepromUiSnapshot,
 }
 
@@ -154,7 +175,6 @@ impl Default for AppState {
             pd: PdState::NoCable,
             pd_caps: [SourceCapability::EMPTY; 13],
             pd_cap_count: 0,
-            encoder_delta: 0,
             eeprom_ui: EepromUiSnapshot::default(),
         }
     }

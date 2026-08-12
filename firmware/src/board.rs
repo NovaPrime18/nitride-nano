@@ -15,19 +15,27 @@ pub const NTC_BETA: f32 = 3950.0;
 pub const NTC_R25_OHM: f32 = 10_000.0;
 pub const NTC_PULLUP_OHM: f32 = 4_700.0;
 pub const NTC_OVERTEMP_C: i32 = 80;
-pub const NTC_DERATE_START_C: i32 = 70;
+// TODO(dead-code): derating threshold carried over from the PD240W example, but no
+// thermal-derating logic exists in this firmware yet, so nothing reads it.
+// Preserved for when graduated derating is implemented.
+// pub const NTC_DERATE_START_C: i32 = 70;
 
-/// Graduated temperature thresholds (matches PD240W-Firmware-example AppConfig).
-pub const TEMP_CAUTION_C: i32 = 50;
-pub const TEMP_WARNING_C: i32 = 65;
-pub const TEMP_CRITICAL_C: i32 = 75;
-pub const TEMP_SHUTDOWN_C: i32 = 80;
+// TODO(dead-code): graduated temperature thresholds from the PD240W example AppConfig.
+// Only NTC_OVERTEMP_C is actually enforced (see control::supply); these graduated
+// levels are never referenced. Preserved for a future UI/derating feature.
+// pub const TEMP_CAUTION_C: i32 = 50;
+// pub const TEMP_WARNING_C: i32 = 65;
+// pub const TEMP_CRITICAL_C: i32 = 75;
+// pub const TEMP_SHUTDOWN_C: i32 = 80;
 
 /// ADC full-scale reference (VREF+ = VDDA unless VREFBUF used for DAC only).
 pub const ADC_VREF_MV: u32 = 3300;
-pub const ADC_MAX: u32 = 65535; // 16-bit oversampled
+// TODO(dead-code): misleading leftover — all ADCs run at 12-bit resolution and every
+// scaling path in `sense::adc_sense` divides raw counts by 4096. Nothing references
+// this 16-bit "oversampled" constant.
+// pub const ADC_MAX: u32 = 65535; // 16-bit oversampled
 
-/// Divider ratios: physical = adc_counts * SCALE / ADC_MAX
+/// Divider ratios: physical = adc_counts * SCALE / 4096 (12-bit ADC)
 /// TODO: derive from Converter.kicad_sch resistor networks.
 pub const VOUT_SENSE_NUM: u32 = 85_140; // mV at full scale (248k/10k divider, 3.3V ref)
 pub const ISENSE_MV_PER_A: u32 = 18; // mV/A at ISMON node (PA3, calibrated)

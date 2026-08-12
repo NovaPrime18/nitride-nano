@@ -6,6 +6,7 @@ use embassy_stm32::mode::Async;
 use crate::eeprom_loader::{EepromLoader, LoaderState};
 use crate::ui::input::InputEvent;
 
+/// User-facing phase of the flash operation, shown on the OLED.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorkflowState {
     Confirming,
@@ -14,6 +15,9 @@ pub enum WorkflowState {
     Error,
 }
 
+/// Glues the [`EepromLoader`] state machine to the menu system: owns the
+/// loader, accepts confirm-button input, and exposes title/message/progress
+/// strings for the UI snapshot.
 pub struct EepromWorkflow {
     pub state: WorkflowState,
     pub loader: EepromLoader,
@@ -32,6 +36,9 @@ impl EepromWorkflow {
         }
     }
 
+    /// BTN1 or the encoder button starts (or restarts) flashing from the
+    /// Confirming, Done, or Error screens; all other input is ignored so an
+    /// in-progress write can't be disturbed.
     pub fn handle_input(&mut self, event: InputEvent) {
         match (self.state, event) {
             (
@@ -50,6 +57,7 @@ impl EepromWorkflow {
         }
     }
 
+    /// Step the loader by one page while flashing; a no-op otherwise.
     pub async fn update(&mut self, i2c: &mut I2c<'_, Async, Master>) -> WorkflowState {
         if self.state != WorkflowState::Flashing {
             return self.state;
@@ -92,6 +100,7 @@ impl EepromWorkflow {
         }
     }
 
+    /// Write/verify progress 0–100, based on loader byte offset.
     pub fn progress_percent(&self) -> u8 {
         let total = self.loader.total_size().max(1);
         ((self.loader.progress_bytes() * 100) / total).min(100) as u8

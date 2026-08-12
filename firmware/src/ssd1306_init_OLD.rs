@@ -1,3 +1,13 @@
+// ============================================================================
+// LEGACY — SUPERSEDED, DO NOT USE.
+//
+// This file targets the old `ssd1306` crate API and a pre-Embassy HAL, and is
+// NOT part of the build (not declared in `lib.rs`). Display initialisation now
+// lives in `drivers/ssd1306.rs` (`Ssd1306::init`) behind `drivers/ssd1306_ui.rs`
+// (`Ssd1306Ui::init`). Kept in the tree for historical reference only; it is not
+// expected to compile.
+// ============================================================================
+
 use embassy_stm32::i2c::{I2c, I2cConfig};
 use embassy_stm32::pac;
 use ssd1306::{prelude::*, I2CDisplay};

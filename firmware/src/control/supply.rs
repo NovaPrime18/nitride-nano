@@ -1,3 +1,7 @@
+//! Output-stage supervisor: fault checks, enable gating, slew, and CV/CC DAC
+//! updates. [`SupplyController::tick`] runs every [`crate::board::SUPPLY_TICK_MS`]
+//! from the main loop while holding the `APP_STATE` lock.
+
 use embassy_stm32::dac::{DacCh1, Value};
 use embassy_stm32::mode::Blocking;
 use embassy_stm32::peripherals::{DAC1, DAC2};
@@ -7,6 +11,7 @@ use crate::control::dac_cv::CvDac;
 use crate::hal::converter_enable::ConverterEnable;
 use crate::state::{Fault, SupplyMode};
 
+/// Owns the CV and CC DAC state machines and applies the fault policy.
 pub struct SupplyController {
     cv: CvDac,
     cc: CcDac,
@@ -20,6 +25,9 @@ impl SupplyController {
         }
     }
 
+    /// One control step: latch faults, gate the converter enable line, and push
+    /// new DAC codes. Any latched fault forces the output off and zeroes both
+    /// DACs; the fault is cleared from the UI, not here.
     pub fn tick(
         &mut self,
         app: &mut crate::state::AppState,
@@ -30,15 +38,21 @@ impl SupplyController {
         let tele = app.telemetry;
         let now = embassy_time::Instant::now();
 
-        // Hard overvoltage guard with 5% safety margin below design max.
-        // This trips BEFORE VOUT_MAX_MV to catch runaway before damage.
+        // Hard overvoltage guard at 105% of the design max. The CV loop already
+        // clamps setpoints to VOUT_MAX_MV, so this trips only on regulation
+        // failure (runaway) — it must sit ABOVE VOUT_MAX_MV or normal
+        // full-scale operation would false-trip.
         let ov_threshold = crate::board::VOUT_MAX_MV * 105 / 100;
         if tele.iout_ma > crate::board::IOUT_MAX_MA {
             app.supply.fault = Fault::OverCurrent;
             defmt::info!("Fault::OverCurrent");
         } else if tele.vout_mv > ov_threshold {
             app.supply.fault = Fault::OverVoltage;
-            defmt::info!("Fault::OverVoltage: {} mV > {} mV threshold", tele.vout_mv, ov_threshold);
+            defmt::info!(
+                "Fault::OverVoltage: {} mV > {} mV threshold",
+                tele.vout_mv,
+                ov_threshold
+            );
         } else if tele.pout_mw > crate::board::POWER_MAX_MW {
             app.supply.fault = Fault::OverPower;
             defmt::info!("Fault::OverPower");
@@ -47,13 +61,13 @@ impl SupplyController {
         {
             app.supply.fault = Fault::OverTemp;
             defmt::info!(
-                "Fault::OverTemp! conv_c: {}, input_c: {}, limit: {}", 
-                tele.temp_conv_c, 
+                "Fault::OverTemp! conv_c: {}, input_c: {}, limit: {}",
+                tele.temp_conv_c,
                 tele.temp_input_c,
                 crate::board::NTC_OVERTEMP_C
             );
         }
-        
+
         if app.supply.fault != Fault::None {
             app.supply.enabled = false;
             //app.supply.mode = SupplyMode::Off;
@@ -78,7 +92,10 @@ impl SupplyController {
             .i_set_ma
             .min(app.supply.input_current_cap_ma)
             .min(crate::board::IOUT_MAX_MA);
-        let p_cap = app.supply.input_power_cap_mw.min(crate::board::POWER_MAX_MW);
+        let p_cap = app
+            .supply
+            .input_power_cap_mw
+            .min(crate::board::POWER_MAX_MW);
         let i_power_cap = if tele.vout_mv > 0 {
             (p_cap * 1000) / tele.vout_mv
         } else {

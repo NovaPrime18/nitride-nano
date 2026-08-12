@@ -1,3 +1,9 @@
+//! ADC sampling and telemetry post-processing.
+//!
+//! Raw 12-bit ADC counts are scaled to physical units using the divider ratios
+//! in [`crate::board`], then passed through a median-of-3 despiker and an
+//! exponential moving average before being published as [`Telemetry`].
+
 use embassy_stm32::adc::Adc;
 use embassy_stm32::Peri;
 use embassy_time::Instant;
@@ -5,12 +11,11 @@ use embassy_time::Instant;
 use crate::board;
 use crate::state::Telemetry;
 
-/// Time constant for the telemetry low-pass filter, in samples.
-/// With a 2 ms ADC period, TAU_SAMPLES = 100 gives ~200 ms settling —
+/// Time constant of the telemetry low-pass filter, in milliseconds.
+/// With a 2 ms ADC period, 150 ms gives ~75 samples per time constant —
 /// fast enough to track real load steps, slow enough to kill
 /// switching-noise jitter on the ADC readings.
 const TAU_MS: f32 = 150.0;
-
 
 /// Exponential moving average (EMA) low-pass filter for telemetry,
 /// with median-of-3 despiking ahead of the EMA to reject single-sample
@@ -29,7 +34,6 @@ pub struct TelemetryFilter {
     vout_hist: [f32; 2],
     iout_hist: [f32; 2],
 }
-
 
 impl TelemetryFilter {
     pub fn new() -> Self {
@@ -90,7 +94,8 @@ impl TelemetryFilter {
     }
 }
 
-
+/// Median of three samples, computed branchlessly. A single outlier spike can
+/// never win: it is always the min or the max of the three.
 fn median3(a: f32, b: f32, c: f32) -> f32 {
     a.max(b).min(a.min(b).max(c))
 }
@@ -101,6 +106,7 @@ impl Default for TelemetryFilter {
     }
 }
 
+/// Stateless sampler for the five analog channels (Vout, Isense, Vbus, two NTCs).
 pub struct AdcSense;
 
 impl AdcSense {
@@ -108,6 +114,10 @@ impl AdcSense {
         Self
     }
 
+    /// Blocking-read all channels once and return raw (unfiltered) telemetry.
+    ///
+    /// Channel → peripheral mapping is fixed by the PCB: Vout/Isense/temp_conv
+    /// on ADC1, Vbus on ADC2, temp_in on ADC5.
     pub fn sample(
         &mut self,
         adc1: &mut Adc<'_, embassy_stm32::peripherals::ADC1>,
@@ -150,10 +160,16 @@ impl AdcSense {
     }
 }
 
+/// Convert 12-bit ADC counts to a physical unit, given the physical value that
+/// corresponds to full scale (4096 counts) after the input divider network.
 fn scale(raw: u32, full_scale_phys: u32) -> u32 {
     raw.saturating_mul(full_scale_phys) / 4096
 }
 
+/// Beta-equation NTC conversion. Returns -273 °C for open/short sensor
+/// readings (junction voltage at a rail), which will trip the overtemp fault
+/// check only if the limit is ever set below that sentinel — today it simply
+/// displays as an obviously bogus value.
 fn ntc_c(raw: u32) -> i32 {
     let vref = board::ADC_VREF_MV as f32 / 1000.0;
     let v = (raw as f32 * vref) / 4096.0;

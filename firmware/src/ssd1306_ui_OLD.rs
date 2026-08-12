@@ -1,3 +1,13 @@
+// ============================================================================
+// LEGACY — SUPERSEDED, DO NOT USE.
+//
+// This file targets the old `ssd1306` + `embedded-graphics` crates and is NOT
+// part of the build (not declared in `lib.rs`). The current UI is implemented
+// with the hand-rolled framebuffer driver in `drivers/ssd1306.rs` and the
+// screen layout in `drivers/ssd1306_ui.rs`. Kept in the tree for historical
+// reference only; it is not expected to compile.
+// ============================================================================
+
 //! SSD1306 UI module for displaying status messages on the OLED display.
 
 use embedded_graphics::{

@@ -1,3 +1,15 @@
+//! nitride-nano — USB-PD bench power supply firmware (STM32G474, Embassy).
+//!
+//! Structure: this entry point owns all peripherals and runs the cooperative
+//! main loop (input → ADC → supply tick → PD poll → EEPROM step). A single
+//! Embassy task (`ui_task`) renders the OLED. Shared state flows through the
+//! `APP_STATE` / `I2C_BUS` mutexes in [`nitride_firmware::runtime`]; the lock
+//! order (APP_STATE before I2C_BUS) documented there is load-bearing.
+//!
+//! Timing contract (do not change without re-tuning the control loop):
+//! input 5 ms, ADC 2 ms, supply tick 1 ms, PD 100 ms, EEPROM step every pass,
+//! plus a 100 µs yield at the bottom of the loop.
+
 #![no_std]
 #![no_main]
 
@@ -35,6 +47,8 @@ bind_interrupts!(struct Irqs {
     I2C3_ER => embassy_stm32::i2c::ErrorInterruptHandler<peripherals::I2C3>;
 });
 
+/// Copy the workflow's display-facing fields into the shared state so the UI
+/// task can render them without ever touching the workflow itself.
 fn sync_eeprom_ui(app: &mut AppState, workflow: &EepromWorkflow) {
     app.eeprom_ui = EepromUiSnapshot {
         title: workflow.title(),
@@ -102,13 +116,7 @@ async fn main(spawner: Spawner) {
     i2c_config.frequency = embassy_stm32::time::Hertz::khz(400);
 
     let i2c = I2c::new(
-        p.I2C3,
-        p.PA8,
-        p.PB5,
-        Irqs,
-        p.DMA1_CH3,
-        p.DMA1_CH4,
-        i2c_config,
+        p.I2C3, p.PA8, p.PB5, Irqs, p.DMA1_CH3, p.DMA1_CH4, i2c_config,
     );
     let i2c_bus = I2C_BUS.init(Mutex::new(i2c));
 
@@ -189,9 +197,7 @@ async fn main(spawner: Spawner) {
             t_pd = now;
             let mut app = app_state.lock().await;
             let mut i2c = i2c_bus.lock().await;
-            pd_mgr
-                .poll(&mut tps, &mut i2c, &mut app, &mut pd_irq)
-                .await;
+            pd_mgr.poll(&mut tps, &mut i2c, &mut app, &mut pd_irq).await;
         }
 
         {

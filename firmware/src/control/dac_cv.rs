@@ -1,3 +1,6 @@
+//! Constant-voltage setpoint DAC (PA4 / DAC1 CH1): calibration, slew limiting,
+//! and closed-loop trim against measured Vout.
+
 use embassy_time::Instant;
 
 use crate::board;
@@ -15,6 +18,8 @@ struct CalPoint {
     vout_mv: u32,
 }
 
+/// Piecewise-linear DAC-code ↔ Vout calibration, measured at bring-up.
+/// Points must stay sorted by both `code` and `vout_mv`.
 const CAL: [CalPoint; 5] = [
     CalPoint {
         code: 0,
@@ -49,6 +54,8 @@ impl CvDac {
         }
     }
 
+    /// Open-loop estimate of the DAC code for a target Vout, interpolated
+    /// between calibration points and clamped to the table's range.
     pub fn mv_to_code(&self, vout_mv: u32) -> u16 {
         let mv = vout_mv.min(board::VOUT_MAX_MV);
         for i in 0..self.cal.len() - 1 {
@@ -67,6 +74,11 @@ impl CvDac {
         board::DAC_MAX_CODE
     }
 
+    /// Advance the slewed setpoint toward `target_mv`, limited to
+    /// [`board::CV_SLEW_MV_PER_S`]. Returns the new slewed setpoint.
+    ///
+    /// Note: the ramp starts from `code_to_mv(self.code)` (the last trimmed
+    /// output), so a stale `code` also skews the slew start point.
     pub fn apply_slew(&mut self, target_mv: u32, now: Instant) -> u32 {
         let dt_ms = now.duration_since(self.last_slew).as_millis() as u32;
         self.last_slew = now;
@@ -79,6 +91,7 @@ impl CvDac {
         }
     }
 
+    /// Inverse of [`CvDac::mv_to_code`]: estimate Vout for a given DAC code.
     pub fn code_to_mv(&self, code: u16) -> u32 {
         let c = code as u32;
         for i in 0..self.cal.len() - 1 {
@@ -96,6 +109,8 @@ impl CvDac {
         board::VOUT_MAX_MV
     }
 
+    /// Nudge `code` by a fraction of the voltage error (proportional trim with
+    /// gain [`board::CV_TRIM_GAIN_NUM`]/[`board::CV_TRIM_GAIN_DEN`]).
     pub fn trim(&mut self, error_mv: i32) {
         if error_mv == 0 {
             return;
@@ -105,6 +120,9 @@ impl CvDac {
         self.code = new;
     }
 
+    /// Recompute `code` from the calibration table, then trim against the
+    /// measured output. Inside a ±5 mV deadband only a single-LSB upward nudge
+    /// is applied, which avoids limit-cycling around the setpoint.
     pub fn update_closed_loop(&mut self, v_set_mv: u32, v_meas_mv: u32) {
         let error = v_set_mv as i32 - v_meas_mv as i32;
         if error.abs() < 5 {

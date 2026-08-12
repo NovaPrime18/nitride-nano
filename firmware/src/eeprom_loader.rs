@@ -1,4 +1,10 @@
 //! CAT24C512 EEPROM writer for the TPS26750 full-flash image.
+//!
+//! The TPS26750 loads its application configuration from an external EEPROM at
+//! boot; this module writes (and verifies) that image one 128-byte page at a
+//! time. Designed to be stepped from a UI loop: each [`EepromLoader::update_step`]
+//! call performs at most one page transaction, keeping the OLED responsive
+//! during a ~64 KiB upload.
 
 use embassy_stm32::i2c::{Error as I2cError, I2c, Master};
 use embassy_stm32::mode::Async;
@@ -6,13 +12,16 @@ use embassy_time::{Duration, Timer};
 
 use crate::board::CAT24C512_ADDR;
 
+/// CAT24C512 page size in bytes; writes must not cross a page boundary.
 pub const EEPROM_PAGE_SIZE: usize = 128;
+/// Write-cycle time (tWR) to wait after each page write before the next access.
 pub const EEPROM_WRITE_DELAY_MS: u64 = 6;
 
 include!(concat!(env!("OUT_DIR"), "/tps26750_full_flash.rs"));
 
 pub const TPS26750_FULL_FLASH: &[u8] = &TPS26750_FULL_FLASH_BYTES;
 
+/// Phase of the write-then-verify sequence.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoaderState {
     Idle,
@@ -22,6 +31,9 @@ pub enum LoaderState {
     Error,
 }
 
+/// Paged writer/verifier for a static image. Step it with
+/// [`EepromLoader::update_step`] until it reports [`LoaderState::Complete`] or
+/// [`LoaderState::Error`].
 pub struct EepromLoader {
     image: &'static [u8],
     pub state: LoaderState,
@@ -41,6 +53,8 @@ impl EepromLoader {
         }
     }
 
+    /// Loader preloaded with the firmware-included TPS26750 full-flash image
+    /// (converted at build time from the TI binary by `build.rs`).
     pub fn full_flash() -> Self {
         Self::new(TPS26750_FULL_FLASH)
     }
@@ -53,6 +67,7 @@ impl EepromLoader {
         self.offset.min(self.image.len())
     }
 
+    /// (Re)arm the writer at offset 0 and enter the `Writing` phase.
     pub fn start(&mut self) {
         self.offset = 0;
         self.last_error = None;
@@ -66,6 +81,8 @@ impl EepromLoader {
         );
     }
 
+    /// Advance the state machine by at most one page transaction.
+    /// Safe to call in any state; `Complete`/`Error` are terminal no-ops.
     pub async fn update_step(&mut self, i2c: &mut I2c<'_, Async, Master>) -> LoaderState {
         match self.state {
             LoaderState::Idle => self.start(),
@@ -99,6 +116,11 @@ impl EepromLoader {
         self.state
     }
 
+    /// Three-stage presence probe (zero-length write, address-pointer write,
+    /// 1-byte read) run once before the first page. Probing catches a missing
+    /// or wrong-address EEPROM *before* half the flash image is written into
+    /// the void; on failure it also scans 0x50..=0x57 to help diagnose address
+    /// pin strapping.
     async fn validate_eeprom_presence(
         &mut self,
         i2c: &mut I2c<'_, Async, Master>,
@@ -144,9 +166,7 @@ impl EepromLoader {
             CAT24C512_ADDR
         );
 
-        defmt::info!(
-            "EEPROM validation: 1-byte random read probe from addr=0x0000"
-        );
+        defmt::info!("EEPROM validation: 1-byte random read probe from addr=0x0000");
 
         if let Err(err) = i2c
             .write_read(CAT24C512_ADDR, &address_pointer, &mut byte)
@@ -206,10 +226,7 @@ impl EepromLoader {
             );
         }
 
-        if let Err(err) = i2c
-            .write(CAT24C512_ADDR, &write[..2 + chunk.len()])
-            .await
-        {
+        if let Err(err) = i2c.write(CAT24C512_ADDR, &write[..2 + chunk.len()]).await {
             defmt::error!(
                 "EEPROM I2C write failed: dev=0x{:02x}, offset=0x{:04x}, len={}, err={}",
                 CAT24C512_ADDR,
@@ -279,6 +296,8 @@ impl EepromLoader {
     }
 }
 
+/// Map an I2C error to a short static label for defmt logs (defmt has no
+/// `Display` for the HAL error type).
 fn i2c_error_label(err: I2cError) -> &'static str {
     match err {
         I2cError::Bus => "bus",

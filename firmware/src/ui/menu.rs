@@ -1,6 +1,14 @@
-use crate::state::{AppState, Fault, MenuScreen, PD_PRESET_VOLTAGES_MV, StepMode, SupplyMode};
+//! Menu model: maps [`InputEvent`]s to [`AppState`] mutations per screen.
+//!
+//! Navigation: Main → CvSetpoint → CcLimit → PdContract → Settings → (back to
+//! Main), with EepromFlash reachable from Settings. Editing screens support a
+//! fine/coarse encoder step toggle on the encoder button.
+
+use crate::board;
+use crate::state::{AppState, Fault, MenuScreen, StepMode, SupplyMode, PD_PRESET_VOLTAGES_MV};
 use crate::ui::input::InputEvent;
 
+/// Dispatch one input event according to the active screen.
 pub fn apply_input(app: &mut AppState, ev: InputEvent) {
     match app.ui.screen {
         MenuScreen::Main => match ev {
@@ -22,8 +30,9 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
                 }
             }
             InputEvent::EncTurn(d) => {
+                // 10 mV per detent on the main screen — quick glance-level trim.
                 if d > 0 {
-                    app.supply.v_set_mv = (app.supply.v_set_mv + 10).min(60_000);
+                    app.supply.v_set_mv = (app.supply.v_set_mv + 10).min(board::VOUT_MAX_MV);
                 } else {
                     app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(10);
                 }
@@ -32,7 +41,7 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
         // Inside menu.rs -> apply_input -> MenuScreen::CvSetpoint
         MenuScreen::CvSetpoint => {
             let step = match app.ui.encoder_step_mode {
-                StepMode::Fine => 100u32,    // 100 mV per click
+                StepMode::Fine => 100u32,     // 100 mV per click
                 StepMode::Coarse => 1_000u32, // 1 V per click
             };
             adjust_voltage_dynamic(app, ev, step);
@@ -49,7 +58,7 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
         }
         MenuScreen::CcLimit => {
             let step = match app.ui.encoder_step_mode {
-                StepMode::Fine => 100u32,    // 100 mA per click
+                StepMode::Fine => 100u32,     // 100 mA per click
                 StepMode::Coarse => 1_000u32, // 1 A per click
             };
             adjust_current_dynamic(app, ev, step);
@@ -67,7 +76,8 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
         MenuScreen::PdContract => match ev {
             InputEvent::EncTurn(d) => {
                 if d > 0 {
-                    app.ui.pd_profile_index = (app.ui.pd_profile_index + 1) % PD_PRESET_VOLTAGES_MV.len() as u8;
+                    app.ui.pd_profile_index =
+                        (app.ui.pd_profile_index + 1) % PD_PRESET_VOLTAGES_MV.len() as u8;
                 } else if d < 0 {
                     app.ui.pd_profile_index = if app.ui.pd_profile_index > 0 {
                         app.ui.pd_profile_index - 1
@@ -106,11 +116,12 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
     }
 }
 
+/// Encoder-turn handler for the V-SET screen; ignores all other events.
 fn adjust_voltage_dynamic(app: &mut AppState, ev: InputEvent, step: u32) {
     match ev {
         InputEvent::EncTurn(d) => {
             if d > 0 {
-                app.supply.v_set_mv = (app.supply.v_set_mv + step).min(60_000);
+                app.supply.v_set_mv = (app.supply.v_set_mv + step).min(board::VOUT_MAX_MV);
             } else {
                 app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(step);
             }
@@ -119,11 +130,12 @@ fn adjust_voltage_dynamic(app: &mut AppState, ev: InputEvent, step: u32) {
     }
 }
 
+/// Encoder-turn handler for the I-LIM screen; ignores all other events.
 fn adjust_current_dynamic(app: &mut AppState, ev: InputEvent, step: u32) {
     match ev {
         InputEvent::EncTurn(d) => {
             if d > 0 {
-                app.supply.i_set_ma = (app.supply.i_set_ma + step).min(20_000);
+                app.supply.i_set_ma = (app.supply.i_set_ma + step).min(board::IOUT_MAX_MA);
             } else {
                 app.supply.i_set_ma = app.supply.i_set_ma.saturating_sub(step);
             }

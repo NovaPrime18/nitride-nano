@@ -37,7 +37,7 @@ use crate::board::{
     VOUT_MIN_MV,
 };
 use crate::drivers::ssd1306::Ssd1306;
-use crate::state::{AppState, MenuScreen, PD_PRESET_VOLTAGES_MV, StepMode, SupplyMode};
+use crate::state::{AppState, MenuScreen, StepMode, SupplyMode, PD_PRESET_VOLTAGES_MV};
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
@@ -102,6 +102,9 @@ const SSD1306_POWER_ON_DELAY_MS: u64 = 50;
 
 // ── Public type ───────────────────────────────────────────────────────────────
 
+/// Screen composer for the bench supply UI. Owns the framebuffer driver and
+/// knows the pixel layout of each screen; all methods end with a partial
+/// flush, so callers never deal with the dirty-page machinery.
 pub struct Ssd1306Ui {
     display: Ssd1306,
 }
@@ -113,6 +116,7 @@ impl Ssd1306Ui {
         }
     }
 
+    /// Power-on delay (panel VDD stabilization), then the SSD1306 init sequence.
     pub async fn init(&mut self, i2c: &mut I2c<'_, Async, Master>) -> Result<(), ()> {
         Timer::after(Duration::from_millis(SSD1306_POWER_ON_DELAY_MS)).await;
         self.display.init(i2c).await
@@ -156,7 +160,11 @@ impl Ssd1306Ui {
             }
             _ => {
                 let mut buf = [0u8; 20];
-                let text = fmt_temps(&mut buf, app.telemetry.temp_conv_c, app.telemetry.temp_input_c);
+                let text = fmt_temps(
+                    &mut buf,
+                    app.telemetry.temp_conv_c,
+                    app.telemetry.temp_input_c,
+                );
                 self.display.draw_str(COL_LABEL, ROW_HEADER, text);
             }
         }
@@ -252,6 +260,7 @@ impl Ssd1306Ui {
         }
     }
 
+    /// EEPROM flashing progress screen (title, message, percent bar).
     pub async fn draw_eeprom_screen(
         &mut self,
         i2c: &mut I2c<'_, Async, Master>,
@@ -314,18 +323,16 @@ impl Ssd1306Ui {
             let row = idx / 3;
             let col = idx % 3;
             let x = START_X + (col as u8 * (BOX_W + GAP_X));
-            let y = if row == 0 {
-                START_Y_ROW0
-            } else {
-                START_Y_ROW1
-            };
+            let y = if row == 0 { START_Y_ROW0 } else { START_Y_ROW1 };
             let is_selected = idx == app.ui.pd_profile_index as usize;
 
             // Draw bordered box
             self.display.draw_line(x, y, x + BOX_W - 1, y); // top
-            self.display.draw_line(x, y + BOX_H - 1, x + BOX_W - 1, y + BOX_H - 1); // bottom
+            self.display
+                .draw_line(x, y + BOX_H - 1, x + BOX_W - 1, y + BOX_H - 1); // bottom
             self.display.draw_line(x, y, x, y + BOX_H - 1); // left
-            self.display.draw_line(x + BOX_W - 1, y, x + BOX_W - 1, y + BOX_H - 1); // right
+            self.display
+                .draw_line(x + BOX_W - 1, y, x + BOX_W - 1, y + BOX_H - 1); // right
 
             // Fill selected box with white pixels
             if is_selected {
@@ -351,12 +358,14 @@ impl Ssd1306Ui {
         let vin_str = fmt_decimal(&mut vin_buf, app.telemetry.vin_mv);
         self.display.draw_str(0, 50, "Vin: ");
         self.display.draw_str(12, 50, vin_str);
-        self.display.draw_str(12 + vin_str.len() as u8 * FONT_W, 50, " V");
+        self.display
+            .draw_str(12 + vin_str.len() as u8 * FONT_W, 50, " V");
 
         // AUTO placeholder (right side)
         self.display.draw_str(80, 50, "[AUTO]");
     }
 
+    /// Transient confirmation screen shown after a PD contract request.
     pub async fn draw_pd_contract_result(
         &mut self,
         i2c: &mut I2c<'_, Async, Master>,
@@ -390,7 +399,11 @@ impl Ssd1306Ui {
     /// Draw temperature values from AppState with a given badge label.
     fn draw_temp_header_for_screen(&mut self, app: &AppState, badge: &str) {
         let mut buf = [0u8; 20];
-        let text = fmt_temps(&mut buf, app.telemetry.temp_conv_c, app.telemetry.temp_input_c);
+        let text = fmt_temps(
+            &mut buf,
+            app.telemetry.temp_conv_c,
+            app.telemetry.temp_input_c,
+        );
         self.display.draw_str(COL_LABEL, ROW_HEADER, text);
         self.display.draw_str(92, ROW_HEADER, badge);
         self.display
@@ -579,6 +592,7 @@ fn fmt_decimal(buf: &mut [u8; 8], millivalue: u32) -> &str {
     core::str::from_utf8(&buf[..i]).unwrap_or("?.???")
 }
 
+/// Format a clamped 0–100 percentage without a '%' suffix.
 fn fmt_percent(buf: &mut [u8; 4], percent: u8) -> &str {
     let percent = percent.min(100);
     let i = if percent == 100 {
@@ -604,18 +618,23 @@ fn fmt_temps(buf: &mut [u8; 20], t1: i32, t2: i32) -> &str {
     let mut i = 0usize;
 
     // "T1:" prefix
-    buf[i] = b'T'; i += 1;
-    buf[i] = b'1'; i += 1;
-    buf[i] = b':'; i += 1;
+    buf[i] = b'T';
+    i += 1;
+    buf[i] = b'1';
+    i += 1;
+    buf[i] = b':';
+    i += 1;
 
     // First temperature: handle negative values
     if t1 < 0 {
-        buf[i] = b'-'; i += 1;
+        buf[i] = b'-';
+        i += 1;
     }
     let int1 = t1.unsigned_abs();
     // Integer part (no leading zeros, at least one digit)
     if int1 == 0 {
-        buf[i] = b'0'; i += 1;
+        buf[i] = b'0';
+        i += 1;
     } else {
         let mut tmp = [0u8; 4];
         let mut ti = tmp.len();
@@ -626,27 +645,36 @@ fn fmt_temps(buf: &mut [u8; 20], t1: i32, t2: i32) -> &str {
             n /= 10;
         }
         for &byte in &tmp[ti..] {
-            buf[i] = byte; i += 1;
+            buf[i] = byte;
+            i += 1;
         }
     }
-    buf[i] = b'.'; i += 1;
-    buf[i] = b'0'; i += 1;
+    buf[i] = b'.';
+    i += 1;
+    buf[i] = b'0';
+    i += 1;
 
     // Space separator
-    buf[i] = b' '; i += 1;
+    buf[i] = b' ';
+    i += 1;
 
     // "T2:" prefix
-    buf[i] = b'T'; i += 1;
-    buf[i] = b'2'; i += 1;
-    buf[i] = b':'; i += 1;
+    buf[i] = b'T';
+    i += 1;
+    buf[i] = b'2';
+    i += 1;
+    buf[i] = b':';
+    i += 1;
 
     // Second temperature
     if t2 < 0 {
-        buf[i] = b'-'; i += 1;
+        buf[i] = b'-';
+        i += 1;
     }
     let int2 = t2.unsigned_abs();
     if int2 == 0 {
-        buf[i] = b'0'; i += 1;
+        buf[i] = b'0';
+        i += 1;
     } else {
         let mut tmp = [0u8; 4];
         let mut ti = tmp.len();
@@ -657,11 +685,14 @@ fn fmt_temps(buf: &mut [u8; 20], t1: i32, t2: i32) -> &str {
             n /= 10;
         }
         for &byte in &tmp[ti..] {
-            buf[i] = byte; i += 1;
+            buf[i] = byte;
+            i += 1;
         }
     }
-    buf[i] = b'.'; i += 1;
-    buf[i] = b'0'; i += 1;
+    buf[i] = b'.';
+    i += 1;
+    buf[i] = b'0';
+    i += 1;
 
     core::str::from_utf8(&buf[..i]).unwrap_or("T1:?.? T2:?.?")
 }

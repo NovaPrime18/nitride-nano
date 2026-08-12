@@ -12,6 +12,9 @@ const NUM_PAGES: u8 = 8;
 /// Bitmask with all page bits set — used to mark every page dirty after a clear.
 const DIRTY_ALL: u8 = 0xFF;
 
+/// Framebuffer-backed SSD1306 handle. Drawing primitives only touch the 1 KiB
+/// RAM buffer and record which pages changed; nothing reaches the panel until
+/// [`Ssd1306::flush_partial`] pushes the dirty pages over I2C.
 pub struct Ssd1306 {
     addr: u8,
     fb: [u8; 1024],
@@ -21,6 +24,8 @@ pub struct Ssd1306 {
 }
 
 impl Ssd1306 {
+    /// Create a handle for the panel at 7-bit I2C address `addr`
+    /// (typically [`crate::board::SSD1306_ADDR`]).
     pub fn new(addr: u8) -> Self {
         Self {
             addr,
@@ -30,10 +35,14 @@ impl Ssd1306 {
         }
     }
 
+    /// Send the SSD1306 power-on command sequence and clear the framebuffer.
+    ///
+    /// The command bytes are the datasheet-recommended sequence for a 128×64
+    /// panel with charge pump enabled — do not reorder or alter them.
     pub async fn init(&mut self, i2c: &mut I2c<'_, Async, Master>) -> Result<(), ()> {
         let cmds: &[u8] = &[
-            0xAE, 0xD5, 0x80, 0xA8, 0x3F, 0xD3, 0x00, 0x40, 0x8D, 0x14, 0x20, 0x00, 0xA1,
-            0xC8, 0xDA, 0x12, 0x81, 0xCF, 0xD9, 0xF1, 0xDB, 0x40, 0xA4, 0xA6, 0xAF,
+            0xAE, 0xD5, 0x80, 0xA8, 0x3F, 0xD3, 0x00, 0x40, 0x8D, 0x14, 0x20, 0x00, 0xA1, 0xC8,
+            0xDA, 0x12, 0x81, 0xCF, 0xD9, 0xF1, 0xDB, 0x40, 0xA4, 0xA6, 0xAF,
         ];
         for &c in cmds {
             self.cmd(i2c, c).await?;
@@ -61,6 +70,8 @@ impl Ssd1306 {
         }
     }
 
+    /// Set or clear one pixel. Out-of-bounds coordinates are silently ignored so
+    /// drawing helpers don't need their own clipping.
     pub fn set_pixel(&mut self, x: u8, y: u8, on: bool) {
         if x >= 128 || y >= 64 {
             return;
@@ -88,6 +99,7 @@ impl Ssd1306 {
         }
     }
 
+    /// Draw one 5×7 glyph with its top-left corner at (`x`, `y`).
     pub fn draw_char(&mut self, x: u8, y: u8, ch: u8) {
         let glyph = font5x7(ch);
         for (col, col_bits) in glyph.iter().enumerate() {
@@ -98,6 +110,8 @@ impl Ssd1306 {
         }
     }
 
+    /// Draw a string left-to-right, stopping before glyphs would cross the
+    /// right edge of the panel.
     pub fn draw_str(&mut self, mut x: u8, y: u8, s: &str) {
         for b in s.bytes() {
             if x > 122 {
@@ -108,6 +122,7 @@ impl Ssd1306 {
         }
     }
 
+    /// Bresenham line between two points, always drawn with "on" pixels.
     pub fn draw_line(&mut self, x0: u8, y0: u8, x1: u8, y1: u8) {
         let mut x = x0 as i16;
         let mut y = y0 as i16;
@@ -179,32 +194,39 @@ impl Ssd1306 {
         Ok(())
     }
 
-    /// Full-screen flush (legacy). Sends every page unconditionally and clears all dirty bits.
-    /// Prefer `flush_partial` for incremental updates.
-    pub async fn flush(&mut self, i2c: &mut I2c<'_, Async, Master>) -> Result<(), ()> {
-        self.cmd(i2c, 0x21).await?; // col-addr-set (auto)
-        self.cmd(i2c, 0x00).await?;
-        self.cmd(i2c, 0x7F).await?;
-        self.cmd(i2c, 0x22).await?; // page-addr-set
-        self.cmd(i2c, 0x00).await?;
-        self.cmd(i2c, 0x07).await?;
-        for chunk in self.fb.chunks(16) {
-            let mut buf = [0u8; 17];
-            buf[0] = DATA;
-            buf[1..=chunk.len()].copy_from_slice(chunk);
-            i2c.write(self.addr, &buf[..chunk.len() + 1]).await.map_err(|_| ())?;
-        }
-        self.dirty_pages = 0;
-        Ok(())
-    }
+    // TODO(dead-code): full-screen flush (legacy). Sends every page unconditionally and
+    // clears all dirty bits. Superseded by `flush_partial`, which already covers the
+    // full-screen case because `clear()` marks every page dirty. No call sites remain.
+    // /// Full-screen flush (legacy). Sends every page unconditionally and clears all dirty bits.
+    // /// Prefer `flush_partial` for incremental updates.
+    // pub async fn flush(&mut self, i2c: &mut I2c<'_, Async, Master>) -> Result<(), ()> {
+    //     self.cmd(i2c, 0x21).await?; // col-addr-set (auto)
+    //     self.cmd(i2c, 0x00).await?;
+    //     self.cmd(i2c, 0x7F).await?;
+    //     self.cmd(i2c, 0x22).await?; // page-addr-set
+    //     self.cmd(i2c, 0x00).await?;
+    //     self.cmd(i2c, 0x07).await?;
+    //     for chunk in self.fb.chunks(16) {
+    //         let mut buf = [0u8; 17];
+    //         buf[0] = DATA;
+    //         buf[1..=chunk.len()].copy_from_slice(chunk);
+    //         i2c.write(self.addr, &buf[..chunk.len() + 1]).await.map_err(|_| ())?;
+    //     }
+    //     self.dirty_pages = 0;
+    //     Ok(())
+    // }
 
-    /// Returns true if any page has been modified since the last flush.
-    #[inline(always)]
-    pub fn is_dirty(&self) -> bool {
-        self.dirty_pages != 0
-    }
+    // TODO(dead-code): dirty-bitmap query — the UI flushes unconditionally on every
+    // refresh tick, so nothing needs to ask whether a flush is required.
+    // /// Returns true if any page has been modified since the last flush.
+    // #[inline(always)]
+    // pub fn is_dirty(&self) -> bool {
+    //     self.dirty_pages != 0
+    // }
 }
 
+/// 5×7 bitmap font lookup. Glyphs are stored column-major, LSB = top pixel.
+/// Lowercase letters alias the uppercase glyphs; unknown bytes render as a box.
 fn font5x7(ch: u8) -> [u8; 5] {
     match ch {
         b'0' => [0x3E, 0x51, 0x49, 0x45, 0x3E],
@@ -217,7 +239,7 @@ fn font5x7(ch: u8) -> [u8; 5] {
         b'7' => [0x01, 0x71, 0x09, 0x05, 0x03],
         b'8' => [0x36, 0x49, 0x49, 0x49, 0x36],
         b'9' => [0x06, 0x49, 0x49, 0x29, 0x1E],
-        
+
         // --- Replace the A..=Z range with this block ---
         b'A' => [0x7E, 0x11, 0x11, 0x11, 0x7E],
         b'B' => [0x7F, 0x49, 0x49, 0x49, 0x36],
@@ -246,7 +268,6 @@ fn font5x7(ch: u8) -> [u8; 5] {
         b'Y' => [0x07, 0x08, 0x70, 0x08, 0x07],
         b'Z' => [0x61, 0x51, 0x49, 0x45, 0x43],
         // -----------------------------------------------
-
         b'a'..=b'z' => font5x7(ch - 32),
         b' ' => [0; 5],
         b'.' => [0x60, 0x60, 0x00, 0x00, 0x00],

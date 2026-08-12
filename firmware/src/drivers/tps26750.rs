@@ -5,17 +5,28 @@ use embassy_stm32::i2c::{I2c, Master};
 use embassy_stm32::mode::Async;
 use embassy_time::{Duration, Timer};
 
+// Register addresses in the TPS26750 "Unique Address" I2C interface.
+// Only the subset the firmware actually exercises is kept active below.
 pub const TPS_REG_MODE: u8 = 0x03;
 pub const TPS_REG_CMD1: u8 = 0x08;
-pub const TPS_REG_DATA1: u8 = 0x09;
+// TODO(dead-code): DATA1 (0x09) is the command data register in the TI register
+// map, but no command used here carries a data payload, so it is never addressed.
+// pub const TPS_REG_DATA1: u8 = 0x09;
 pub const TPS_REG_INT_EVENT1: u8 = 0x14;
-pub const TPS_REG_INT_CLEAR1: u8 = 0x18;
-pub const TPS_REG_STATUS: u8 = 0x1A;
+// TODO(dead-code): interrupt flags are cleared by the TPS26750 app firmware when
+// read (4CC command side effect in this config); an explicit INT_CLEAR1 write is
+// never issued.
+// pub const TPS_REG_INT_CLEAR1: u8 = 0x18;
+// TODO(dead-code): STATUS (0x1A) polling was dropped in favour of the IRQ line on
+// PB13; kept for register-map reference.
+// pub const TPS_REG_STATUS: u8 = 0x1A;
 pub const TPS_REG_RX_SOURCE_CAPS: u8 = 0x30;
 pub const TPS_REG_ACTIVE_CONTRACT_PDO: u8 = 0x34;
 pub const TPS_REG_ACTIVE_CONTRACT_RDO: u8 = 0x35;
 pub const TPS_REG_AUTONEGOTIATE_SINK: u8 = 0x37;
-pub const TPS_REG_PD3_STATUS: u8 = 0x41;
+// TODO(dead-code): PD3_STATUS (0x41) is unused — EPR/SPR detection is done by
+// decoding the PDO type bits in `parse_pdo` instead.
+// pub const TPS_REG_PD3_STATUS: u8 = 0x41;
 
 pub const TPS_CMD_GSRC: &[u8; 4] = b"GSrC";
 pub const TPS_INT_NEW_CONTRACT_AS_SINK: u8 = 12;
@@ -66,6 +77,10 @@ const PDO_BYTES: u8 = 4;
 const PPS_REQUEST_STEP_MV: u32 = 20;
 const AVS_REQUEST_STEP_MV: u32 = 25;
 
+/// One parsed source PDO from the PD source, normalised to millivolt/milliamp.
+///
+/// `max_current_9_15_ma` is only meaningful for SPR AVS PDOs (the 9–15 V current
+/// rating); it is parsed for completeness but currently not consumed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SourceCapability {
     pub voltage_mv: u32,
@@ -87,6 +102,7 @@ impl SourceCapability {
     };
 }
 
+/// Handle for the TPS26750 at a fixed 7-bit I2C address.
 pub struct Tps26750 {
     addr: u8,
 }
@@ -96,6 +112,8 @@ impl Tps26750 {
         Self { addr }
     }
 
+    /// Probe the device by reading the MODE register; returns true when the chip
+    /// ACKs and returns a non-empty register payload.
     pub async fn init(&self, i2c: &mut I2c<'_, Async, Master>) -> bool {
         let mut mode = [0u8; 4];
         self.read_register(i2c, TPS_REG_MODE, &mut mode).await
@@ -151,6 +169,8 @@ impl Tps26750 {
         self.write_register(i2c, TPS_REG_CMD1, cmd).await
     }
 
+    /// Poll CMD1 until the app firmware clears it (command accepted) or
+    /// `TASK_WAIT_TIMEOUT_MS` elapses.
     pub async fn wait_for_command_clear(&self, i2c: &mut I2c<'_, Async, Master>) -> bool {
         let start = embassy_time::Instant::now();
         let mut cmd = [0u8; 4];
@@ -168,6 +188,8 @@ impl Tps26750 {
         }
     }
 
+    /// Decode the active PDO/RDO pair into `(voltage_mv, max_current_ma)`.
+    /// Returns `None` when no contract is active or the read fails.
     pub async fn get_active_contract(
         &self,
         i2c: &mut I2c<'_, Async, Master>,
@@ -212,6 +234,8 @@ impl Tps26750 {
         }
     }
 
+    /// Read and parse the source-capabilities PDOs advertised by the attached
+    /// source. Returns how many entries of `caps` were filled.
     pub async fn get_source_capabilities(
         &self,
         i2c: &mut I2c<'_, Async, Master>,
@@ -272,16 +296,7 @@ impl Tps26750 {
             pdo_min_mv
         };
         self.modify_sink_register(
-            i2c,
-            pdo_min_mv,
-            std_max,
-            current_ma,
-            voltage_mv,
-            current_ma,
-            true,
-            0,
-            0,
-            false,
+            i2c, pdo_min_mv, std_max, current_ma, voltage_mv, current_ma, true, 0, 0, false,
         )
         .await
     }
@@ -300,20 +315,13 @@ impl Tps26750 {
             pdo_min_mv
         };
         self.modify_sink_register(
-            i2c,
-            pdo_min_mv,
-            std_max,
-            current_ma,
-            0,
-            0,
-            false,
-            voltage_mv,
-            current_ma,
-            true,
+            i2c, pdo_min_mv, std_max, current_ma, 0, 0, false, voltage_mv, current_ma, true,
         )
         .await
     }
 
+    /// Issue the `GSrC` 4CC command so the PD controller re-runs the sink
+    /// negotiation with the updated Autonegotiate Sink register.
     pub async fn trigger_renegotiation(&self, i2c: &mut I2c<'_, Async, Master>) -> bool {
         if !self.send_command(i2c, TPS_CMD_GSRC).await {
             return false;
@@ -383,7 +391,10 @@ impl Tps26750 {
             buf[22] = (buf[22] & 0xE0) | (((avs_v_val >> 7) & 0x1F) as u8);
         }
 
-        if !self.write_register(i2c, TPS_REG_AUTONEGOTIATE_SINK, &buf).await {
+        if !self
+            .write_register(i2c, TPS_REG_AUTONEGOTIATE_SINK, &buf)
+            .await
+        {
             return false;
         }
         let mut toggle = buf;
@@ -399,16 +410,24 @@ impl Tps26750 {
             .await
     }
 
+    /// Test one bit in the 88-bit INT_EVENT1 bitmap; out-of-range indices are false.
     pub fn is_interrupt_set(buffer: &[u8], bit_index: u8) -> bool {
         if bit_index > 87 {
             return false;
         }
         let byte = bit_index / 8;
         let bit = bit_index % 8;
-        buffer.get(byte as usize).map(|b| (b & (1 << bit)) != 0).unwrap_or(false)
+        buffer
+            .get(byte as usize)
+            .map(|b| (b & (1 << bit)) != 0)
+            .unwrap_or(false)
     }
 
-    pub async fn read_interrupts(&self, i2c: &mut I2c<'_, Async, Master>, events: &mut [u8; 11]) -> bool {
+    pub async fn read_interrupts(
+        &self,
+        i2c: &mut I2c<'_, Async, Master>,
+        events: &mut [u8; 11],
+    ) -> bool {
         self.read_register(i2c, TPS_REG_INT_EVENT1, events).await
     }
 }
@@ -421,6 +440,9 @@ fn read_le32(buf: &[u8]) -> u32 {
     u32::from_le_bytes([buf[0], buf[1], buf[2], buf[3]])
 }
 
+/// Decode one 32-bit PDO (fixed, PPS, SPR AVS, or EPR AVS) into a
+/// [`SourceCapability`]. Returns `None` for battery/variable PDOs and for
+/// programmable PDOs with a degenerate (min >= max) voltage range.
 fn parse_pdo(pdo: u32) -> Option<SourceCapability> {
     let mut temp = SourceCapability::EMPTY;
     let pdo_type = extract_bits(pdo, PDO_TYPE_SHIFT, PDO_TYPE_MASK) as u8;
@@ -429,8 +451,11 @@ fn parse_pdo(pdo: u32) -> Option<SourceCapability> {
         match apdo {
             APDO_TYPE_EPR_AVS => {
                 temp.is_avs = true;
-                temp.voltage_mv = extract_bits(pdo, EPR_AVS_PDO_MAX_VOLTAGE_SHIFT, EPR_AVS_PDO_MAX_VOLTAGE_MASK)
-                    * PROGRAMMABLE_PDO_VOLTAGE_UNIT_MV;
+                temp.voltage_mv = extract_bits(
+                    pdo,
+                    EPR_AVS_PDO_MAX_VOLTAGE_SHIFT,
+                    EPR_AVS_PDO_MAX_VOLTAGE_MASK,
+                ) * PROGRAMMABLE_PDO_VOLTAGE_UNIT_MV;
                 temp.min_voltage_mv = extract_bits(
                     pdo,
                     PROGRAMMABLE_PDO_MIN_VOLTAGE_SHIFT,
@@ -458,8 +483,9 @@ fn parse_pdo(pdo: u32) -> Option<SourceCapability> {
             }
             APDO_TYPE_PPS => {
                 temp.is_pps = true;
-                temp.voltage_mv = extract_bits(pdo, PPS_PDO_MAX_VOLTAGE_SHIFT, PPS_PDO_MAX_VOLTAGE_MASK)
-                    * PROGRAMMABLE_PDO_VOLTAGE_UNIT_MV;
+                temp.voltage_mv =
+                    extract_bits(pdo, PPS_PDO_MAX_VOLTAGE_SHIFT, PPS_PDO_MAX_VOLTAGE_MASK)
+                        * PROGRAMMABLE_PDO_VOLTAGE_UNIT_MV;
                 temp.min_voltage_mv = extract_bits(
                     pdo,
                     PROGRAMMABLE_PDO_MIN_VOLTAGE_SHIFT,

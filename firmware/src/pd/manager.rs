@@ -1,12 +1,19 @@
+//! USB-PD policy: reacts to the TPS26750 interrupt line, (re)negotiates the
+//! contract selected in the UI, and mirrors the active contract into the
+//! shared supply caps.
+
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::i2c::{I2c, Master};
 use embassy_stm32::mode::Async;
 use embassy_time::{Duration, Timer};
 
 use crate::board;
-use crate::drivers::tps26750::{Tps26750, TPS_INT_NEW_CONTRACT_AS_SINK, TPS_INT_PLUG_INSERT_REMOVAL};
+use crate::drivers::tps26750::{
+    Tps26750, TPS_INT_NEW_CONTRACT_AS_SINK, TPS_INT_PLUG_INSERT_REMOVAL,
+};
 use crate::state::{AppState, PdState};
 
+/// Stateful wrapper around the TPS26750 driver, polled from the main loop.
 pub struct PdManager {
     negotiate_pending: bool,
 }
@@ -18,6 +25,13 @@ impl PdManager {
         }
     }
 
+    /// One polling step.
+    ///
+    /// 1. If the TPS26750 IRQ line is asserted, drain the interrupt bitmap and
+    ///    arm renegotiation on plug events.
+    /// 2. If renegotiation is pending, fetch source caps and request the PDO at
+    ///    `app.ui.pd_profile_index`.
+    /// 3. Mirror the active contract into the supply's input current/power caps.
     pub async fn poll(
         &mut self,
         tps: &mut Tps26750,
