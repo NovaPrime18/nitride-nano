@@ -15,7 +15,7 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 - [ ] Measure VREFBUF (~2.5 V on VREF+ pin)
 - [ ] Sweep PA4 DAC code 0→4095; log PA0 vs DMM on feedback sense node
 - [ ] Sweep PA6 DAC; verify monotonic CC node voltage
-- [ ] Record 5-point CV cal table → update `control/dac_cv.rs` `CAL` array
+- [ ] Record inverted CV cal table (code 0 → max V, full-scale → 0 V) → update `control/dac_cv.rs` `CAL` array
 
 ## 3. ADC scaling
 
@@ -40,12 +40,11 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 - [ ] Confirm PA11 polarity vs LT8390 RUN/SHDN
 - [ ] Input: current-limited 12 V (or USB PD 5 V contract only)
 - [ ] Enable at **low** Vset (e.g. 5 V) and Iset (e.g. 0.5 A)
-- [ ] Verify CV mode tracks setpoint within spec
+- [ ] Verify CV mode tracks setpoint within spec (open-loop — re-sweep DAC to calibrate `CAL` if offset/gain is off)
 - [ ] Verify CC mode limits current
 
 ## 7. Closed-loop & limits
 
-- [ ] Tune `CV_TRIM_GAIN_*` if hunting or slow
 - [ ] Trip test: software OC/OV/OP at bench-safe levels
 - [ ] NTC heat gun test: derate/shutdown thresholds
 

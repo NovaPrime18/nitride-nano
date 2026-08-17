@@ -122,6 +122,17 @@ impl Ssd1306Ui {
         self.display.init(i2c).await
     }
 
+    /// Force the panel to fully repaint on the next flush.
+    ///
+    /// Zeros the model framebuffer and marks every page dirty, so the following
+    /// [`Ssd1306::flush_partial`] sends all 1024 bytes (equivalent to a full,
+    /// column-anchored repaint). Call this on screen transitions and once after
+    /// init to re-sync the physical panel with the framebuffer, guaranteeing no
+    /// stale pixels or leftover-cursor misalignment survive between layouts.
+    pub fn invalidate(&mut self) {
+        self.display.clear();
+    }
+
     /// Redraw the power screen, reusing existing framebuffer content where possible.
     ///
     /// Unlike `clear()`-based redraws this only touches pages that actually changed,

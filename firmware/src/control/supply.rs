@@ -1,11 +1,12 @@
-//! Output-stage supervisor: fault checks, enable gating, slew, and CV/CC DAC
-//! updates. [`SupplyController::tick`] runs every [`crate::board::SUPPLY_TICK_MS`]
+//! Output-stage supervisor: fault checks, enable gating, and CV/CC DAC updates.
+//! [`SupplyController::tick`] runs every [`crate::board::SUPPLY_TICK_MS`]
 //! from the main loop while holding the `APP_STATE` lock.
 
 use embassy_stm32::dac::{DacCh1, Value};
 use embassy_stm32::mode::Blocking;
 use embassy_stm32::peripherals::{DAC1, DAC2};
 
+use crate::board;
 use crate::control::dac_cc::CcDac;
 use crate::control::dac_cv::CvDac;
 use crate::hal::converter_enable::ConverterEnable;
@@ -36,7 +37,6 @@ impl SupplyController {
         en: &mut ConverterEnable,
     ) {
         let tele = app.telemetry;
-        let now = embassy_time::Instant::now();
 
         // Hard overvoltage guard at 105% of the design max. The CV loop already
         // clamps setpoints to VOUT_MAX_MV, so this trips only on regulation
@@ -77,15 +77,13 @@ impl SupplyController {
         en.set_enabled(enabled);
 
         if !enabled {
-            self.cv.code = 0;
-            dac_cv.set(Value::Bit12Right(0));
+            // Inverted DAC: park at full-scale code = minimum output.
+            self.cv.code = board::DAC_MAX_CODE;
+            dac_cv.set(Value::Bit12Right(self.cv.code));
             self.cc.set_current(0);
             dac_cc.set(Value::Bit12Right(0));
-            app.supply.v_slewed_mv = 0;
             return;
         }
-
-        app.supply.v_slewed_mv = self.cv.apply_slew(app.supply.v_set_mv, now);
 
         let i_cap = app
             .supply
@@ -105,8 +103,9 @@ impl SupplyController {
 
         match app.supply.mode {
             SupplyMode::Cv => {
-                self.cv
-                    .update_closed_loop(app.supply.v_slewed_mv, tele.vout_mv);
+                // Open-loop: drive the CV DAC directly from the setpoint via the
+                // (inverted) calibration map — no slew, no feedback trim.
+                self.cv.code = self.cv.mv_to_code(app.supply.v_set_mv);
                 dac_cv.set(Value::Bit12Right(self.cv.code));
                 self.cc.set_current(i_limit);
                 dac_cc.set(Value::Bit12Right(self.cc.code));
@@ -116,17 +115,17 @@ impl SupplyController {
             }
             SupplyMode::Cc => {
                 // Disable CV DAC in CC mode to prevent it from overriding the CC controller.
-                // The CV DAC must NOT be driven from measured Vout here — if Vout spikes,
-                // a high DAC code would tell the converter to drive even harder, causing runaway.
-                self.cv.code = 0;
-                dac_cv.set(Value::Bit12Right(0));
+                // Park it at full-scale code (minimum Vout) on the inverted DAC so it
+                // can't command output while the CC controller is in charge.
+                self.cv.code = board::DAC_MAX_CODE;
+                dac_cv.set(Value::Bit12Right(self.cv.code));
 
                 self.cc.set_current(app.supply.i_set_ma.min(i_limit));
                 dac_cc.set(Value::Bit12Right(self.cc.code));
             }
             SupplyMode::Off => {
-                self.cv.code = 0;
-                dac_cv.set(Value::Bit12Right(0));
+                self.cv.code = board::DAC_MAX_CODE;
+                dac_cv.set(Value::Bit12Right(self.cv.code));
                 self.cc.set_current(0);
                 dac_cc.set(Value::Bit12Right(0));
             }

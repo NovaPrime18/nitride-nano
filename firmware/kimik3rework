@@ -1,0 +1,35 @@
+Refactor complete. `cargo build` clean, `cargo clippy` shows exactly the 11 pre-existing warnings (identical lints/locations as baseline — none new, none fixed to avoid behavior risk), and `cargo fmt --check` is clean (baseline had whitespace-only diffs, which `cargo fmt` normalized; formatting-only, no semantic changes).
+
+## Dead code commented out (all marked `// TODO(dead-code):`, none deleted)
+
+1. [`board.rs`](src/board.rs:18) — `NTC_DERATE_START_C`: carried over from the PD240W example; no derating logic reads it.
+2. [`board.rs`](src/board.rs:23-26) — `TEMP_CAUTION_C`, `TEMP_WARNING_C`, `TEMP_CRITICAL_C`, `TEMP_SHUTDOWN_C`: graduated thresholds never referenced; only `NTC_OVERTEMP_C` is enforced.
+3. [`board.rs`](src/board.rs:32) — `ADC_MAX` (65535): misleading leftover; all scaling divides by 4096 (12-bit ADC).
+4. [`state.rs`](src/state.rs:22) — `Fault::UserOff` variant: never constructed or matched (UI toggles `enabled` directly).
+5. [`state.rs`](src/state.rs:34) — `PdState::Fault` variant: no error path transitions into it.
+6. [`state.rs`](src/state.rs:159) — `AppState::encoder_delta` field (+ its `Default` init): never written or read; encoder deltas flow through `InputEvent::EncTurn`.
+7. [`ui/input.rs`](src/ui/input.rs:26) — `InputHandler::encoder_delta` field and its dead stores in `new`/`poll`/`clear_event`: written but never read.
+8. [`drivers/ssd1306.rs`](src/drivers/ssd1306.rs:206) — `Ssd1306::flush()`: legacy full-screen flush with no call sites; `flush_partial` covers the full-screen case because `clear()` dirties all pages.
+9. [`drivers/ssd1306.rs`](src/drivers/ssd1306.rs:228) — `Ssd1306::is_dirty()`: UI flushes unconditionally each refresh tick.
+10. [`drivers/tps26750.rs`](src/drivers/tps26750.rs:12-23) — register constants `TPS_REG_DATA1`, `TPS_REG_INT_CLEAR1`, `TPS_REG_STATUS`, `TPS_REG_PD3_STATUS`: never addressed (kept as register-map reference in the TODO notes).
+
+## Architectural changes
+
+- **Legacy headers**: [`ssd1306_init_OLD.rs`](src/ssd1306_init_OLD.rs:1) and [`ssd1306_ui_OLD.rs`](src/ssd1306_ui_OLD.rs:1) now carry a prominent "LEGACY — SUPERSEDED, DO NOT USE" banner pointing at their replacements. Not deleted, not made to compile.
+- **Magic numbers → board constants** in [`ui/menu.rs`](src/ui/menu.rs:29): literals `60_000`/`20_000` replaced with `board::VOUT_MAX_MV`/`board::IOUT_MAX_MA` (identical values, zero behavior change) so setpoint clamps track the design limits.
+- **Module docs everywhere**: every `mod.rs`, plus [`lib.rs`](src/lib.rs:1) (crate-level map of responsibilities), [`control/supply.rs`](src/control/supply.rs:1), [`sense/adc_sense.rs`](src/sense/adc_sense.rs:1), [`pd/manager.rs`](src/pd/manager.rs:1), [`ui/menu.rs`](src/ui/menu.rs:1), [`ui/task.rs`](src/ui/task.rs:1), [`main.rs`](src/main.rs:1) now state their responsibility at the top.
+- **Load-bearing invariants documented**: lock ordering (`APP_STATE` before `I2C_BUS`) in [`runtime.rs`](src/runtime.rs:3), main-loop timing contract in [`main.rs`](src/main.rs:7), and the SSD1306 init command sequence marked do-not-reorder in [`drivers/ssd1306.rs`](src/drivers/ssd1306.rs:45).
+- **Inaccurate comments corrected** (text only): the OV-guard comment in [`control/supply.rs`](src/control/supply.rs:40) claimed "5% below design max" while the code computes 105% (above max, intentionally, to catch runaway without false-tripping at full scale); the filter comment in [`sense/adc_sense.rs`](src/sense/adc_sense.rs:14) referenced a nonexistent `TAU_SAMPLES`; the CC DAC comment in [`control/dac_cc.rs`](src/control/dac_cc.rs:16) claimed a 3300 mV reference while the code correctly uses 2500 mV VREFBUF; the ADC scaling comment in [`board.rs`](src/board.rs:38) referenced the dead `ADC_MAX`.
+- Public items across drivers/eeprom/control/ui received concise `///` docs explaining hardware quirks and *why* (debounce release reset, CC-mode CV-DAC zeroing rationale already present and preserved, PPS/AVS RDO encoding, etc.).
+
+## Potential bugs found but NOT fixed (flagged for review)
+
+1. **[`pd/manager.rs`](src/pd/manager.rs:84)**: the PD poll writes `app.telemetry.vin_mv = v_mv` from the negotiated contract, but the ADC task overwrites `telemetry` every 2 ms with the filtered ADC measurement — the contract-derived Vin is dead on arrival. Probably intentional (measured Vin preferred) but the write is misleading.
+2. **[`ui/menu.rs`](src/ui/menu.rs:17)**: pressing the encoder button with a latched fault both clears the fault *and* toggles `enabled` in one press — a user acknowledging a fault may unexpectedly enable the output. The `if/else` branches are identical, so the fault check is redundant. Left as-is per the no-behavior-change rule.
+3. **[`control/dac_cv.rs`](src/control/dac_cv.rs:74)**: `apply_slew` ramps from `code_to_mv(self.code)`, but `update_closed_loop` rewrites `self.code` from the calibration table + trim each tick, so the slew start point is the *trimmed* code, not the previous slewed setpoint. This can subtly couple the trim into the ramp; noted in the doc comment.
+4. **[`sense/adc_sense.rs`](src/sense/adc_sense.rs:160)**: `ntc_c` returns -273 °C for open/short sensor readings; with the current 80 °C limit this sentinel can never trip the overtemp fault, so a disconnected NTC reads as a bogus temperature rather than faulting. Documented, not changed.
+5. **[`pd/manager.rs`](src/pd/manager.rs:33)**: `let _ = irq_active;` is a no-op statement (likely leftover from logging removal). Harmless; left untouched.
+
+**Not touched, per instructions**: [`drivers/ina228.rs`](src/drivers/ina228.rs:1) (`PowerMonitor`/`Ina228Stub` are unused but are a deliberate, documented future-backend stub — clarified its module doc instead of commenting it out) and [`SourceCapability::max_current_9_15_ma`](src/drivers/tps26750.rs:89) (parsed but unconsumed DTO field, part of the PDO decoding surface).
+
+**No behavioral changes**: main-loop timing, lock ordering, I2C transaction sequences, DAC/ADC setup, SSD1306 dirty-page logic and init bytes, and all numeric constants are byte-for-byte identical.

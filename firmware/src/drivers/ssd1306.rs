@@ -167,9 +167,20 @@ impl Ssd1306 {
                 }
                 let end = page - 1;
 
-                // Send this run: set column/page address, then write the bytes.
+                // Send this run: set column and page address, then write the bytes.
                 let offset = start as usize * 128;
                 let len = (end - start + 1) as usize * 128;
+
+                // Anchor the GDDRAM column cursor to the left edge. In horizontal
+                // addressing mode we must set BOTH the column window and the page
+                // window, otherwise data resumes writing from whatever column the
+                // last flush left behind — misaligning the whole frame (and worse,
+                // that leftover cursor is arbitrary after a soft reset). Setting
+                // 0x21/0x00..0x7F here makes every run start at column 0, exactly
+                // matching the legacy full flush behaviour.
+                self.cmd(i2c, 0x21).await?; // col-addr-set
+                self.cmd(i2c, 0x00).await?; // start column 0
+                self.cmd(i2c, 0x7F).await?; // end column 127
 
                 self.cmd(i2c, 0x22).await?; // page-addr-set
                 self.cmd(i2c, start).await?;

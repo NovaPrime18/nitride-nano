@@ -6,9 +6,6 @@ pub const VOUT_MIN_MV: u32 = 0;
 pub const IOUT_MAX_MA: u32 = 20_000;
 pub const POWER_MAX_MW: u32 = 240_000;
 
-/// Default slew rate for CV setpoint changes (mV/s).
-pub const CV_SLEW_MV_PER_S: u32 = 1_000;
-
 /// NTC thermistor settings (matches PD240W-Firmware-example).
 /// Circuit: 3.3V → R_PULLUP (4.7k) → NTC → GND, voltage at junction.
 pub const NTC_BETA: f32 = 3950.0;
@@ -53,10 +50,6 @@ pub const CAT24C512_ADDR: u8 = 0x50;
 
 /// Converter disable: active level (verify on bench vs LT8390 RUN).
 pub const CONVERTER_DISABLE_ACTIVE_HIGH: bool = true;
-
-/// CV closed-loop trim gain (DAC LSBs per mV error, scaled down).
-pub const CV_TRIM_GAIN_NUM: i32 = 1;
-pub const CV_TRIM_GAIN_DEN: i32 = 4;
 
 /// UI timing
 pub const DEBOUNCE_MS: u64 = 25;

@@ -24,11 +24,19 @@ pub async fn ui_task(app_state: &'static AppStateMutex, i2c_bus: &'static I2cBus
 
     let period = Duration::from_millis(board::UI_REFRESH_MS);
     let mut next = Instant::now();
+    // Resync the panel on the very first paint (covers soft-reset cursor garbage
+    // when the panel wasn't power-cycled) and again on every screen change, so
+    // no stale pixels from the previous layout survive into the next one.
+    let mut last_screen: Option<MenuScreen> = None;
     loop {
         Timer::at(next).await;
         next += period;
 
         let app = app_state.lock().await.clone();
+        if last_screen != Some(app.ui.screen) {
+            ui.invalidate();
+            last_screen = Some(app.ui.screen);
+        }
         let mut i2c = i2c_bus.lock().await;
 
         match app.ui.screen {
