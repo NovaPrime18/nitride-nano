@@ -43,6 +43,11 @@ pub const VBUS_SENSE_NUM: u32 = 69_600;
 pub const DAC_MAX_CODE: u16 = 4095;
 pub const DAC_VREF_MV: u32 = 2500;
 
+/// Max CV DAC code change per supply tick (see `control::dac_cv::CvDac::slew`).
+/// The supply tick is 1 ms, so this is N LSB per ms (~N*1000 LSB/s). Tune down
+/// for a gentler ramp if output-stage ringing/FET heating persists.
+pub const CV_SLEW_MAX_LSB_PER_TICK: u16 = 4;
+
 /// I2C addresses
 pub const TPS26750_ADDR: u8 = 0x21;
 pub const SSD1306_ADDR: u8 = 0x3C;

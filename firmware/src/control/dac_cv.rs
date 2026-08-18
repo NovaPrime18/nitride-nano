@@ -1,5 +1,6 @@
 //! Constant-voltage setpoint DAC (PA4 / DAC1 CH1): open-loop linear mapping
-//! from a voltage setpoint to a DAC code.
+//! from a voltage setpoint to a DAC code, with code-rate slew limiting between
+//! setpoint changes.
 //!
 //! The board's hardware *inverts* the DAC: code 0 produces the maximum output
 //! (~55.4 V) and the full-scale code produces 0 V, so this mapping runs
@@ -7,7 +8,8 @@
 
 use crate::board;
 
-/// CV setpoint DAC with an open-loop (inverted) voltage→code calibration map.
+/// CV setpoint DAC with an open-loop (inverted) voltage→code calibration map
+/// and code-rate slew limiting between setpoint changes.
 pub struct CvDac {
     pub code: u16,
     cal: CalTable,
@@ -109,6 +111,23 @@ impl CvDac {
             }
         }
         self.cal[self.cal.len() - 1].code
+    }
+
+    /// Nudge the current `code` toward `target` by at most
+    /// [`board::CV_SLEW_MAX_LSB_PER_TICK`] counts per call. Called once per
+    /// supply tick so the DAC output steps gently instead of jumping on a
+    /// setpoint change (avoids output-stage ringing / FET heating). On the
+    /// inverted DAC, raising the output voltage means `target < code`.
+    pub fn slew(&mut self, target: u16) {
+        let step = board::CV_SLEW_MAX_LSB_PER_TICK as i32;
+        let delta = target as i32 - self.code as i32;
+        if delta > step {
+            self.code = (self.code as i32 + step) as u16;
+        } else if delta < -step {
+            self.code = (self.code as i32 - step).max(0) as u16;
+        } else {
+            self.code = target;
+        }
     }
 }
 

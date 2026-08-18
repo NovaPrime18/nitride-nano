@@ -26,6 +26,20 @@ pub enum Fault {
     // UserOff,
 }
 
+impl Fault {
+    /// Short display label for the OLED header, replacing the temperature badges
+    /// while a fault is latched. Returns `None` when no fault prevents turn-on.
+    pub fn label(self) -> Option<&'static str> {
+        match self {
+            Fault::None => None,
+            Fault::OverCurrent => Some("OVERCURRENT"),
+            Fault::OverVoltage => Some("OVERVOLTAGE"),
+            Fault::OverPower => Some("OVERPOWER"),
+            Fault::OverTemp => Some("OVERTEMP"),
+        }
+    }
+}
+
 /// USB-PD connection state machine, driven by [`crate::pd::manager::PdManager`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PdState {

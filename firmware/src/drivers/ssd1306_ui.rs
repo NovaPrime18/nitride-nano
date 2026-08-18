@@ -170,13 +170,7 @@ impl Ssd1306Ui {
                 self.display.draw_str(COL_LABEL, ROW_HEADER, mode_text);
             }
             _ => {
-                let mut buf = [0u8; 20];
-                let text = fmt_temps(
-                    &mut buf,
-                    app.telemetry.temp_conv_c,
-                    app.telemetry.temp_input_c,
-                );
-                self.display.draw_str(COL_LABEL, ROW_HEADER, text);
+                self.draw_header_label_or_temps(app);
             }
         }
 
@@ -275,13 +269,14 @@ impl Ssd1306Ui {
     pub async fn draw_eeprom_screen(
         &mut self,
         i2c: &mut I2c<'_, Async, Master>,
+        app: &AppState,
         title: &str,
         message: &str,
         progress_percent: u8,
     ) -> Result<(), ()> {
         // Full redraw — completely different layout from the power screen.
         self.display.clear();
-        self.draw_temp_header("EE");
+        self.draw_temp_header(app, "EE");
 
         self.display.draw_str(0, 22, title);
         self.display.draw_str(0, 34, message);
@@ -380,12 +375,13 @@ impl Ssd1306Ui {
     pub async fn draw_pd_contract_result(
         &mut self,
         i2c: &mut I2c<'_, Async, Master>,
+        app: &AppState,
         title: &str,
         message: &str,
     ) -> Result<(), ()> {
         // Full redraw — completely different layout from the power screen.
         self.display.clear();
-        self.draw_temp_header("PD");
+        self.draw_temp_header(app, "PD");
 
         self.display.draw_str(0, 22, title);
         self.display.draw_str(0, 34, message);
@@ -397,25 +393,34 @@ impl Ssd1306Ui {
 
     // ── Temperature header helpers ───────────────────────────────────────────
 
-    /// Draw temperature values in the header zone with a right-justified badge label.
-    fn draw_temp_header(&mut self, badge: &str) {
-        let mut buf = [0u8; 20];
-        let text = fmt_temps(&mut buf, 25, 25); // default temps for init phase
-        self.display.draw_str(COL_LABEL, ROW_HEADER, text);
-        self.display.draw_str(92, ROW_HEADER, badge);
-        self.display
-            .draw_line(0, ROW_DIVIDER, DISPLAY_W - 1, ROW_DIVIDER);
+    /// Draw the header's left-side content: the latched fault label when one is
+    /// active, otherwise the temperature badges.
+    fn draw_header_label_or_temps(&mut self, app: &AppState) {
+        if let Some(label) = app.supply.fault.label() {
+            self.display.draw_str(COL_LABEL, ROW_HEADER, label);
+        } else {
+            let mut buf = [0u8; 20];
+            let text = fmt_temps(
+                &mut buf,
+                app.telemetry.temp_conv_c,
+                app.telemetry.temp_input_c,
+            );
+            self.display.draw_str(COL_LABEL, ROW_HEADER, text);
+        }
+    }
+
+    /// Draw temperature values in the header zone (optionally a right-justified
+    /// badge label) — or the latched fault label in place of temperatures.
+    fn draw_temp_header(&mut self, app: &AppState, badge: &str) {
+        self.draw_header_label_or_temps(app);
+        if !badge.is_empty() {
+            self.display.draw_str(92, ROW_HEADER, badge);
+        }
     }
 
     /// Draw temperature values from AppState with a given badge label.
     fn draw_temp_header_for_screen(&mut self, app: &AppState, badge: &str) {
-        let mut buf = [0u8; 20];
-        let text = fmt_temps(
-            &mut buf,
-            app.telemetry.temp_conv_c,
-            app.telemetry.temp_input_c,
-        );
-        self.display.draw_str(COL_LABEL, ROW_HEADER, text);
+        self.draw_header_label_or_temps(app);
         self.display.draw_str(92, ROW_HEADER, badge);
         self.display
             .draw_line(0, ROW_DIVIDER, DISPLAY_W - 1, ROW_DIVIDER);

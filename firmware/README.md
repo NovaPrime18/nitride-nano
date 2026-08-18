@@ -4,7 +4,7 @@ Embassy-based Rust firmware for the **STM32G474CEU6** on the nitride-nano pocket
 
 ## Features
 
-- **CV/CC control** via 12-bit DAC (PA4 CV, PA6 CC) with VREFBUF; open-loop CV driven as an (inverted) linear calibration map from setpoint to DAC code — no slew, no feedback loop
+- **CV/CC control** via 12-bit DAC (PA4 CV, PA6 CC) with VREFBUF; open-loop CV driven as an (inverted) calibration map from setpoint to DAC code with code-rate slew limiting (no feedback loop)
 - **ADC telemetry** on PA0/PA1/PA3/PA7/PA9 (INA228 not on MCU I2C on current PCB)
 - **SSD1306** powersupply UI (128×64 I2C)
 - **3 buttons + rotary encoder** (PB9–11, PB6/PA12, PB4)

@@ -43,6 +43,7 @@ pub async fn ui_task(app_state: &'static AppStateMutex, i2c_bus: &'static I2cBus
             MenuScreen::EepromFlash => {
                 ui.draw_eeprom_screen(
                     &mut i2c,
+                    &app,
                     app.eeprom_ui.title,
                     app.eeprom_ui.message,
                     app.eeprom_ui.progress_percent,

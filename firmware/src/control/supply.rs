@@ -103,9 +103,12 @@ impl SupplyController {
 
         match app.supply.mode {
             SupplyMode::Cv => {
-                // Open-loop: drive the CV DAC directly from the setpoint via the
-                // (inverted) calibration map — no slew, no feedback trim.
-                self.cv.code = self.cv.mv_to_code(app.supply.v_set_mv);
+                // Open-loop CV from the setpoint via the (inverted) calibration
+                // map, with the DAC code slewed at most
+                // board::CV_SLEW_MAX_LSB_PER_TICK counts per tick so setpoint
+                // changes step gently (avoids ringing / FET heating).
+                let target = self.cv.mv_to_code(app.supply.v_set_mv);
+                self.cv.slew(target);
                 dac_cv.set(Value::Bit12Right(self.cv.code));
                 self.cc.set_current(i_limit);
                 dac_cc.set(Value::Bit12Right(self.cc.code));
