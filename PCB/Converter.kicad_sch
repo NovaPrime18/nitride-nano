@@ -5378,6 +5378,12 @@
 		(uuid "89accfda-5708-49bd-babb-f824ef5fb435")
 	)
 	(junction
+		(at 90.17 154.94)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "8af8cab0-19b5-4c12-9993-4f00947f0a86")
+	)
+	(junction
 		(at 388.62 95.25)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6049,6 +6055,16 @@
 	)
 	(wire
 		(pts
+			(xy 90.17 161.29) (xy 90.17 162.56)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "273796e4-bb5e-4270-9bca-680db16306a3")
+	)
+	(wire
+		(pts
 			(xy 119.38 203.2) (xy 119.38 204.47)
 		)
 		(stroke
@@ -6086,6 +6102,16 @@
 			(type default)
 		)
 		(uuid "2b1833d3-ecb7-49b5-acc2-fc61f9313686")
+	)
+	(wire
+		(pts
+			(xy 90.17 156.21) (xy 90.17 154.94)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2bd48d69-a225-4842-8f1e-b4c60a6e0eac")
 	)
 	(wire
 		(pts
@@ -7679,6 +7705,16 @@
 	)
 	(wire
 		(pts
+			(xy 90.17 154.94) (xy 100.33 154.94)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a8de5f11-ae34-4c84-bde5-5397ae947aad")
+	)
+	(wire
+		(pts
 			(xy 328.93 95.25) (xy 335.28 95.25)
 		)
 		(stroke
@@ -8049,7 +8085,7 @@
 	)
 	(wire
 		(pts
-			(xy 91.44 154.94) (xy 100.33 154.94)
+			(xy 86.36 154.94) (xy 90.17 154.94)
 		)
 		(stroke
 			(width 0)
@@ -8988,7 +9024,7 @@
 		(uuid "9b7ddc49-0731-497a-92c5-606d23b8369b")
 	)
 	(label "ISMON"
-		(at 91.44 154.94 0)
+		(at 93.98 154.94 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -9019,7 +9055,7 @@
 	)
 	(hierarchical_label "Curr_FB"
 		(shape output)
-		(at 91.44 154.94 180)
+		(at 86.36 154.94 180)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -14308,6 +14344,83 @@
 		)
 	)
 	(symbol
+		(lib_id "power:GND")
+		(at 90.17 162.56 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "7083b0cd-6f8f-4efe-a800-0c3d4afb7029")
+		(property "Reference" "#PWR068"
+			(at 90.17 168.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 90.17 166.116 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 90.17 162.56 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 90.17 162.56 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 90.17 162.56 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "4085ec6d-c43b-4034-ad39-d7e359b72e5a")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
+					(reference "#PWR068")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:R_Small")
 		(at 325.12 200.66 0)
 		(mirror y)
@@ -17320,7 +17433,7 @@
 		(dnp no)
 		(uuid "ab7b4533-b912-44f6-a32d-2414f7b747f9")
 		(property "Reference" "JP1"
-			(at 72.39 167.64 0)
+			(at 72.136 171.196 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -17331,6 +17444,7 @@
 		)
 		(property "Value" "SolderJumper_3_Bridged12"
 			(at 72.39 170.18 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -17385,6 +17499,99 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
 					(reference "JP1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R_Small")
+		(at 90.17 158.75 0)
+		(mirror x)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "af0f935a-a34f-401c-be50-448c7fe65c0f")
+		(property "Reference" "R49"
+			(at 88.392 157.2105 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "10k"
+			(at 92.202 156.9565 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 90.17 158.75 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 90.17 158.75 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor, small symbol"
+			(at 90.17 158.75 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C2906861"
+			(at 91.694 159.766 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "1aa8f448-6ad9-4062-90e5-d609ea4f287f")
+		)
+		(pin "2"
+			(uuid "756808fe-9aa9-4830-86a5-4341369b35cb")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
+					(reference "R49")
 					(unit 1)
 				)
 			)
@@ -18499,7 +18706,7 @@
 				)
 			)
 		)
-		(property "Value" "1uH"
+		(property "Value" "2.2uH"
 			(at 248.92 142.24 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -18509,7 +18716,7 @@
 				)
 			)
 		)
-		(property "Footprint" "thommys-parts2:IND-SMD_SL1265-101M"
+		(property "Footprint" "thommys-parts2:IND-SMD_L7.5-W7.2-1"
 			(at 248.92 144.78 0)
 			(hide yes)
 			(show_name no)
@@ -18542,7 +18749,7 @@
 				)
 			)
 		)
-		(property "JLC" "C22463848"
+		(property "JLC" "C5125746"
 			(at 248.92 144.78 90)
 			(hide yes)
 			(show_name no)
@@ -18553,7 +18760,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C22463848"
+		(property "LCSC" "C5125746"
 			(at 248.92 139.7 0)
 			(hide yes)
 			(show_name no)

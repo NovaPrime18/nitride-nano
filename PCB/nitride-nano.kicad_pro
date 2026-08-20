@@ -557,7 +557,28 @@
       "version": 5
     },
     "net_colors": {
-      "GND": "rgb(64, 64, 64)"
+      "+3V3": "rgb(114, 255, 103)",
+      "+3V3_EEPROM": "rgb(188, 255, 127)",
+      "+3V3_LDO": "rgb(191, 255, 72)",
+      "+VBUS": "rgb(219, 117, 255)",
+      "/Converter/PWR_UNREG_IN": "rgb(79, 24, 255)",
+      "/MCU/I2C0_SCL": "rgb(0, 255, 181)",
+      "/MCU/I2C0_SDA": "rgb(4, 255, 237)",
+      "/MCU/I2CC_SCL_MCU": "rgb(16, 255, 253)",
+      "/MCU/I2CC_SDA_MCU": "rgb(13, 196, 255)",
+      "/Power-Sense/+VBUS_SENSED": "rgb(100, 20, 255)",
+      "/USB-PD/I2CC_IRQ": "rgb(95, 255, 64)",
+      "/USB-PD/I2CC_SCL": "rgb(23, 255, 131)",
+      "/USB-PD/I2CC_SCL_EEPROM": "rgb(39, 255, 211)",
+      "/USB-PD/I2CC_SDA": "rgb(36, 194, 255)",
+      "/USB-PD/I2CC_SDA_EEPROM": "rgb(38, 165, 255)",
+      "GND": "rgb(64, 64, 64)",
+      "Net-(D1-A)": "rgb(255, 153, 2)",
+      "Net-(D2-A)": "rgb(255, 16, 37)",
+      "Net-(L1-Pad1)": "rgb(255, 98, 2)",
+      "Net-(U1-VIN)": "rgb(102, 18, 255)",
+      "Net-(U1-VOUT)": "rgb(255, 15, 88)",
+      "VPP": "rgb(134, 70, 255)"
     },
     "netclass_assignments": null,
     "netclass_patterns": []
@@ -727,7 +748,7 @@
         "uuid": "aaad0350-e7db-44d5-b7ef-99e6416f6948"
       }
     ],
-    "used_designators": "D4,D11,D25-28,R48,JP15,#PWR37",
+    "used_designators": "P1,C27,D4,D11,D25-31,R48-49,R81,JP15,#PWR37-39,#PWR63,#PWR68-69,#PWR146,#PWR181",
     "variants": []
   },
   "sheets": [
