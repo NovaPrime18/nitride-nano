@@ -7279,6 +7279,16 @@
 	)
 	(wire
 		(pts
+			(xy 323.85 40.64) (xy 328.93 40.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e97740fa-e2f1-430e-bc3d-d741ab81afe3")
+	)
+	(wire
+		(pts
 			(xy 82.55 259.08) (xy 87.63 259.08)
 		)
 		(stroke
@@ -10841,6 +10851,16 @@
 		)
 		(uuid "8f249270-b934-4d53-9f49-7a1ceffa27cc")
 	)
+	(label "Reset"
+		(at 323.85 40.64 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "a3d58b4a-6d69-465a-9341-66e4dc69f18a")
+	)
 	(label "ENC_B"
 		(at 96.52 259.08 0)
 		(effects
@@ -10860,6 +10880,16 @@
 			(justify right bottom)
 		)
 		(uuid "b4378cc9-9711-4c3a-b6f1-a0084e4aa348")
+	)
+	(label "Reset"
+		(at 231.14 102.87 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "ba621354-1628-4928-be9b-fc9b37206b85")
 	)
 	(label "USB_D_P"
 		(at 104.14 134.62 180)

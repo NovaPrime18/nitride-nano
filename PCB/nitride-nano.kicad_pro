@@ -577,7 +577,6 @@
       "Net-(D2-A)": "rgb(255, 16, 37)",
       "Net-(L1-Pad1)": "rgb(255, 98, 2)",
       "Net-(U1-VIN)": "rgb(102, 18, 255)",
-      "Net-(U1-VOUT)": "rgb(255, 15, 88)",
       "VPP": "rgb(134, 70, 255)"
     },
     "netclass_assignments": null,
@@ -589,7 +588,7 @@
       "netlist": "",
       "plot": "",
       "specctra_dsn": "",
-      "step": "",
+      "step": "nitride-nano.step",
       "vrml": ""
     },
     "page_layout_descr_file": ""
