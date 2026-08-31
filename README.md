@@ -15,7 +15,7 @@
 
 ## Overview
 
-Nitride-nano is an open-source, high-power-density buck/boost converter crammed into the smallest footprint possible. It targets the same use case as the [Miniware MDP-XP](https://www.miniware.com.cn/product/mdp-xp-digital-power-supply/) — a portable, wide-range programmable power supply — with a focus on **higher power density and a wider voltage range** rather than output ripple performance.
+Nitride-nano is an open-source, high-power-density buck/boost converter crammed into the smallest footprint possible. It targets the same use case as the [Miniware MDP-XP](https://www.miniware.com.cn/product/mdp-xp-digital-power-supply/)  a portable, wide-range programmable power supply. With a focus on **higher power density and a wider voltage range** rather than output ripple performance.
 
 Built around EPC GaN FETs switching at 1 MHz and an LT8390A-based controller topology, it accepts either USB-C Power Delivery or high-voltage DC input and delivers up to 240 W from an XT90 output connector.
 
