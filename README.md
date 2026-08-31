@@ -25,7 +25,7 @@ Built around EPC GaN FETs switching at 1 MHz and an LT8390A-based controller top
 
 | Parameter | Value |
 |---|---|
-| Input voltage | 12 – 60 V |
+| Input voltage | 12 – 48 V |
 | Output voltage | 0 – 60 V |
 | Input / Output current | 20 A (design target, untested) |
 | Max output power | 240 W |
