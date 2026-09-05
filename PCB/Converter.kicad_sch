@@ -365,6 +365,129 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Connector:TestPoint"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0.762)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "TP"
+				(at 0 6.858 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "TestPoint"
+				(at 0 5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "test point"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "test point tp"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Pin* Test*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "TestPoint_0_1"
+				(circle
+					(center 0 3.302)
+					(radius 0.762)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "TestPoint_1_1"
+				(pin passive line
+					(at 0 0 90)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "Device:C_Polarized"
 			(pin_numbers
 				(hide yes)
@@ -5120,6 +5243,12 @@
 		(uuid "0c181cbb-882d-48fa-9594-d66ef51f7d10")
 	)
 	(junction
+		(at 137.16 195.58)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "0c3feafc-71a7-4f40-ab88-3a011bba2b1a")
+	)
+	(junction
 		(at 354.33 95.25)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -5342,6 +5471,18 @@
 		(uuid "745a81da-aff3-4585-9914-8f450a9cd3ef")
 	)
 	(junction
+		(at 140.97 198.12)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "765cb4f5-ea62-4ffb-b040-32b96ef30f24")
+	)
+	(junction
+		(at 140.97 195.58)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "76ce7edf-3830-4e9c-9cc9-276c0fca2a96")
+	)
+	(junction
 		(at 259.08 144.78)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -5382,6 +5523,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "8af8cab0-19b5-4c12-9993-4f00947f0a86")
+	)
+	(junction
+		(at 308.61 63.5)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "911b353c-208c-4e50-a168-101ecebde36d")
 	)
 	(junction
 		(at 388.62 95.25)
@@ -5544,6 +5691,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "e7577cce-5a63-4d5e-a002-18d5fd7303f6")
+	)
+	(junction
+		(at 201.93 167.64)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "e8bf85cd-749b-4c3c-b31c-ffd5bde2a198")
 	)
 	(junction
 		(at 233.68 144.78)
@@ -5782,6 +5935,16 @@
 			(type default)
 		)
 		(uuid "0e6cff33-8a60-4b41-99a7-070b0f5408d3")
+	)
+	(wire
+		(pts
+			(xy 140.97 198.12) (xy 140.97 195.58)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0f0c4f31-1c93-4624-9a2a-796842943797")
 	)
 	(wire
 		(pts
@@ -6135,7 +6298,7 @@
 	)
 	(wire
 		(pts
-			(xy 201.93 166.37) (xy 201.93 168.91)
+			(xy 201.93 166.37) (xy 201.93 167.64)
 		)
 		(stroke
 			(width 0)
@@ -6212,6 +6375,16 @@
 			(type default)
 		)
 		(uuid "35828c82-865a-498a-b7aa-05642d5c4235")
+	)
+	(wire
+		(pts
+			(xy 140.97 195.58) (xy 143.51 195.58)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "35c92d4c-c26b-4344-97b6-2f1e5a96c0b9")
 	)
 	(wire
 		(pts
@@ -6372,6 +6545,26 @@
 			(type default)
 		)
 		(uuid "43e03115-94f3-4c93-b2d8-6489f6087d7b")
+	)
+	(wire
+		(pts
+			(xy 204.47 167.64) (xy 201.93 167.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "44a4cfa5-dbd4-41eb-a765-33aa1231f784")
+	)
+	(wire
+		(pts
+			(xy 201.93 167.64) (xy 201.93 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "45b62b33-df2a-45c7-ad66-6fbffb26b25f")
 	)
 	(wire
 		(pts
@@ -7285,6 +7478,16 @@
 	)
 	(wire
 		(pts
+			(xy 140.97 201.93) (xy 140.97 198.12)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8ca3c4c6-bee3-456f-8e37-28f16e13da93")
+	)
+	(wire
+		(pts
 			(xy 210.82 166.37) (xy 201.93 166.37)
 		)
 		(stroke
@@ -7312,6 +7515,16 @@
 			(type default)
 		)
 		(uuid "8f4185d1-7198-4cf5-a991-b6cac8611636")
+	)
+	(wire
+		(pts
+			(xy 337.82 63.5) (xy 337.82 66.04)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8ff8b0c8-dd60-4a70-a5fe-0550b7233a3d")
 	)
 	(wire
 		(pts
@@ -7555,6 +7768,16 @@
 	)
 	(wire
 		(pts
+			(xy 140.97 198.12) (xy 143.51 198.12)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a0e8a6f2-2cf3-4dc5-85ec-ff93bdac2d3b")
+	)
+	(wire
+		(pts
 			(xy 210.82 148.59) (xy 201.93 148.59)
 		)
 		(stroke
@@ -7615,6 +7838,16 @@
 	)
 	(wire
 		(pts
+			(xy 143.51 201.93) (xy 140.97 201.93)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a4ab5d71-86e6-4d58-9ac8-236167383f0e")
+	)
+	(wire
+		(pts
 			(xy 325.12 95.25) (xy 325.12 190.5)
 		)
 		(stroke
@@ -7672,6 +7905,16 @@
 			(type default)
 		)
 		(uuid "a7843310-da3f-4d6c-8b7d-fa7a20d8e118")
+	)
+	(wire
+		(pts
+			(xy 137.16 195.58) (xy 140.97 195.58)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a7af803e-3c13-41b5-94ae-35f84ae16db7")
 	)
 	(wire
 		(pts
@@ -7912,6 +8155,16 @@
 			(type default)
 		)
 		(uuid "b3f1d815-ae08-4ea1-afde-83d0d54bbc99")
+	)
+	(wire
+		(pts
+			(xy 137.16 195.58) (xy 137.16 198.12)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b5035c92-e53e-4ef6-8d77-fcfeaa81cc69")
 	)
 	(wire
 		(pts
@@ -8375,6 +8628,16 @@
 	)
 	(wire
 		(pts
+			(xy 337.82 73.66) (xy 337.82 74.93)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "d3775f89-f765-4e3a-b3ca-823599774318")
+	)
+	(wire
+		(pts
 			(xy 140.97 36.83) (xy 149.86 36.83)
 		)
 		(stroke
@@ -8602,6 +8865,16 @@
 			(type default)
 		)
 		(uuid "e4daf39a-cdea-403a-8a81-76dad170bc8c")
+	)
+	(wire
+		(pts
+			(xy 308.61 63.5) (xy 337.82 63.5)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e605ea0c-b278-4480-80ca-57a71073e9e2")
 	)
 	(wire
 		(pts
@@ -8875,6 +9148,16 @@
 	)
 	(wire
 		(pts
+			(xy 214.63 168.91) (xy 204.47 168.91)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f91a7b78-6a76-4c4e-b0a2-08d84919a3fe")
+	)
+	(wire
+		(pts
 			(xy 72.39 180.34) (xy 72.39 177.8)
 		)
 		(stroke
@@ -8942,6 +9225,16 @@
 			(type default)
 		)
 		(uuid "febee3cb-e894-45ba-ab17-83814afa0371")
+	)
+	(wire
+		(pts
+			(xy 204.47 168.91) (xy 204.47 167.64)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ff38786f-8c5a-4316-af75-d97aaed6d724")
 	)
 	(wire
 		(pts
@@ -10764,6 +11057,96 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 143.51 198.12 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "1fc343e6-28bc-45d3-bccb-834126e0cb20")
+		(property "Reference" "TP34"
+			(at 148.59 198.12 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Value" "tp_round_70"
+			(at 139.7 196.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 143.51 198.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 143.51 198.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test Point, Round, 0.7mm"
+			(at 143.51 198.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" ""
+			(at 143.51 198.12 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "b0c93f9a-7b5a-4bce-8971-5c8543591902")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
+					(reference "TP34")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C_Small")
 		(at 161.29 142.24 0)
 		(mirror y)
@@ -11981,6 +12364,96 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 214.63 168.91 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "3d0489b7-e429-43b4-8176-9a74ee648642")
+		(property "Reference" "TP32"
+			(at 219.71 168.91 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Value" "tp_round_70"
+			(at 210.82 167.64 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 214.63 168.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 214.63 168.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test Point, Round, 0.7mm"
+			(at 214.63 168.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" ""
+			(at 214.63 168.91 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "89c0fc97-7fd0-4840-b122-cf2b3b2b4d11")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
+					(reference "TP32")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C_Small")
 		(at 165.1 43.18 0)
 		(mirror y)
@@ -12326,6 +12799,83 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
 					(reference "C4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 337.82 74.93 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "428c3a70-c56c-4aad-b8b3-21d129b22c07")
+		(property "Reference" "#PWR069"
+			(at 337.82 81.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 337.82 78.486 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 337.82 74.93 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 337.82 74.93 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 337.82 74.93 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "39efecdd-6dd9-455b-b7f7-3d60153ab221")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
+					(reference "#PWR069")
 					(unit 1)
 				)
 			)
@@ -15046,6 +15596,131 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:C_Polarized")
+		(at 337.82 69.85 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "7eea10ee-8947-4f07-9dea-719554c591f4")
+		(property "Reference" "C14"
+			(at 335.026 67.564 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Value" "100uF"
+			(at 337.312 72.39 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify right)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:CP_Elec_10x12.6"
+			(at 338.7852 73.66 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 337.82 69.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Polarized capacitor"
+			(at 337.82 69.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Field5" "63SXV100M"
+			(at 337.82 69.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Voltage" "100V"
+			(at 337.82 69.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLC" "C3274502"
+			(at 337.82 69.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C3274502"
+			(at 335.026 67.564 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "aa49ef9b-8217-4092-81e3-4f1089a82027")
+		)
+		(pin "2"
+			(uuid "453eeed2-3bc1-43a9-b584-398839c73f9a")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
+					(reference "C14")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:C_Small")
 		(at 119.38 200.66 0)
 		(mirror y)
@@ -15854,6 +16529,96 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
 					(reference "R36")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 143.51 201.93 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "8eaaead4-69df-41db-952e-285fb833a37b")
+		(property "Reference" "TP35"
+			(at 148.59 201.93 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Value" "tp_round_70"
+			(at 139.7 200.66 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 143.51 201.93 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 143.51 201.93 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test Point, Round, 0.7mm"
+			(at 143.51 201.93 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" ""
+			(at 143.51 201.93 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "753c5dbb-0cd7-4b60-a465-6437fca26f5e")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
+					(reference "TP35")
 					(unit 1)
 				)
 			)
@@ -19168,6 +19933,96 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 143.51 195.58 270)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "cc0582bc-6ead-4960-8fc5-1c8274b92cc7")
+		(property "Reference" "TP33"
+			(at 148.59 195.58 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Value" "tp_round_70"
+			(at 139.7 194.31 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 143.51 195.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 143.51 195.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Test Point, Round, 0.7mm"
+			(at 143.51 195.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" ""
+			(at 143.51 195.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "7dd632bf-0048-4804-81a0-a4311d2f1970")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
+					(reference "TP33")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Device:D_Schottky")
 		(at 274.32 118.11 90)
 		(mirror x)
@@ -19262,7 +20117,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 137.16 195.58 0)
+		(at 137.16 198.12 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -19272,7 +20127,7 @@
 		(dnp no)
 		(uuid "d36a2cbf-aec4-4b1a-bf51-59de4fb4ccd7")
 		(property "Reference" "#PWR01"
-			(at 137.16 201.93 0)
+			(at 137.16 204.47 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19283,7 +20138,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 137.16 199.136 0)
+			(at 137.16 201.676 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -19293,7 +20148,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 137.16 195.58 0)
+			(at 137.16 198.12 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19304,7 +20159,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 137.16 195.58 0)
+			(at 137.16 198.12 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -19315,7 +20170,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 137.16 195.58 0)
+			(at 137.16 198.12 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
