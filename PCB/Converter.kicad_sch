@@ -13266,7 +13266,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "124k"
+		(property "Value" "357k"
 			(at 90.424 134.112 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -13310,7 +13310,18 @@
 				)
 			)
 		)
-		(property "LCSC" "C36777"
+		(property "LCSC" "C27005"
+			(at 89.916 132.08 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "JLC" "C27005"
 			(at 89.916 132.08 0)
 			(hide yes)
 			(show_name no)
@@ -19003,7 +19014,7 @@
 		(in_bom yes)
 		(on_board yes)
 		(in_pos_files yes)
-		(dnp yes)
+		(dnp no)
 		(uuid "bdc52351-60d2-4244-b772-c3ebc1740cf9")
 		(property "Reference" "R3"
 			(at 113.03 192.532 90)
@@ -19016,7 +19027,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" ""
+		(property "Value" "100k"
 			(at 113.538 196.088 90)
 			(show_name no)
 			(do_not_autoplace no)
