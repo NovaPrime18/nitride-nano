@@ -37,7 +37,11 @@ use crate::board::{
     VOUT_MIN_MV,
 };
 use crate::drivers::ssd1306::Ssd1306;
-use crate::state::{AppState, MenuScreen, StepMode, SupplyMode, PD_PRESET_VOLTAGES_MV};
+use crate::pd::auto_track::nearest_preset_index;
+use crate::state::{
+    AppState, MenuScreen, PdAutoError, PdMode, RailRegion, StepMode, SupplyMode,
+    PD_PRESET_VOLTAGES_MV,
+};
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
@@ -234,6 +238,10 @@ impl Ssd1306Ui {
         let bar_len = ((app.telemetry.pout_mw as u64 * DISPLAY_W as u64) / max_mw)
             .min(DISPLAY_W as u64) as u8;
 
+        // Clear the whole row first so a shrinking bar doesn't leave its old
+        // length lit.
+        self.display.fill_rect(0, ROW_POWER_BAR, DISPLAY_W, 1);
+
         if bar_len > 0 {
             self.display
                 .draw_line(0, ROW_POWER_BAR, bar_len - 1, ROW_POWER_BAR);
@@ -242,8 +250,15 @@ impl Ssd1306Ui {
 
     /// Bottom row: active screen name on the left, setpoint on the right when editing.
     fn draw_status_bar(&mut self, app: &AppState) {
+        let auto = app.pd_control.mode == PdMode::Auto;
         let tag = match app.ui.screen {
-            MenuScreen::Main => "MAIN",
+            MenuScreen::Main => {
+                if auto {
+                    "AUTO"
+                } else {
+                    "MAIN"
+                }
+            }
             MenuScreen::CvSetpoint => "V-SET",
             MenuScreen::CcLimit => "I-LIM",
             MenuScreen::PdContract => "PD",
@@ -261,8 +276,36 @@ impl Ssd1306Ui {
             MenuScreen::CcLimit => {
                 draw_setpoint_right(&mut self.display, app.supply.i_set_ma, Unit::Current)
             }
+            MenuScreen::Main => self.draw_main_input_right(app),
             _ => {}
         }
+    }
+
+    /// Input current (INA228) on the main screen's status bar, or `INA!` when
+    /// the monitor is not responding. A fixed-width field is cleared first so a
+    /// shorter reading cannot leave ghost pixels behind.
+    fn draw_main_input_right(&mut self, app: &AppState) {
+        const FIELD_CHARS: u8 = 12;
+        let x0 = DISPLAY_W.saturating_sub(FIELD_CHARS * FONT_W);
+        self.display
+            .fill_rect(x0, ROW_STATUS, FIELD_CHARS * FONT_W, 8);
+
+        if !app.telemetry.ina_ok {
+            self.display.draw_str(x0, ROW_STATUS, "INA!");
+            return;
+        }
+
+        self.display.draw_str(x0, ROW_STATUS, "Iin");
+        let mut x = x0 + 3 * FONT_W;
+        if app.telemetry.iin_ma < 0 {
+            self.display.draw_str(x, ROW_STATUS, "-");
+            x += FONT_W;
+        }
+        let mut buf = [0u8; 8];
+        let mag = app.telemetry.iin_ma.unsigned_abs();
+        let s = fmt_decimal(&mut buf, mag);
+        self.display.draw_str(x, ROW_STATUS, s);
+        self.display.draw_str(x + s.len() as u8 * FONT_W, ROW_STATUS, "A");
     }
 
     /// EEPROM flashing progress screen (title, message, percent bar).
@@ -325,12 +368,22 @@ impl Ssd1306Ui {
         const START_Y_ROW0: u8 = 22;
         const START_Y_ROW1: u8 = START_Y_ROW0 + GAP_Y;
 
+        // In manual mode the cursor selects a preset; in Auto the highlighted
+        // cell tracks the rail the chooser derived from the output setpoint.
+        let selected: Option<usize> = match app.pd_control.mode {
+            PdMode::Auto if app.pd_control.target_mv > 0 => {
+                Some(nearest_preset_index(app.pd_control.target_mv) as usize)
+            }
+            PdMode::Auto => None,
+            PdMode::Manual => Some(app.ui.pd_profile_index as usize),
+        };
+
         for (idx, _volt_mv) in PD_PRESET_VOLTAGES_MV.iter().enumerate() {
             let row = idx / 3;
             let col = idx % 3;
             let x = START_X + (col as u8 * (BOX_W + GAP_X));
             let y = if row == 0 { START_Y_ROW0 } else { START_Y_ROW1 };
-            let is_selected = idx == app.ui.pd_profile_index as usize;
+            let is_selected = selected == Some(idx);
 
             // Draw bordered box
             self.display.draw_line(x, y, x + BOX_W - 1, y); // top
@@ -349,26 +402,83 @@ impl Ssd1306Ui {
                 }
             }
 
-            // Draw label centered in box
+            // Draw label centered in box. The selected box is filled, so its
+            // label must be drawn inverted to stay readable.
             let label = PRESET_LABELS[idx];
             let label_w = (label.len() as u8) * FONT_W;
             let lx = x + (BOX_W - label_w) / 2;
             let ly = y + (BOX_H - 8) / 2; // 8 = font height
-            self.display.draw_str(lx, ly, label);
+            if is_selected {
+                self.display.draw_str_inverted(lx, ly, label);
+            } else {
+                self.display.draw_str(lx, ly, label);
+            }
         }
     }
 
     fn draw_pd_footer(&mut self, app: &AppState) {
-        // Row 50: Vin
+        // Row 48: measured input bus. The INA228 is the accurate source; the
+        // ADC fallback is only flagged as missing when the INA228 is absent.
         let mut vin_buf = [0u8; 8];
-        let vin_str = fmt_decimal(&mut vin_buf, app.telemetry.vin_mv);
-        self.display.draw_str(0, 50, "Vin: ");
-        self.display.draw_str(12, 50, vin_str);
+        let vin = fmt_decimal(&mut vin_buf, app.telemetry.vin_mv);
+        self.display.draw_str(0, 48, "Vin");
+        self.display.draw_str(3 * FONT_W, 48, vin);
         self.display
-            .draw_str(12 + vin_str.len() as u8 * FONT_W, 50, " V");
+            .draw_str(3 * FONT_W + vin.len() as u8 * FONT_W, 48, "V");
 
-        // AUTO placeholder (right side)
-        self.display.draw_str(80, 50, "[AUTO]");
+        if app.telemetry.ina_ok {
+            let mut iin_buf = [0u8; 8];
+            let iin = fmt_decimal(&mut iin_buf, app.telemetry.iin_ma.unsigned_abs());
+            self.display.draw_str(68, 48, "Iin");
+            self.display.draw_str(68 + 3 * FONT_W, 48, iin);
+            self.display
+                .draw_str(68 + 3 * FONT_W + iin.len() as u8 * FONT_W, 48, "A");
+        } else {
+            self.display.draw_str(68, 48, "INA!");
+        }
+
+        // Row 57: manual/auto mode, chosen rail, region and (auto) policy.
+        let ctrl = &app.pd_control;
+        self.display.draw_str(0, 57, match ctrl.mode {
+            PdMode::Auto => "AUTO",
+            PdMode::Manual => "MAN",
+        });
+
+        match ctrl.error {
+            PdAutoError::NoCable => {
+                self.display.draw_str(30, 57, "NO PD");
+                return;
+            }
+            PdAutoError::NoRail => {
+                self.display.draw_str(30, 57, "NO RAIL");
+                return;
+            }
+            PdAutoError::None => {}
+        }
+
+        if ctrl.target_mv == 0 {
+            return;
+        }
+        let mut rail_buf = [0u8; 6];
+        let rail = fmt_int_volts(&mut rail_buf, ctrl.target_mv);
+        self.display.draw_str(30, 57, rail);
+        let region_x = 30 + rail.len() as u8 * FONT_W + FONT_W;
+        let region = match ctrl.region {
+            RailRegion::Buck => "BUCK",
+            RailRegion::Boost => "BOOST",
+            RailRegion::FallbackPower => "PWR",
+            RailRegion::Unavailable => "",
+        };
+        self.display.draw_str(region_x, 57, region);
+
+        if ctrl.mode == PdMode::Auto {
+            let policy = match ctrl.policy {
+                crate::state::AutoPolicy::Efficiency => "EFF",
+                crate::state::AutoPolicy::Power => "PWR",
+            };
+            self.display
+                .draw_str(DISPLAY_W - 3 * FONT_W, 57, policy);
+        }
     }
 
     /// Transient confirmation screen shown after a PD contract request.
@@ -467,6 +577,11 @@ fn draw_row(d: &mut Ssd1306, y: u8, label: &str, millivalue: u32, unit: Unit, ra
     // ── Text ──────────────────────────────────────────────────────────────────
     d.draw_str(COL_LABEL, y, label);
 
+    // Clear the value + unit field first: readings are right-justified, so a
+    // shorter string would otherwise leave the previous leftmost digit lit
+    // (partial refresh only pushes pages whose contents changed).
+    d.fill_rect(FONT_W * 4, y, COL_BAR_LEFT - FONT_W * 4, 8);
+
     let mut buf = [0u8; 8];
     let s = fmt_decimal(&mut buf, millivalue);
 
@@ -507,6 +622,18 @@ fn draw_bar(d: &mut Ssd1306, y: u8, millivalue: u32, range: (u32, u32)) {
     d.draw_line(COL_BAR_LEFT, top, COL_BAR_LEFT, bot); // left border
     d.draw_line(COL_BAR_RIGHT, top, COL_BAR_RIGHT, bot); // right border
 
+    // Clear the interior before filling: `draw_line` only ever sets pixels, so
+    // a falling reading would otherwise leave the previous, longer bar lit.
+    let mut clear_row = top + 1;
+    while clear_row < bot {
+        let mut cx = COL_BAR_LEFT + 1;
+        while cx < COL_BAR_RIGHT {
+            d.set_pixel(cx, clear_row, false);
+            cx += 1;
+        }
+        clear_row += 1;
+    }
+
     // Filled portion: proportional to (value − min) / (max − min)
     let span = max_mv.saturating_sub(min_mv).max(1);
     let clamped = millivalue.clamp(min_mv, max_mv) - min_mv;
@@ -543,12 +670,18 @@ fn draw_percent_bar(d: &mut Ssd1306, y: u8, percent: u8) {
 /// Example: `"SET  5.000 V"` flush with the right edge.
 fn draw_setpoint_right(d: &mut Ssd1306, millivalue: u32, unit: Unit) {
     const PREFIX: &str = "SET ";
+    // Widest possible "SET " + value + unit field (12 chars).
+    const FIELD_W: u8 = 12 * FONT_W;
     let mut buf = [0u8; 8];
     let val = fmt_decimal(&mut buf, millivalue);
     let sym = unit.symbol();
 
     let total_w = (PREFIX.len() + val.len() + sym.len()) as u8 * FONT_W;
     let x = DISPLAY_W.saturating_sub(total_w);
+
+    // Clear the fixed right-hand field first so a shrinking setpoint can't leave
+    // parts of the previous one lit.
+    d.fill_rect(DISPLAY_W - FIELD_W, ROW_STATUS, FIELD_W, 8);
 
     d.draw_str(x, ROW_STATUS, PREFIX);
     d.draw_str(x + PREFIX.len() as u8 * FONT_W, ROW_STATUS, val);
@@ -570,6 +703,10 @@ fn draw_setpoint_right(d: &mut Ssd1306, millivalue: u32, unit: Unit) {
 /// 99_999  →  "99.999"
 /// ```
 fn fmt_decimal(buf: &mut [u8; 8], millivalue: u32) -> &str {
+    // The 8-byte buffer holds at most "9999.999" (4 int digits + '.' + 3 frac).
+    // Saturate a larger reading (only reachable during a fault) rather than
+    // dropping leading digits or writing past the buffer.
+    let millivalue = millivalue.min(9_999_999);
     let int_part = millivalue / 1000;
     let frac_part = millivalue % 1000;
     let mut i = 0usize;
@@ -608,9 +745,28 @@ fn fmt_decimal(buf: &mut [u8; 8], millivalue: u32) -> &str {
     core::str::from_utf8(&buf[..i]).unwrap_or("?.???")
 }
 
+/// Format a millivolt value as a short integer-with-unit label, e.g.
+/// `36000 → "36V"`, `5000 → "5V"`.
+fn fmt_int_volts(buf: &mut [u8; 6], mv: u32) -> &str {
+    let v = mv / 1000;
+    let mut i = 0usize;
+    if v >= 100 {
+        buf[i] = b'0' + (v / 100) as u8;
+        i += 1;
+    }
+    if v >= 10 {
+        buf[i] = b'0' + ((v / 10) % 10) as u8;
+        i += 1;
+    }
+    buf[i] = b'0' + (v % 10) as u8;
+    i += 1;
+    buf[i] = b'V';
+    i += 1;
+    core::str::from_utf8(&buf[..i]).unwrap_or("?V")
+}
+
 /// Format a clamped 0–100 percentage without a '%' suffix.
-fn fmt_percent(buf: &mut [u8; 4], percent: u8) -> &str {
-    let percent = percent.min(100);
+fn fmt_percent(buf: &mut [u8; 4], percent: u8) -> &str {    let percent = percent.min(100);
     let i = if percent == 100 {
         buf[0] = b'1';
         buf[1] = b'0';
@@ -646,7 +802,10 @@ fn fmt_temps(buf: &mut [u8; 20], t1: i32, t2: i32) -> &str {
         buf[i] = b'-';
         i += 1;
     }
-    let int1 = t1.unsigned_abs();
+    // Cap the magnitude at 3 digits: this keeps the fixed 20-byte buffer from
+    // overflowing for pathological readings (valid NTC temperatures are far
+    // below 1000 °C; the failed-sensor sentinel is rendered by the fault label).
+    let int1 = t1.unsigned_abs().min(999);
     // Integer part (no leading zeros, at least one digit)
     if int1 == 0 {
         buf[i] = b'0';
@@ -687,7 +846,7 @@ fn fmt_temps(buf: &mut [u8; 20], t1: i32, t2: i32) -> &str {
         buf[i] = b'-';
         i += 1;
     }
-    let int2 = t2.unsigned_abs();
+    let int2 = t2.unsigned_abs().min(999);
     if int2 == 0 {
         buf[i] = b'0';
         i += 1;

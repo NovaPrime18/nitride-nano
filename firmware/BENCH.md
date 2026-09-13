@@ -12,7 +12,7 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 ## 2. Clocks & DAC (no power stage)
 
 - [ ] Flash firmware; confirm boot log
-- [ ] Measure VREFBUF (~2.5 V on VREF+ pin)
+- [ ] Measure VREF+ (~3.3 V: the board ties it to +3V3 and the firmware leaves VREFBUF high-Z)
 - [ ] Sweep PA4 DAC code 0→4095; log PA0 vs DMM on feedback sense node
 - [ ] Sweep PA6 DAC; verify monotonic CC node voltage
 - [ ] Record inverted CV cal table (code 0 → max V, full-scale → 0 V) → update `control/dac_cv.rs` `CAL` array
@@ -23,11 +23,16 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 - [ ] Fit `VOUT_SENSE_NUM`, `VBUS_SENSE_NUM`, `ISENSE_MV_PER_A` in `board.rs`
 - [ ] Verify NTC readings at room temp; adjust `NTC_BETA` / `NTC_R25_OHM`
 
-## 4. I2C bus
+## 4. I2C buses
 
-- [ ] Scan: SSD1306 @ 0x3C, TPS26750 @ 0x21, EEPROM @ 0x50
+- [ ] Fit the rev2 SCL bodge: wire **PB8 → the I2C0 SCL net** (TPS26750 pin 9 + INA228 SCL). SDA stays on PB7; PC4 may be left hi-Z.
+- [ ] Scan I2C1: TPS26750 @ 0x21, INA228 @ 0x40
+- [ ] Scan I2C3: SSD1306 @ 0x3C, CAT24C512 @ 0x50 (bridge JP8/JP9 for MCU EEPROM access)
 - [ ] OLED shows live Vin/Vout/I/P
 - [ ] TPS26750 `MODE` read returns `APP ` or similar
+- [ ] INA228 identity probe in the boot log: `mfg=0x5449, dev=0x228`
+- [ ] INA228 Vin/Iin agree with a DMM + known load within ~2 %; current sign positive into the converter; no clipping near 20 A
+- [ ] `INA!` appears on the main screen only when the INA228 is unplugged/NACKing
 
 ## 5. UI (converter disabled)
 
@@ -55,7 +60,15 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 - [ ] AVS/EPR only with appropriate cable/source
 - [ ] Verify `input_power_cap_mw` limits output before 240 W attempt
 
-## 9. Full-power (last)
+## 9. Auto-tracking PD
+
+- [ ] PD screen: BTN1 toggles Auto; footer shows `AUTO <rail> <region> EFF`
+- [ ] Sweep Vset and compare the negotiated rail (`get_active_contract`) against the table in `src/pd/auto_track.rs`
+- [ ] With the output enabled, a rail change parks the output, renegotiates, then re-enables
+- [ ] BTN2 switches to the PWR policy (highest-power rail)
+- [ ] Efficiency sweep: measure η of the chosen clean rail vs the nearest rail at the same load; tune `AUTO_TRACK_BUCK_MIN_RATIO_PCT` / `AUTO_TRACK_BOOST_MAX_RATIO_PCT`
+
+## 10. Full-power (last)
 
 - [ ] Thermal imaging under sustained load
 - [ ] Verify 240 W cap with simultaneous V/I limits
@@ -63,5 +76,7 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 
 ## Known hardware notes
 
-- **INA228** is on TPS `I2C0`, not MCU I2C — firmware uses ADC only until PCB routes INA228 to PA8/PB5.
-- **CAT24C512** driver not required for v1; cal table is compile-time (EEPROM optional later).
+- **rev2 I2C0 (PC4/PB7)** cannot be driven by any single STM32G474 hardware I²C peripheral: `PC4` is only `I2C2_SCL` and `PB7` is only `I2C1_SDA`/`I2C4_SDA`. Firmware therefore uses **I2C1** with SCL bodged from PC4 to **PB8** (SDA stays on PB7).
+- **INA228** (0x40, 8 mΩ shunt R60) is an **input**-bus monitor (PD side → converter input); the MCU ADCs remain the output-side telemetry.
+- **CAT24C512** is reachable from the MCU on I2C3 only when JP8/JP9 are bridged; otherwise it sits on the TPS26750's own I2CC port.
+- Hardware INA228 ALERT drives the `SWITCH_EN` node directly; firmware input OCP/OVP is an additional backstop.

@@ -3,12 +3,13 @@
 //! Structure: this entry point owns all peripherals and runs the cooperative
 //! main loop (input → ADC → supply tick → PD poll → EEPROM step). A single
 //! Embassy task (`ui_task`) renders the OLED. Shared state flows through the
-//! `APP_STATE` / `I2C_BUS` mutexes in [`nitride_firmware::runtime`]; the lock
-//! order (APP_STATE before I2C_BUS) documented there is load-bearing.
+//! `APP_STATE` mutex and the two I2C bus mutexes in [`nitride_firmware::runtime`];
+//! the lock order (APP_STATE before either bus, never both buses) documented
+//! there is load-bearing.
 //!
 //! Timing contract (do not change without re-tuning the control loop):
-//! input 5 ms, ADC 2 ms, supply tick 1 ms, PD 100 ms, EEPROM step every pass,
-//! plus a 100 µs yield at the bottom of the loop.
+//! input 5 ms, ADC 2 ms, supply tick 1 ms, PD/INA228 100 ms, EEPROM step every
+//! pass, plus a 100 µs yield at the bottom of the loop.
 
 #![no_std]
 #![no_main]
@@ -35,14 +36,17 @@ use nitride_firmware::drivers::tps26750::Tps26750;
 use nitride_firmware::eeprom_workflow::EepromWorkflow;
 use nitride_firmware::hal::converter_enable::ConverterEnable;
 use nitride_firmware::pd::manager::PdManager;
-use nitride_firmware::runtime::{APP_STATE, I2C_BUS};
+use nitride_firmware::runtime::{APP_STATE, I2C_PD_BUS, I2C_UI_BUS};
 use nitride_firmware::sense::adc_sense::{AdcSense, TelemetryFilter};
+use nitride_firmware::sense::ina_sense::InaSense;
 use nitride_firmware::state::{AppState, EepromUiSnapshot, MenuScreen};
 use nitride_firmware::ui::input::InputHandler;
 use nitride_firmware::ui::menu::apply_input;
 use nitride_firmware::ui::task::ui_task;
 
 bind_interrupts!(struct Irqs {
+    I2C1_EV => embassy_stm32::i2c::EventInterruptHandler<peripherals::I2C1>;
+    I2C1_ER => embassy_stm32::i2c::ErrorInterruptHandler<peripherals::I2C1>;
     I2C3_EV => embassy_stm32::i2c::EventInterruptHandler<peripherals::I2C3>;
     I2C3_ER => embassy_stm32::i2c::ErrorInterruptHandler<peripherals::I2C3>;
 });
@@ -65,13 +69,18 @@ async fn main(spawner: Spawner) {
 
     let p = embassy_stm32::init(config);
 
-    let _vref = VoltageReferenceBuffer::new(p.VREFBUF, Vrs::VREF1, Hiz::CONNECTED);
+    // VREF+ is hard-tied to +3V3 on this board, so the internal 2.5 V VREFBUF
+    // must NOT drive the pin. Keep it high-impedance (buffer off) and let the
+    // 3.3 V rail supply the reference; see `board::DAC_VREF_MV`.
+    let _vref = VoltageReferenceBuffer::new(p.VREFBUF, Vrs::VREF1, Hiz::HIGH_Z);
 
     let mut dac_cv: DacCh1<'_, embassy_stm32::peripherals::DAC1, embassy_stm32::mode::Blocking> =
         DacChannel::new_blocking(p.DAC1, p.PA4);
     let mut dac_cc: DacCh1<'_, embassy_stm32::peripherals::DAC2, embassy_stm32::mode::Blocking> =
         DacChannel::new_blocking(p.DAC2, p.PA6);
-    dac_cv.set(Value::Bit12Right(0));
+    // The CV DAC is inverted: full-scale code = minimum output. Park it there
+    // before anything else can enable the converter.
+    dac_cv.set(Value::Bit12Right(board::DAC_MAX_CODE));
     dac_cc.set(Value::Bit12Right(0));
 
     let mut adc1 = Adc::new(p.ADC1);
@@ -115,10 +124,20 @@ async fn main(spawner: Spawner) {
     let mut i2c_config = I2cConfig::default();
     i2c_config.frequency = embassy_stm32::time::Hertz::khz(400);
 
-    let i2c = I2c::new(
+    // UI bus (I2C3): SSD1306 OLED, plus the CAT24C512 config EEPROM when
+    // JP8/JP9 are bridged.
+    let i2c_ui = I2c::new(
         p.I2C3, p.PA8, p.PB5, Irqs, p.DMA1_CH3, p.DMA1_CH4, i2c_config,
     );
-    let i2c_bus = I2C_BUS.init(Mutex::new(i2c));
+    let ui_bus = I2C_UI_BUS.init(Mutex::new(i2c_ui));
+
+    // PD bus (I2C1): TPS26750 USB-PD controller and INA228 input monitor.
+    // rev2 routes these to PC4/PB7, an I2C pin pair no single peripheral can
+    // drive, so SCL is bodged to PB8 and SDA stays on PB7.
+    let i2c_pd = I2c::new(
+        p.I2C1, p.PB8, p.PB7, Irqs, p.DMA1_CH1, p.DMA1_CH2, i2c_config,
+    );
+    let pd_bus = I2C_PD_BUS.init(Mutex::new(i2c_pd));
 
     let app = AppState::default();
     let app_state = APP_STATE.init(Mutex::new(app));
@@ -129,19 +148,21 @@ async fn main(spawner: Spawner) {
     let mut tele_filter = TelemetryFilter::new();
     let mut pd_mgr = PdManager::new();
     let mut tps = Tps26750::new(board::TPS26750_ADDR);
+    let mut ina = InaSense::new();
     let mut eeprom_workflow = EepromWorkflow::new();
 
     {
-        let mut i2c = i2c_bus.lock().await;
         let mut app = app_state.lock().await;
+        let mut i2c = pd_bus.lock().await;
         if tps.init(&mut i2c).await {
             app.pd_cap_count = tps
                 .get_source_capabilities(&mut i2c, &mut app.pd_caps)
                 .await;
         }
+        let _ = ina.init(&mut i2c).await;
     }
 
-    spawner.spawn(ui_task(app_state, i2c_bus)).unwrap();
+    spawner.spawn(ui_task(app_state, ui_bus)).unwrap();
 
     let mut t_adc = Instant::now();
     let mut t_supply = Instant::now();
@@ -184,7 +205,24 @@ async fn main(spawner: Spawner) {
                 &mut pin_temp_conv,
                 &mut pin_temp_in,
             );
-            app_state.lock().await.telemetry = tele_filter.filter(raw);
+            let mut app = app_state.lock().await;
+            // The ADC filter only owns the output-side channels; carry the
+            // INA228's input-side values across its whole-struct replacement.
+            let prev_vin = app.telemetry.vin_mv;
+            let prev_iin = app.telemetry.iin_ma;
+            let prev_pin = app.telemetry.pin_mw;
+            let prev_ina_temp = app.telemetry.ina_temp_c;
+            let prev_ina_ok = app.telemetry.ina_ok;
+            let mut filtered = tele_filter.filter(raw);
+            filtered.iin_ma = prev_iin;
+            filtered.pin_mw = prev_pin;
+            filtered.ina_temp_c = prev_ina_temp;
+            filtered.ina_ok = prev_ina_ok;
+            if prev_ina_ok {
+                // Prefer the INA228's input-bus voltage over the ADC divider.
+                filtered.vin_mv = prev_vin;
+            }
+            app.telemetry = filtered;
         }
 
         if now.duration_since(t_supply) >= Duration::from_millis(board::SUPPLY_TICK_MS) {
@@ -193,17 +231,24 @@ async fn main(spawner: Spawner) {
             supply.tick(&mut app, &mut dac_cv, &mut dac_cc, &mut conv_en);
         }
 
-        if now.duration_since(t_pd) >= Duration::from_millis(100) {
+        if now.duration_since(t_pd) >= Duration::from_millis(board::INA228_POLL_MS) {
             t_pd = now;
             let mut app = app_state.lock().await;
-            let mut i2c = i2c_bus.lock().await;
+            let mut i2c = pd_bus.lock().await;
             pd_mgr.poll(&mut tps, &mut i2c, &mut app, &mut pd_irq).await;
+            if pd_mgr.has_pending_request() {
+                // Park the output (DACs + converter enable) before the input
+                // rail is renegotiated.
+                supply.tick(&mut app, &mut dac_cv, &mut dac_cc, &mut conv_en);
+            }
+            pd_mgr.negotiate(&mut tps, &mut i2c).await;
+            ina.poll(&mut i2c, &mut app).await;
         }
 
         {
             let screen = app_state.lock().await.ui.screen;
             if screen == MenuScreen::EepromFlash {
-                let mut i2c = i2c_bus.lock().await;
+                let mut i2c = ui_bus.lock().await;
                 eeprom_workflow.update(&mut i2c).await;
                 let mut app = app_state.lock().await;
                 sync_eeprom_ui(&mut app, &eeprom_workflow);

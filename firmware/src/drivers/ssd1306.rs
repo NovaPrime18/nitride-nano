@@ -122,6 +122,30 @@ impl Ssd1306 {
         }
     }
 
+    /// Draw one 5×7 glyph with lit and unlit pixels swapped. Used to render
+    /// readable text *inside* a filled (selected) box, where normal ON-pixel
+    /// glyphs would be invisible against the white fill.
+    pub fn draw_char_inverted(&mut self, x: u8, y: u8, ch: u8) {
+        let glyph = font5x7(ch);
+        for (col, col_bits) in glyph.iter().enumerate() {
+            for row in 0..7u8 {
+                let on = (col_bits >> row) & 1 != 0;
+                self.set_pixel(x + col as u8, y + row, !on);
+            }
+        }
+    }
+
+    /// Inverted [`Self::draw_str`] — glyph pixels off, background pixels on.
+    pub fn draw_str_inverted(&mut self, mut x: u8, y: u8, s: &str) {
+        for b in s.bytes() {
+            if x > 122 {
+                break;
+            }
+            self.draw_char_inverted(x, y, b);
+            x += 6;
+        }
+    }
+
     /// Bresenham line between two points, always drawn with "on" pixels.
     pub fn draw_line(&mut self, x0: u8, y0: u8, x1: u8, y1: u8) {
         let mut x = x0 as i16;
@@ -285,6 +309,10 @@ fn font5x7(ch: u8) -> [u8; 5] {
         b':' => [0x00, 0x36, 0x36, 0x00, 0x00],
         b'-' => [0x08, 0x08, 0x08, 0x08, 0x08],
         b'>' => [0x00, 0x41, 0x22, 0x14, 0x08],
+        b'!' => [0x00, 0x00, 0x5F, 0x00, 0x00],
+        b'[' => [0x00, 0x7F, 0x41, 0x41, 0x00],
+        b']' => [0x00, 0x41, 0x41, 0x7F, 0x00],
+        b'%' => [0x23, 0x13, 0x08, 0x64, 0x62],
         _ => [0x7F, 0x41, 0x41, 0x41, 0x7F], // Fallback block character
     }
 }

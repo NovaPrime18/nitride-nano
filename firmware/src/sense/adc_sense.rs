@@ -90,6 +90,12 @@ impl TelemetryFilter {
             pout_mw: vout_mv.saturating_mul(iout_ma) / 1000,
             temp_conv_c: raw.temp_conv_c,
             temp_input_c: raw.temp_input_c,
+            // Input-side fields are owned by the INA228 poll; the caller copies
+            // the previous values back over these placeholders.
+            iin_ma: 0,
+            pin_mw: 0,
+            ina_temp_c: 25,
+            ina_ok: false,
         }
     }
 }
@@ -156,6 +162,11 @@ impl AdcSense {
             pout_mw,
             temp_conv_c: ntc_c(t_conv_raw),
             temp_input_c: ntc_c(t_in_raw),
+            // Filled in by the INA228 poll.
+            iin_ma: 0,
+            pin_mw: 0,
+            ina_temp_c: 25,
+            ina_ok: false,
         }
     }
 }
@@ -166,15 +177,30 @@ fn scale(raw: u32, full_scale_phys: u32) -> u32 {
     raw.saturating_mul(full_scale_phys) / 4096
 }
 
-/// Beta-equation NTC conversion. Returns -273 °C for open/short sensor
-/// readings (junction voltage at a rail), which will trip the overtemp fault
-/// check only if the limit is ever set below that sentinel — today it simply
-/// displays as an obviously bogus value.
+/// Temperature reported for a failed (open or shorted) thermistor. Deliberately
+/// above [`board::NTC_OVERTEMP_C`] so a broken sensor latches the over-temperature
+/// fault and parks the output instead of silently reading as a very cold junction.
+const NTC_INVALID_C: i32 = 1000;
+
+/// Raw-count window outside which the divider cannot be reporting a real NTC
+/// temperature. An open thermistor pulls the junction to the 3.3 V rail
+/// (raw ≈ 4095) and a shorted one to GND (raw ≈ 0); the valid range for roughly
+/// −40…+150 °C is only ~0x00A6…0x0FD1, so these bounds are deliberately generous.
+const NTC_RAW_MIN: u32 = 16;
+const NTC_RAW_MAX: u32 = 4080;
+
+/// Beta-equation NTC conversion. Readings at either rail are treated as a failed
+/// sensor and reported as [`NTC_INVALID_C`] (fail-safe: an open NTC used to read
+/// as ~−83 °C and a shorted one as −273 °C, so an overtemp check could never see
+/// them).
 fn ntc_c(raw: u32) -> i32 {
+    if raw <= NTC_RAW_MIN || raw >= NTC_RAW_MAX {
+        return NTC_INVALID_C;
+    }
     let vref = board::ADC_VREF_MV as f32 / 1000.0;
     let v = (raw as f32 * vref) / 4096.0;
     if v <= 0.01 || v >= vref {
-        return -273;
+        return NTC_INVALID_C;
     }
     let r = board::NTC_PULLUP_OHM * v / (vref - v);
     let t0_kelvin = 298.15f32;

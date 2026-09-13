@@ -17,7 +17,7 @@ impl CcDac {
     ///
     /// The converter's current-limit input follows V_CTRL = 0.02 · I_out(A) + 0.25 V
     /// (LT8390 ISMON characteristic), i.e. `i_ma * 20 / 1000 + 250` in mV. The DAC
-    /// reference is [`board::DAC_VREF_MV`] (2.5 V from VREFBUF), not VDDA.
+    /// reference is [`board::DAC_VREF_MV`], i.e. VREF+ = the board's +3V3 rail.
     pub fn ma_to_code(i_ma: u32) -> u16 {
         // V_CTRL (mV) = 0.02 * (I_ma / 1000) * 1000 + 250 = (I_ma * 20 / 1000) + 250
         let v_ctrl_mv = (i_ma * 20 / 1000) + 250;

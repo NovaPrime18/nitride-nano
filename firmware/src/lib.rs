@@ -4,12 +4,12 @@
 //!
 //! - [`board`]: hardware constants, analog scaling, I2C addresses.
 //! - [`state`]: shared [`state::AppState`] and its sub-structs/enums.
-//! - [`runtime`]: the global mutexes (`APP_STATE`, `I2C_BUS`) shared between
-//!   the main loop and the UI task.
+//! - [`runtime`]: the global mutexes (`APP_STATE`, `I2C_UI_BUS`, `I2C_PD_BUS`)
+//!   shared between the main loop and the UI task.
 //! - [`control`]: CV/CC DAC output stage and fault supervision.
-//! - [`sense`]: ADC sampling, scaling, and telemetry filtering.
-//! - [`pd`]: USB-PD contract management via the TPS26750.
-//! - [`drivers`]: I2C device drivers (TPS26750, SSD1306, INA228 stub).
+//! - [`sense`]: ADC sampling, scaling, telemetry filtering, and the INA228 poll.
+//! - [`pd`]: USB-PD contract management and Auto-tracking rail selection.
+//! - [`drivers`]: I2C device drivers (TPS26750, INA228, SSD1306).
 //! - [`ui`]: buttons/encoder input, menu model, and the OLED task.
 //! - [`eeprom_loader`] / [`eeprom_workflow`]: TPS26750 full-flash EEPROM upload.
 #![no_std]

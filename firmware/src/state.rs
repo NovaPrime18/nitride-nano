@@ -20,6 +20,10 @@ pub enum Fault {
     OverVoltage,
     OverPower,
     OverTemp,
+    /// Input-bus overcurrent from the INA228 (beyond the PD contract cap).
+    InputOverCurrent,
+    /// Input-bus overvoltage from the INA228.
+    InputOverVoltage,
     // TODO(dead-code): reserved for a "user switched the output off" state, but the
     // UI toggles `SupplyState::enabled` directly instead of raising a fault. Never
     // constructed or matched anywhere.
@@ -36,6 +40,8 @@ impl Fault {
             Fault::OverVoltage => Some("OVERVOLTAGE"),
             Fault::OverPower => Some("OVERPOWER"),
             Fault::OverTemp => Some("OVERTEMP"),
+            Fault::InputOverCurrent => Some("IN OCP"),
+            Fault::InputOverVoltage => Some("IN OVP"),
         }
     }
 }
@@ -49,6 +55,71 @@ pub enum PdState {
     // TODO(dead-code): no PD error path currently transitions into this state;
     // failures are only logged via defmt. Preserved for future error reporting.
     // Fault,
+}
+
+/// How the PD input rail is chosen: manually from the preset list, or
+/// automatically from the output setpoint by [`crate::pd::auto_track`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PdMode {
+    Manual,
+    Auto,
+}
+
+/// Optimisation target for Auto-tracking PD.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AutoPolicy {
+    /// Stay outside the LT8390A 4-switch buck-boost region; fall back to the
+    /// most capable rail only when no clean rail can supply the requested power.
+    Efficiency,
+    /// Always pick the rail that can deliver the most power, accepting 4-switch
+    /// losses when the closest rail sits near Vout.
+    Power,
+}
+
+/// Which LT8390A operating region a chosen rail is expected to produce.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RailRegion {
+    Buck,
+    Boost,
+    /// Efficiency-first policy had to fall back to a rail that does not clear
+    /// the 4-switch band because the clean options could not supply the power.
+    FallbackPower,
+    Unavailable,
+}
+
+/// Why Auto-tracking could not produce a rail.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PdAutoError {
+    None,
+    NoCable,
+    NoRail,
+}
+
+/// PD rail-selection state shared with the UI.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PdControl {
+    pub mode: PdMode,
+    pub policy: AutoPolicy,
+    /// Rail currently requested (0 when none).
+    pub target_mv: u32,
+    pub region: RailRegion,
+    pub error: PdAutoError,
+    /// Set by the UI when the user changes the mode/preset/policy; the PD
+    /// manager consumes it and renegotiates once.
+    pub renegotiate_request: bool,
+}
+
+impl Default for PdControl {
+    fn default() -> Self {
+        Self {
+            mode: PdMode::Manual,
+            policy: AutoPolicy::Efficiency,
+            target_mv: 0,
+            region: RailRegion::Unavailable,
+            error: PdAutoError::NoCable,
+            renegotiate_request: false,
+        }
+    }
 }
 
 /// USB-PD contract preset voltages in millivolts.
@@ -71,6 +142,11 @@ pub enum StepMode {
 }
 
 /// Filtered analog telemetry snapshot shared with the UI and control loop.
+///
+/// Output-side fields (`vout_mv`, `iout_ma`, `pout_mw`) come from the MCU ADCs;
+/// the input-side fields (`vin_mv`, `iin_ma`, `pin_mw`, `ina_temp_c`) are
+/// refreshed from the INA228 when it is present, with the ADC's Vbus reading as
+/// the fallback for `vin_mv`.
 #[derive(Clone, Copy, Debug)]
 pub struct Telemetry {
     pub vin_mv: u32,
@@ -79,6 +155,14 @@ pub struct Telemetry {
     pub pout_mw: u32,
     pub temp_conv_c: i32,
     pub temp_input_c: i32,
+    /// Input current from the INA228 (positive = flowing into the converter).
+    pub iin_ma: i32,
+    /// Input power from the INA228.
+    pub pin_mw: i32,
+    /// INA228 die temperature.
+    pub ina_temp_c: i32,
+    /// True while the most recent INA228 reads are succeeding.
+    pub ina_ok: bool,
 }
 
 impl Default for Telemetry {
@@ -90,6 +174,10 @@ impl Default for Telemetry {
             pout_mw: 0,
             temp_conv_c: 25,
             temp_input_c: 25,
+            iin_ma: 0,
+            pin_mw: 0,
+            ina_temp_c: 25,
+            ina_ok: false,
         }
     }
 }
@@ -172,6 +260,8 @@ pub struct AppState {
     /// would overflow the Rx Source Capabilities register; 13 covers what fits).
     pub pd_caps: [SourceCapability; 13],
     pub pd_cap_count: u8,
+    /// Manual/auto rail selection state, owned by the UI and the PD manager.
+    pub pd_control: PdControl,
     // TODO(dead-code): written nowhere and read nowhere — encoder deltas are passed
     // directly from the main loop into `ui::input::InputHandler::poll` instead.
     // pub encoder_delta: i16,
@@ -187,6 +277,7 @@ impl Default for AppState {
             pd: PdState::NoCable,
             pd_caps: [SourceCapability::EMPTY; 13],
             pd_cap_count: 0,
+            pd_control: PdControl::default(),
             eeprom_ui: EepromUiSnapshot::default(),
         }
     }

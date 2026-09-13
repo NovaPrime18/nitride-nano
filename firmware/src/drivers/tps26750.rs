@@ -13,10 +13,10 @@ pub const TPS_REG_CMD1: u8 = 0x08;
 // map, but no command used here carries a data payload, so it is never addressed.
 // pub const TPS_REG_DATA1: u8 = 0x09;
 pub const TPS_REG_INT_EVENT1: u8 = 0x14;
-// TODO(dead-code): interrupt flags are cleared by the TPS26750 app firmware when
-// read (4CC command side effect in this config); an explicit INT_CLEAR1 write is
-// never issued.
-// pub const TPS_REG_INT_CLEAR1: u8 = 0x18;
+/// Write-only companion to `INT_EVENT1`: bits written as 1 are cleared. The IRQ
+/// pin stays low while any event bit is set, so a read alone does **not** clear
+/// it — see [`Tps26750::clear_interrupts`].
+pub const TPS_REG_INT_CLEAR1: u8 = 0x18;
 // TODO(dead-code): STATUS (0x1A) polling was dropped in favour of the IRQ line on
 // PB13; kept for register-map reference.
 // pub const TPS_REG_STATUS: u8 = 0x1A;
@@ -36,6 +36,7 @@ const TASK_WAIT_TIMEOUT_MS: u64 = 1500;
 
 const PDO_TYPE_SHIFT: u8 = 30;
 const PDO_TYPE_MASK: u32 = 0x03;
+const PDO_TYPE_FIXED: u8 = 0;
 const PDO_TYPE_AUGMENTED: u8 = 3;
 const APDO_TYPE_SHIFT: u8 = 28;
 const APDO_TYPE_MASK: u32 = 0x03;
@@ -241,7 +242,11 @@ impl Tps26750 {
         i2c: &mut I2c<'_, Async, Master>,
         caps: &mut [SourceCapability],
     ) -> u8 {
-        let mut raw = [0u8; 53];
+        // 1 header byte + 7 SPR PDOs (bytes 1..28) + 7 EPR PDOs (bytes
+        // 29..56). The EPR count field is 3 bits, so a source advertising all 7
+        // EPR PDOs fills the buffer to 57 bytes; a shorter buffer would overrun
+        // on the 7th EPR PDO.
+        let mut raw = [0u8; 57];
         if !self
             .read_register(i2c, TPS_REG_RX_SOURCE_CAPS, &mut raw)
             .await
@@ -259,7 +264,13 @@ impl Tps26750 {
             } else {
                 EPR_PDO_START_OFFSET + (i - num_spr) * PDO_BYTES
             };
-            let pdo = read_le32(&raw[offset as usize..]);
+            // Defensive: never index past the buffer even if the device reports
+            // a malformed PDO count.
+            let start = offset as usize;
+            if start + PDO_BYTES as usize > raw.len() {
+                break;
+            }
+            let pdo = read_le32(&raw[start..]);
             if let Some(temp) = parse_pdo(pdo) {
                 if temp.voltage_mv > 0 && temp.max_current_ma > 0 {
                     caps[valid as usize] = temp;
@@ -423,12 +434,35 @@ impl Tps26750 {
             .unwrap_or(false)
     }
 
+    /// Set one bit in an 11-byte interrupt mask for [`Self::clear_interrupts`].
+    /// Out-of-range indices are ignored.
+    pub fn set_interrupt_bit(mask: &mut [u8; 11], bit_index: u8) {
+        if bit_index > 87 {
+            return;
+        }
+        mask[(bit_index / 8) as usize] |= 1 << (bit_index % 8);
+    }
+
+    /// Read the latched interrupt events. Reading does **not** clear them; the
+    /// caller must write the consumed bits back via [`Self::clear_interrupts`]
+    /// or the IRQ line stays asserted.
     pub async fn read_interrupts(
         &self,
         i2c: &mut I2c<'_, Async, Master>,
         events: &mut [u8; 11],
     ) -> bool {
         self.read_register(i2c, TPS_REG_INT_EVENT1, events).await
+    }
+
+    /// Clear the given bits in `INT_EVENT1` (1 = clear). Must be called after
+    /// [`Self::read_interrupts`] for every bit that was acted on, otherwise the
+    /// interrupt latches forever and the IRQ-driven poll re-fires each pass.
+    pub async fn clear_interrupts(
+        &self,
+        i2c: &mut I2c<'_, Async, Master>,
+        mask: &[u8; 11],
+    ) -> bool {
+        self.write_register(i2c, TPS_REG_INT_CLEAR1, mask).await
     }
 }
 
@@ -496,11 +530,17 @@ fn parse_pdo(pdo: u32) -> Option<SourceCapability> {
             }
             _ => return None,
         }
-    } else {
+    } else if pdo_type == PDO_TYPE_FIXED {
         temp.voltage_mv = extract_bits(pdo, FIXED_PDO_VOLTAGE_SHIFT, FIXED_PDO_VOLTAGE_MASK)
             * FIXED_PDO_VOLTAGE_UNIT_MV;
         temp.max_current_ma =
             extract_bits(pdo, 0, FIXED_PDO_CURRENT_MASK) * FIXED_PDO_CURRENT_UNIT_MA;
+    } else {
+        // Battery (01b) and Variable (10b) PDOs reuse the same bit positions for
+        // different fields (e.g. max power instead of max current), so decoding
+        // them with the Fixed layout yields nonsense. This firmware only
+        // requests fixed rails, so ignore them rather than mis-parse.
+        return None;
     }
     if temp.is_pps || temp.is_avs {
         if temp.min_voltage_mv >= temp.voltage_mv {

@@ -66,6 +66,28 @@ impl SupplyController {
                 tele.temp_input_c,
                 crate::board::NTC_OVERTEMP_C
             );
+        } else if tele.ina_ok {
+            // Input-side backstop from the INA228. The current limit follows the
+            // negotiated PD cap (falling back to the design max on XT90 input)
+            // so it does not false-trip a high-current, low-voltage DC feed.
+            let iin_limit = (app.supply.input_current_cap_ma as i32
+                + crate::board::IIN_MARGIN_MA)
+                .min(crate::board::IIN_MAX_MA);
+            if tele.iin_ma > iin_limit {
+                app.supply.fault = Fault::InputOverCurrent;
+                defmt::info!(
+                    "Fault::InputOverCurrent: {} mA > {} mA",
+                    tele.iin_ma,
+                    iin_limit
+                );
+            } else if tele.vin_mv > crate::board::VIN_MAX_MV {
+                app.supply.fault = Fault::InputOverVoltage;
+                defmt::info!(
+                    "Fault::InputOverVoltage: {} mV > {} mV",
+                    tele.vin_mv,
+                    crate::board::VIN_MAX_MV
+                );
+            }
         }
 
         if app.supply.fault != Fault::None {

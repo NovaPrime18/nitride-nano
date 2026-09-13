@@ -2,10 +2,14 @@
 //!
 //! Navigation: Main → CvSetpoint → CcLimit → PdContract → Settings → (back to
 //! Main), with EepromFlash reachable from Settings. Editing screens support a
-//! fine/coarse encoder step toggle on the encoder button.
+//! fine/coarse encoder step toggle on the encoder button. On the PD screen,
+//! BTN1 toggles Auto-tracking PD, BTN2 switches its efficiency/power policy,
+//! the encoder steps presets in manual mode, and the encoder button confirms.
 
 use crate::board;
-use crate::state::{AppState, Fault, MenuScreen, StepMode, SupplyMode, PD_PRESET_VOLTAGES_MV};
+use crate::state::{
+    AppState, AutoPolicy, Fault, MenuScreen, PdMode, StepMode, SupplyMode, PD_PRESET_VOLTAGES_MV,
+};
 use crate::ui::input::InputEvent;
 
 /// Dispatch one input event according to the active screen.
@@ -23,8 +27,12 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
             }
             InputEvent::EncBtn => {
                 if app.supply.fault != Fault::None {
-                    app.supply.fault = Fault::None; // Clear the fault state
-                    app.supply.enabled = !app.supply.enabled; // Normal toggle
+                    // Acknowledge/clear the latch only. The output was forced off
+                    // when the fault tripped; keep it off so re-enabling is a
+                    // separate, deliberate press instead of a side effect of
+                    // clearing the fault.
+                    app.supply.fault = Fault::None;
+                    app.supply.enabled = false;
                 } else {
                     app.supply.enabled = !app.supply.enabled; // Normal toggle
                 }
@@ -75,25 +83,47 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
         }
         MenuScreen::PdContract => match ev {
             InputEvent::EncTurn(d) => {
-                if d > 0 {
-                    app.ui.pd_profile_index =
-                        (app.ui.pd_profile_index + 1) % PD_PRESET_VOLTAGES_MV.len() as u8;
-                } else if d < 0 {
-                    app.ui.pd_profile_index = if app.ui.pd_profile_index > 0 {
-                        app.ui.pd_profile_index - 1
-                    } else {
-                        (PD_PRESET_VOLTAGES_MV.len() - 1) as u8
+                // Only manual mode steps through the preset grid; in Auto the
+                // rail is derived from the output setpoint.
+                if app.pd_control.mode == PdMode::Manual {
+                    if d > 0 {
+                        app.ui.pd_profile_index =
+                            (app.ui.pd_profile_index + 1) % PD_PRESET_VOLTAGES_MV.len() as u8;
+                    } else if d < 0 {
+                        app.ui.pd_profile_index = if app.ui.pd_profile_index > 0 {
+                            app.ui.pd_profile_index - 1
+                        } else {
+                            (PD_PRESET_VOLTAGES_MV.len() - 1) as u8
+                        };
+                    }
+                }
+            }
+            InputEvent::Btn1 => {
+                // Toggle Auto-tracking PD on/off.
+                app.pd_control.mode = match app.pd_control.mode {
+                    PdMode::Manual => PdMode::Auto,
+                    PdMode::Auto => PdMode::Manual,
+                };
+                app.pd_control.renegotiate_request = true;
+            }
+            InputEvent::Btn2 => {
+                // Auto policy: efficiency-first vs maximum power.
+                if app.pd_control.mode == PdMode::Auto {
+                    app.pd_control.policy = match app.pd_control.policy {
+                        AutoPolicy::Efficiency => AutoPolicy::Power,
+                        AutoPolicy::Power => AutoPolicy::Efficiency,
                     };
+                    app.pd_control.renegotiate_request = true;
                 }
             }
             InputEvent::Btn3 => {
                 app.ui.screen = MenuScreen::Settings;
             }
             InputEvent::EncBtn => {
-                // Confirm: request the selected PD contract via I2C
-                app.ui.screen = MenuScreen::Main;
+                // Confirm: request the selected preset (manual) or re-evaluate
+                // the derived rail (auto).
+                app.pd_control.renegotiate_request = true;
             }
-            _ => {}
         },
         MenuScreen::Settings => match ev {
             InputEvent::Btn1 | InputEvent::EncBtn => {
