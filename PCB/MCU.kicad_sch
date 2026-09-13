@@ -4964,6 +4964,12 @@
 		(uuid "703e08e9-03f6-48a3-adc2-92e058173664")
 	)
 	(junction
+		(at 210.82 163.83)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "715a51bc-6c0d-472c-a1fe-f4a5affdbff2")
+	)
+	(junction
 		(at 163.83 110.49)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -5519,6 +5525,16 @@
 	)
 	(wire
 		(pts
+			(xy 198.12 163.83) (xy 210.82 163.83)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "27a0cdda-f01a-4a2c-b808-428932ea49ae")
+	)
+	(wire
+		(pts
 			(xy 44.45 254) (xy 44.45 256.54)
 		)
 		(stroke
@@ -6056,16 +6072,6 @@
 			(type default)
 		)
 		(uuid "5b8d2b85-b694-4d20-adbc-ea684fd8960b")
-	)
-	(wire
-		(pts
-			(xy 231.14 123.19) (xy 234.95 123.19)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "5bd8de94-860c-433e-9951-5fdc0afacd1c")
 	)
 	(wire
 		(pts
@@ -10711,6 +10717,16 @@
 		)
 		(uuid "1f7ea014-f447-45b0-995c-392e2db0edbc")
 	)
+	(label "I2C0_SCL"
+		(at 198.12 163.83 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "2416bbf3-8d16-4308-901f-c58e46b5c059")
+	)
 	(label "I2C0_SDA"
 		(at 167.64 177.8 0)
 		(effects
@@ -10770,16 +10786,6 @@
 			(justify right bottom)
 		)
 		(uuid "4440cb6f-066c-4d18-b5fc-ed89c42fd887")
-	)
-	(label "I2C0_SCL"
-		(at 231.14 123.19 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "4996716a-52f5-42b1-bf3c-6311b8d023c1")
 	)
 	(label "BUTT_1"
 		(at 19.05 212.09 180)

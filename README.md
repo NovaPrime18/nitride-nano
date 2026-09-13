@@ -67,9 +67,10 @@ Nitride-nano negotiates full USB-C PD on the input side:
 
 - STM32G474 HAL / bare-metal
 - SSD1306 OLED UI with 3-button navigation
-- USB-C PD stack (Fixed / PPS / AVS negotiation)
-- INA228 real-time power monitoring
-- Hardware overcurrent fault handling
+- USB-C PD stack (Fixed / PPS / AVS negotiation) over I²C
+- **Auto-tracking PD** — derives the input rail from the requested output voltage so the LT8390A stays in a clean buck or boost region instead of its lossier 4-switch band
+- INA228 input-bus power monitoring (Vin / Iin / Pin + die temp)
+- Hardware overcurrent fault handling, plus firmware input OCP/OVP from the INA228
 
 ---
 
