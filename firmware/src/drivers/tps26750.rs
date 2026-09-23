@@ -242,11 +242,12 @@ impl Tps26750 {
         i2c: &mut I2c<'_, Async, Master>,
         caps: &mut [SourceCapability],
     ) -> u8 {
-        // 1 header byte + 7 SPR PDOs (bytes 1..28) + 7 EPR PDOs (bytes
-        // 29..56). The EPR count field is 3 bits, so a source advertising all 7
-        // EPR PDOs fills the buffer to 57 bytes; a shorter buffer would overrun
-        // on the 7th EPR PDO.
-        let mut raw = [0u8; 57];
+        // Register layout: 1 header byte + 7 SPR PDOs (bytes 1..28) + 6 EPR PDOs
+        // (bytes 29..52) = 53 bytes. The EPR count field is 3 bits, so a source
+        // *can* report 7, but the register only holds 6 — the loop below skips a
+        // PDO whose 4 bytes would fall outside the buffer. Do NOT enlarge this:
+        // reading past the register length upsets the TPS26750's block transfer.
+        let mut raw = [0u8; 53];
         if !self
             .read_register(i2c, TPS_REG_RX_SOURCE_CAPS, &mut raw)
             .await

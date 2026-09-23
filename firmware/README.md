@@ -30,6 +30,36 @@ cargo build --release
 cargo run --release   # uses probe-rs runner from .cargo/config.toml
 ```
 
+## Service mode — reflash over UART (no SWD, no BOOT0 strap)
+
+The running firmware can hand control to the ST ROM bootloader, so the board can
+be reflashed over the on-board FT234XD without a probe and **without touching
+BOOT0 or option bytes**. (PB8 doubles as BOOT0 on this package and is pulled to a
+switched rail, so the pin route is unreliable — see [`src/hal/bootloader.rs`](src/hal/bootloader.rs).)
+
+Two triggers, both ending in the same handoff — park the output, reset, ROM loader:
+
+1. **UART (zero-touch):** open the programmer on the FT234XD port. Both tools
+   send `0x7F` on connect, which the firmware watches for on USART3, so merely
+   connecting hands the device over (allow one retry while it resets).
+2. **BTN1 held through power-up/reset** — deterministic, and needs no UART.
+
+```bash
+# STM32CubeProgrammer
+STM32_Programmer_CLI -c port=/dev/ttyUSB0 br=115200 -w nitride.bin 0x08000000 -v
+
+# or stm32flash (set -b to match SERVICE_UART_BAUD)
+sudo stm32flash -b 115200 -w /tmp/nitride.bin -v -g 0x08000000 /dev/ttyUSB0
+```
+
+The listener baud must match the tool's connect baud — `board::SERVICE_UART_BAUD`,
+default 115200 — because only the *first* byte is matched here; the ROM loader
+auto-bauds after the handoff.
+
+> **Safety:** the ROM bootloader runs with the converter unregulated, and a
+> firmware pin cannot hold its state through reset. See the PA11/Q13 fail-safe
+> ECO in [BENCH.md](BENCH.md) before flashing with a load attached.
+
 ## Pin map
 
 | Signal | Pin | Notes |
@@ -47,7 +77,7 @@ cargo run --release   # uses probe-rs runner from .cargo/config.toml
 | Encoder A/B | PB6 / PA12 | TIM4 QEI |
 | Enc button | PB4 | |
 | PD IRQ | PB13 | EXTI |
-| UART debug | PC10/PC11 | USART3 → FT234XD |
+| UART debug / service mode | PC10/PC11 | USART3 → FT234XD. Also the ROM-bootloader reflash port ("Service mode" above) |
 
 ## Auto-tracking PD
 

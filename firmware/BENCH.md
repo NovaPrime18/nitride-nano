@@ -74,9 +74,20 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 - [ ] Verify 240 W cap with simultaneous V/I limits
 - [ ] Long soak with enclosure closed
 
+## 11. Service mode (UART reflash, no BOOT0 strap, no SWD)
+
+- [ ] **Before first use:** with the MCU held in reset, measure `/Converter/Conv-Disable`. Pre-ECO it floats (see the note below) — do this step with the load disconnected.
+- [ ] Hold BTN1 through power-up: the board parks the output and hands off to the ROM bootloader (attach probe-rs and confirm PC is in `0x1FFFxxxx`).
+- [ ] With the app running, `STM32_Programmer_CLI -c port=/dev/ttyUSB0 br=115200` connects; one retry during the handoff is normal.
+- [ ] Flash an image and confirm "run after programming" returns to the application.
+- [ ] Confirm option bytes, BOOT0 (PB8) and the SWD probe are all untouched by the exchange.
+- [ ] With the FT234XD attached, a long soak must not self-trigger service mode.
+
 ## Known hardware notes
 
 - **rev2 I2C0 (PC4/PB7)** cannot be driven by any single STM32G474 hardware I²C peripheral: `PC4` is only `I2C2_SCL` and `PB7` is only `I2C1_SDA`/`I2C4_SDA`. Firmware therefore uses **I2C1** with SCL bodged from PC4 to **PB8** (SDA stays on PB7).
 - **INA228** (0x40, 8 mΩ shunt R60) is an **input**-bus monitor (PD side → converter input); the MCU ADCs remain the output-side telemetry.
 - **CAT24C512** is reachable from the MCU on I2C3 only when JP8/JP9 are bridged; otherwise it sits on the TPS26750's own I2CC port.
 - Hardware INA228 ALERT drives the `SWITCH_EN` node directly; firmware input OCP/OVP is an additional backstop.
+- **Converter-disable fail-safe (PA11/Q13):** `PA11 → R78 (10 Ω) → Q13 gate`, and Q13's drain pulls the LT8390 `EN/UVLO` node low. There is **no pull resistor on Q13's gate**, so while the MCU is in reset — including while it sits in the ROM bootloader during flashing — the gate floats and the R7 = 357 k / R8 = 64.9 k divider can enable the converter at an uncontrolled setpoint. Recommended ECO: **100 kΩ from Q13's gate to +3V3**, so a floating pin holds the converter *disabled* (enabling then requires PA11 to be actively low). Until that ECO is fitted, do service-mode/UART flashing with the load disconnected: the firmware parks the output before the reset, but a pin cannot hold its state *through* a reset.
+

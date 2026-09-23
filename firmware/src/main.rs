@@ -10,9 +10,15 @@
 //! Timing contract (do not change without re-tuning the control loop):
 //! input 5 ms, ADC 2 ms, supply tick 1 ms, PD/INA228 100 ms, EEPROM step every
 //! pass, plus a 100 µs yield at the bottom of the loop.
+//!
+//! Service mode ([`nitride_firmware::service`]) lets a running board hand off to
+//! the ST ROM bootloader so it can be reflashed over UART; see
+//! [`nitride_firmware::hal::bootloader`].
 
 #![no_std]
 #![no_main]
+
+use core::sync::atomic::Ordering;
 
 use defmt_rtt as _;
 use embassy_executor::Spawner;
@@ -21,10 +27,9 @@ use embassy_stm32::dac::{DacCh1, DacChannel, Value};
 use embassy_stm32::exti::ExtiInput;
 use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
 use embassy_stm32::i2c::{Config as I2cConfig, I2c};
-use embassy_stm32::pac::vrefbuf::vals::{Hiz, Vrs};
 use embassy_stm32::rcc::*;
 use embassy_stm32::timer::qei::{Qei, QeiPin};
-use embassy_stm32::vrefbuf::VoltageReferenceBuffer;
+use embassy_stm32::usart::{Config as UartConfig, Uart};
 use embassy_stm32::{bind_interrupts, peripherals, Config};
 use embassy_sync::mutex::Mutex;
 use embassy_time::{Duration, Instant, Timer};
@@ -34,11 +39,13 @@ use nitride_firmware::board;
 use nitride_firmware::control::supply::SupplyController;
 use nitride_firmware::drivers::tps26750::Tps26750;
 use nitride_firmware::eeprom_workflow::EepromWorkflow;
+use nitride_firmware::hal::bootloader;
 use nitride_firmware::hal::converter_enable::ConverterEnable;
 use nitride_firmware::pd::manager::PdManager;
 use nitride_firmware::runtime::{APP_STATE, I2C_PD_BUS, I2C_UI_BUS};
 use nitride_firmware::sense::adc_sense::{AdcSense, TelemetryFilter};
 use nitride_firmware::sense::ina_sense::InaSense;
+use nitride_firmware::service::{self, service_uart_task};
 use nitride_firmware::state::{AppState, EepromUiSnapshot, MenuScreen};
 use nitride_firmware::ui::input::InputHandler;
 use nitride_firmware::ui::menu::apply_input;
@@ -49,6 +56,7 @@ bind_interrupts!(struct Irqs {
     I2C1_ER => embassy_stm32::i2c::ErrorInterruptHandler<peripherals::I2C1>;
     I2C3_EV => embassy_stm32::i2c::EventInterruptHandler<peripherals::I2C3>;
     I2C3_ER => embassy_stm32::i2c::ErrorInterruptHandler<peripherals::I2C3>;
+    USART3 => embassy_stm32::usart::InterruptHandler<peripherals::USART3>;
 });
 
 /// Copy the workflow's display-facing fields into the shared state so the UI
@@ -63,16 +71,31 @@ fn sync_eeprom_ui(app: &mut AppState, workflow: &EepromWorkflow) {
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
+    // Service mode, handoff leg: a previous boot recorded a request in `.uninit`
+    // RAM and reset. Take it here — before the executor starts or any peripheral
+    // is touched — so the ROM bootloader is entered from a pristine machine
+    // state. Diverges.
+    if bootloader::take_request() {
+        defmt::info!("service mode: entering ROM bootloader");
+        bootloader::jump_to_system_bootloader();
+    }
+
     let mut config = Config::default();
     config.rcc.mux.adc12sel = mux::Adcsel::SYS;
     config.rcc.mux.adc345sel = mux::Adcsel::SYS;
 
     let p = embassy_stm32::init(config);
+    defmt::info!("boot: clocks up");
 
-    // VREF+ is hard-tied to +3V3 on this board, so the internal 2.5 V VREFBUF
-    // must NOT drive the pin. Keep it high-impedance (buffer off) and let the
-    // 3.3 V rail supply the reference; see `board::DAC_VREF_MV`.
-    let _vref = VoltageReferenceBuffer::new(p.VREFBUF, Vrs::VREF1, Hiz::HIGH_Z);
+    // VREF+ is hard-tied to +3V3 on this board, so the ADC/DAC reference is the
+    // 3.3 V rail and the internal VREFBUF must NOT drive the pin. Leave VREFBUF
+    // untouched in its reset state (external-reference mode: ENVR=0, HIZ=1) —
+    // that is the correct configuration for this board and, unlike
+    // `VoltageReferenceBuffer::new(..)` with `Hiz::HIGH_Z`/`CONNECTED`, it has
+    // no `while VRR { }` wait loop in it. See `board::DAC_VREF_MV`.
+    // NOTE: do not re-enable VREFBUF here — if VRR reads high at that point the
+    // embassy init loop never exits and the firmware hangs before the OLED is
+    // ever initialised.
 
     let mut dac_cv: DacCh1<'_, embassy_stm32::peripherals::DAC1, embassy_stm32::mode::Blocking> =
         DacChannel::new_blocking(p.DAC1, p.PA4);
@@ -82,6 +105,7 @@ async fn main(spawner: Spawner) {
     // before anything else can enable the converter.
     dac_cv.set(Value::Bit12Right(board::DAC_MAX_CODE));
     dac_cc.set(Value::Bit12Right(0));
+    defmt::info!("boot: dac parked");
 
     let mut adc1 = Adc::new(p.ADC1);
     adc1.set_resolution(Resolution::BITS12);
@@ -117,17 +141,55 @@ async fn main(spawner: Spawner) {
     let btn3 = Input::new(p.PB11, Pull::Up);
     let enc_btn = Input::new(p.PB4, Pull::Up);
 
+    // Service mode, trigger #2: BTN1 held through power-up. Deterministic and
+    // needs no UART, so it doubles as the bring-up test for the handoff path.
+    // The output is already parked (DACs and converter disable above), and the
+    // subsequent boot consumes the request before this check, so it cannot loop.
+    //
+    // Confirm the level twice: a single early sample can catch a still-settling
+    // pin or contact bounce, and this path resets the MCU.
+    if board::SERVICE_BOOT_HOLD {
+        Timer::after(Duration::from_millis(50)).await;
+        if btn1.is_low() {
+            Timer::after(Duration::from_millis(200)).await;
+            if btn1.is_low() {
+                defmt::info!("service mode: BTN1 held at boot");
+                bootloader::request_on_next_boot();
+            }
+        }
+    }
+
     let qei = Qei::new(p.TIM4, QeiPin::new(p.PB6), QeiPin::new(p.PA12));
     let mut enc_last: u16 = qei.count();
     let mut pd_irq = ExtiInput::new(p.PB13, p.EXTI13, Pull::Up);
 
-    let mut i2c_config = I2cConfig::default();
-    i2c_config.frequency = embassy_stm32::time::Hertz::khz(400);
+    // I2C configs are per-bus because the two buses need opposite timeout
+    // behaviour.
+    //
+    // embassy's I2C waits in a *blocking* spin loop (`wait_af`/`wait_rxne`/...
+    // call `timeout.check()`), AND its async DMA path wraps the transfer in that
+    // same deadline. So a long timeout on a dead bus freezes the executor, while
+    // a short timeout on the UI bus aborts OLED transactions that were simply
+    // unlucky enough to be in flight while the main loop was blocked polling the
+    // PD bus — which truncates `flush_partial` and leaves whole GDDRAM pages
+    // unwritten (random speckle).
+    //
+    // UI bus (I2C3, OLED/EEPROM): generous. A healthy transfer is <1 ms; this
+    // only has to outlast the main loop's worst-case PD poll.
+    let mut i2c_ui_config = I2cConfig::default();
+    i2c_ui_config.frequency = embassy_stm32::time::Hertz::khz(400);
+    i2c_ui_config.timeout = Duration::from_millis(250);
+
+    // PD bus (I2C1, TPS26750/INA228): short, so a missing or stuck PD controller
+    // fails fast instead of freezing the executor (and the OLED) for a second.
+    let mut i2c_pd_config = I2cConfig::default();
+    i2c_pd_config.frequency = embassy_stm32::time::Hertz::khz(400);
+    i2c_pd_config.timeout = Duration::from_millis(20);
 
     // UI bus (I2C3): SSD1306 OLED, plus the CAT24C512 config EEPROM when
     // JP8/JP9 are bridged.
     let i2c_ui = I2c::new(
-        p.I2C3, p.PA8, p.PB5, Irqs, p.DMA1_CH3, p.DMA1_CH4, i2c_config,
+        p.I2C3, p.PA8, p.PB5, Irqs, p.DMA1_CH3, p.DMA1_CH4, i2c_ui_config,
     );
     let ui_bus = I2C_UI_BUS.init(Mutex::new(i2c_ui));
 
@@ -135,9 +197,47 @@ async fn main(spawner: Spawner) {
     // rev2 routes these to PC4/PB7, an I2C pin pair no single peripheral can
     // drive, so SCL is bodged to PB8 and SDA stays on PB7.
     let i2c_pd = I2c::new(
-        p.I2C1, p.PB8, p.PB7, Irqs, p.DMA1_CH1, p.DMA1_CH2, i2c_config,
+        p.I2C1, p.PB8, p.PB7, Irqs, p.DMA1_CH1, p.DMA1_CH2, i2c_pd_config,
     );
     let pd_bus = I2C_PD_BUS.init(Mutex::new(i2c_pd));
+    defmt::info!("boot: i2c up");
+
+    // Service mode, trigger #1: the on-board FT234XD sits on USART3
+    // (TX=PC10, RX=PC11) — the same port the ROM bootloader listens on. We only
+    // receive here, watching for the AN3155 sync byte so that merely opening
+    // the programmer hands the device over. DMA1_CH5/CH6 are the channels left
+    // free by the two I2C buses.
+    //
+    // RX MUST be pulled up: with the FT234XD unpowered (USB detached) its TXD is
+    // high-Z, and a floating RX generates framing/noise bytes that can include
+    // the 0x7F sync value — which would park the output and reset into the ROM
+    // bootloader on an otherwise normal power-up.
+    let service_uart = if board::SERVICE_UART_AUTODETECT {
+        let mut uart_config = UartConfig::default();
+        uart_config.baudrate = board::SERVICE_UART_BAUD;
+        uart_config.rx_pull = Pull::Up;
+        match Uart::new(
+            p.USART3,
+            p.PC11,
+            p.PC10,
+            Irqs,
+            p.DMA1_CH5,
+            p.DMA1_CH6,
+            uart_config,
+        ) {
+            Ok(uart) => Some(uart),
+            Err(_) => {
+                defmt::error!("service UART init failed; UART handoff disabled");
+                None
+            }
+        }
+    } else {
+        None
+    };
+    defmt::info!(
+        "boot: service uart {}",
+        if service_uart.is_some() { "up" } else { "off" }
+    );
 
     let app = AppState::default();
     let app_state = APP_STATE.init(Mutex::new(app));
@@ -161,15 +261,37 @@ async fn main(spawner: Spawner) {
         }
         let _ = ina.init(&mut i2c).await;
     }
+    defmt::info!("boot: pd/ina init done");
 
     spawner.spawn(ui_task(app_state, ui_bus)).unwrap();
+    if let Some(uart) = service_uart {
+        spawner.spawn(service_uart_task(uart)).unwrap();
+    }
 
     let mut t_adc = Instant::now();
     let mut t_supply = Instant::now();
     let mut t_input = Instant::now();
     let mut t_pd = Instant::now();
+    // PD poll period. Backed off to a slow retry while the bus is not answering.
+    let mut pd_period = Duration::from_millis(board::INA228_POLL_MS);
 
     loop {
+        // Service mode, handoff leg: park the output, let it settle, then reset
+        // with a request recorded so the next boot enters the ROM bootloader.
+        // Reusing `supply.tick` keeps the inverted-CV and CC-zero behaviour in
+        // one place; the APP_STATE lock is dropped before the settle delay.
+        if service::SERVICE_REQUEST.swap(false, Ordering::SeqCst) {
+            {
+                let mut app = app_state.lock().await;
+                app.supply.enabled = false;
+                supply.tick(&mut app, &mut dac_cv, &mut dac_cc, &mut conv_en);
+            }
+            conv_en.set_enabled(false);
+            defmt::info!("service mode: parking output before handoff");
+            Timer::after(Duration::from_millis(board::SERVICE_PARK_SETTLE_MS)).await;
+            bootloader::request_on_next_boot();
+        }
+
         let now = Instant::now();
 
         if now.duration_since(t_input) >= Duration::from_millis(board::INPUT_POLL_MS) {
@@ -231,8 +353,9 @@ async fn main(spawner: Spawner) {
             supply.tick(&mut app, &mut dac_cv, &mut dac_cc, &mut conv_en);
         }
 
-        if now.duration_since(t_pd) >= Duration::from_millis(board::INA228_POLL_MS) {
+        if now.duration_since(t_pd) >= pd_period {
             t_pd = now;
+            let pd_started = Instant::now();
             let mut app = app_state.lock().await;
             let mut i2c = pd_bus.lock().await;
             pd_mgr.poll(&mut tps, &mut i2c, &mut app, &mut pd_irq).await;
@@ -243,6 +366,18 @@ async fn main(spawner: Spawner) {
             }
             pd_mgr.negotiate(&mut tps, &mut i2c).await;
             ina.poll(&mut i2c, &mut app).await;
+
+            // embassy's I2C driver waits for events in a blocking spin loop, so a
+            // bus that does not answer blocks the whole executor (including
+            // `ui_task`) for the per-transaction timeout. A healthy poll takes a
+            // few ms; a timing-out one costs ~2 x the I2C timeout. Back off hard
+            // when that happens so a missing PD controller cannot starve the UI.
+            let pd_took = Instant::now().duration_since(pd_started);
+            pd_period = if pd_took > Duration::from_millis(30) {
+                Duration::from_secs(2)
+            } else {
+                Duration::from_millis(board::INA228_POLL_MS)
+            };
         }
 
         {

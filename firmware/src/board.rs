@@ -115,3 +115,29 @@ pub const ADC_SAMPLE_MS: u64 = 2;
 /// INA228 refresh period. Must be longer than the chip's ~50 ms conversion
 /// cycle (ADC_CONFIG above) or reads return overlapping samples.
 pub const INA228_POLL_MS: u64 = 100;
+
+/// Service mode: hand off to the ROM bootloader so the board can be reflashed
+/// over UART through the on-board FT234XD (USART3, PC10/PC11).
+///
+/// Listener baud for the AN3155 sync byte. It MUST match the host tool's
+/// connect baud (`STM32CubeProgrammer -c ... br=`, `stm32flash -b`), because
+/// only the *first* byte is matched here — after the handoff the ROM loader
+/// auto-bauds. STM32CubeProgrammer defaults to 115200; stm32flash to 57600.
+pub const SERVICE_UART_BAUD: u32 = 115_200;
+
+/// Watch USART3 for the bootloader sync byte (`0x7F`) and hand off when it
+/// arrives. This is what makes "open the programmer and connect" just work.
+pub const SERVICE_UART_AUTODETECT: bool = true;
+
+/// Hold BTN1 through power-up (or reset) to enter service mode. Deterministic,
+/// needs no UART, and doubles as the bring-up test for the handoff path.
+pub const SERVICE_BOOT_HOLD: bool = true;
+
+/// Delay after parking the output before resetting into the bootloader, giving
+/// the converter time to shut down and the output to discharge.
+///
+/// NOTE: this covers only the moments *before* the reset. Once the MCU resets,
+/// PA11 floats and Q13's gate is unconstrained, so the converter's state during
+/// flashing is set by the R7/R8 divider — see the /Converter/Conv-Disable
+/// finding in `BENCH.md`.
+pub const SERVICE_PARK_SETTLE_MS: u64 = 100;

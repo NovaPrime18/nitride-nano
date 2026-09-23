@@ -12,6 +12,7 @@
 //! - [`drivers`]: I2C device drivers (TPS26750, INA228, SSD1306).
 //! - [`ui`]: buttons/encoder input, menu model, and the OLED task.
 //! - [`eeprom_loader`] / [`eeprom_workflow`]: TPS26750 full-flash EEPROM upload.
+//! - [`service`]: service mode — hand off to the ROM bootloader for UART reflash.
 #![no_std]
 
 pub mod board;
@@ -23,5 +24,6 @@ pub mod hal;
 pub mod pd;
 pub mod runtime;
 pub mod sense;
+pub mod service;
 pub mod state;
 pub mod ui;

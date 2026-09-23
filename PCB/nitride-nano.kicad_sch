@@ -1552,15 +1552,16 @@
 			(embedded_fonts no)
 		)
 	)
-	(text "TODO: Fix LV supply transient"
+	(text "TODO: Inductor footprint too small"
 		(exclude_from_sim no)
-		(at 71.12 165.862 0)
+		(at 192.278 42.926 0)
 		(effects
 			(font
+				(face "Comfortaa Light")
 				(size 3 3)
 			)
 		)
-		(uuid "248482fe-57cc-4df0-aca0-dd743fed22f9")
+		(uuid "71279def-eb93-4419-8fbd-ec413aad789f")
 	)
 	(junction
 		(at 378.46 109.22)

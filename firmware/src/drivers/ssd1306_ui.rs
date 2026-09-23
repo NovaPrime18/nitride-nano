@@ -281,14 +281,22 @@ impl Ssd1306Ui {
         }
     }
 
-    /// Input current (INA228) on the main screen's status bar, or `INA!` when
-    /// the monitor is not responding. A fixed-width field is cleared first so a
-    /// shorter reading cannot leave ghost pixels behind.
+    /// Input current (INA228) on the main screen's status bar, `NO PD` when no
+    /// USB-PD source is present, or `INA!` when the monitor is not responding.
+    /// A fixed-width field is cleared first so a shorter reading cannot leave
+    /// ghost pixels behind.
     fn draw_main_input_right(&mut self, app: &AppState) {
         const FIELD_CHARS: u8 = 12;
         let x0 = DISPLAY_W.saturating_sub(FIELD_CHARS * FONT_W);
         self.display
             .fill_rect(x0, ROW_STATUS, FIELD_CHARS * FONT_W, 8);
+
+        // No source capabilities were read: there is no PD source on the bus
+        // (dead bus, no cable, or a non-PD input). Say so plainly.
+        if app.pd_control.error == PdAutoError::NoCable {
+            self.display.draw_str(x0, ROW_STATUS, "NO PD");
+            return;
+        }
 
         if !app.telemetry.ina_ok {
             self.display.draw_str(x0, ROW_STATUS, "INA!");
