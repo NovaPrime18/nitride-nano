@@ -111,6 +111,29 @@ latched fault. Auto-tracking PD holds its rail for the duration of the sweep.
 Range, point count and dwell live in [`src/board.rs`](src/board.rs)
 (`SWEEP_*`); the map reaches all 32 points, including the final 56 V one.
 
+### Sweep efficiency diagnostics
+
+Each point also logs a filtered input-to-output efficiency to the defmt console
+(`DEFMT_LOG=info cargo run --release`):
+
+```text
+sweep point 7/32: vset=19839 vout=19810 iout=2100 vin=20000 pin_avg=44400 pout_avg=41800 eta=94.1% n=60
+...
+sweep summary (complete): 32 points, 30 valid
+  max eta=94.1% at point 7 (19839 mV)
+  min eta=88.3% at point 31 (54258 mV)
+```
+
+The report is `η = mean(pout) / mean(pin)`: both powers are integrated over the
+settled part of each 2 s dwell (`SWEEP_SETTLE_MS` / `SWEEP_SAMPLE_MS` in
+[`src/board.rs`](src/board.rs)) and divided once, rather than ratioing a single
+noisy sample, so the board's ADC/INA228 jitter does not swamp the result. A point
+with too few accepted samples, or a reading above 100 % (measurement error), is
+logged with `excluded` and left out of the summary; if the INA228 is absent or
+the output is too lightly loaded, every point prints `eta=--` and the summary
+warns instead of recording a bogus maximum. Aborting a run early still prints the
+summary for the points already measured.
+
 ## Bring-up
 
 See [BENCH.md](BENCH.md) for the step-by-step validation checklist.

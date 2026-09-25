@@ -1159,9 +1159,13 @@ fn fmt_signed_value(buf: &mut [u8; 8], milliunit: i32) -> &str {
 /// Format the input-to-output efficiency as a percentage.
 ///
 /// `pin_mw` is the INA228 input power (signed) and `pout_mw` the ADC output
-/// power.  A non-positive input power means the ratio is undefined, and a
-/// reading above unity is measurement error rather than a real result, so both
-/// are called out instead of printing a misleading number.
+/// power. A non-positive input power means the ratio is undefined, and a reading
+/// above unity is measurement error rather than a real result, so both are
+/// called out instead of printing a misleading number.
+///
+/// The ratio itself comes from [`crate::sense::efficiency::tenths_pct`], the
+/// same helper the sweep diagnostics use, so the console and the panel can
+/// never disagree about what "efficiency" means.
 ///
 /// ```text
 ///  (12_000,  10_500)  →  "87.5%"
@@ -1169,16 +1173,12 @@ fn fmt_signed_value(buf: &mut [u8; 8], milliunit: i32) -> &str {
 ///  (      0,      0)  →  "--%"
 /// ```
 fn fmt_efficiency(buf: &mut [u8; 8], pin_mw: i32, pout_mw: u32) -> &str {
-    if pin_mw <= 0 {
-        return "--%";
-    }
-
-    // Tenths of a percent, integer-only: no float formatting in the display path.
-    let tenths = (pout_mw as i64 * 1000) / pin_mw as i64;
-    if tenths >= 1000 {
-        return ">100%";
-    }
-    let tenths = tenths.max(0) as u32;
+    let tenths = match crate::sense::efficiency::tenths_pct(pin_mw, pout_mw) {
+        None => return "--%",
+        Some(t) if t >= crate::sense::efficiency::ETA_UNITY_TENTHS => return ">100%",
+        // `tenths_pct` cannot exceed unity here, so it always fits the buffer.
+        Some(t) => t,
+    };
 
     let mut i = write_uint(buf, 0, tenths / 10);
     buf[i] = b'.';

@@ -107,11 +107,14 @@ impl SupplyController {
             return;
         }
 
-        let i_cap = app
-            .supply
-            .i_set_ma
-            .min(app.supply.input_current_cap_ma)
-            .min(crate::board::IOUT_MAX_MA);
+        // The output current ceiling is the user setpoint (bounded by the design
+        // max) further limited by the *power* available at the present output
+        // voltage. The PD contract's current is deliberately NOT applied here:
+        // that is an input-bus (VIN-side) limit, and the output stage is a
+        // converter, so only the contract's power (`VIN x I`) is meaningful at
+        // the output. Input over-current is enforced separately by the INA228
+        // backstop above.
+        let i_cap = app.supply.i_set_ma.min(crate::board::IOUT_MAX_MA);
         let p_cap = app
             .supply
             .input_power_cap_mw

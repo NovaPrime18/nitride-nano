@@ -225,6 +225,25 @@ pub const SWEEP_POINTS: u8 = 32;
 /// Dwell time per sweep point.
 pub const SWEEP_STEP_MS: u64 = 2_000;
 
+/// Sweep efficiency diagnostics: skip this much of each point's dwell before
+/// accumulating anything.
+///
+/// The CV DAC slews at [`CV_SLEW_MAX_LSB_PER_TICK`] (4 LSB/ms ≈ 28.8 mV/code).
+/// The worst case is point 0, which starts from the parked code and needs
+/// ~482 ms to reach 10 V; 800 ms also covers the output capacitor and the ADC
+/// telemetry EMA (tau 150 ms). The remaining 1.2 s of the dwell is the
+/// measurement window.
+pub const SWEEP_SETTLE_MS: u64 = 800;
+
+/// Accumulation cadence inside the measurement window: one input/output power
+/// pair every interval (a 2 s dwell gives ~60 samples).
+pub const SWEEP_SAMPLE_MS: u64 = 20;
+
+/// A point needs at least this many accepted samples to count toward the sweep's
+/// best/worst summary. Below it the point is still logged but marked invalid, so
+/// a stalled loop or a barely-answering INA228 cannot produce a bogus record.
+pub const SWEEP_MIN_SAMPLES: u16 = 10;
+
 /// Service mode: hand off to the ROM bootloader so the board can be reflashed
 /// over UART through the on-board FT234XD (USART3, PC10/PC11).
 ///

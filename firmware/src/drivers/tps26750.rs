@@ -269,27 +269,40 @@ impl Tps26750 {
         let pdo = read_le32(&pdo_buf);
         let rdo = read_le32(&rdo_buf);
         let supply_type = extract_bits(pdo, PDO_TYPE_SHIFT, PDO_TYPE_MASK) as u8;
-        if supply_type == PDO_TYPE_AUGMENTED {
+        let (v, i) = if supply_type == PDO_TYPE_AUGMENTED {
             let apdo = extract_bits(pdo, APDO_TYPE_SHIFT, APDO_TYPE_MASK) as u8;
             if apdo == APDO_TYPE_EPR_AVS || apdo == APDO_TYPE_SPR_AVS {
-                let v = extract_bits(rdo, AVS_RDO_VOLTAGE_SHIFT, AVS_RDO_VOLTAGE_MASK)
-                    * AVS_RDO_VOLTAGE_UNIT_MV;
-                let i = extract_bits(rdo, 0, APDO_RDO_CURRENT_MASK) * APDO_RDO_CURRENT_UNIT_MA;
-                Some((v, i))
+                (
+                    extract_bits(rdo, AVS_RDO_VOLTAGE_SHIFT, AVS_RDO_VOLTAGE_MASK)
+                        * AVS_RDO_VOLTAGE_UNIT_MV,
+                    extract_bits(rdo, 0, APDO_RDO_CURRENT_MASK) * APDO_RDO_CURRENT_UNIT_MA,
+                )
             } else if apdo == APDO_TYPE_PPS {
-                let v = extract_bits(rdo, PPS_RDO_VOLTAGE_SHIFT, PPS_RDO_VOLTAGE_MASK)
-                    * PPS_RDO_VOLTAGE_UNIT_MV;
-                let i = extract_bits(rdo, 0, APDO_RDO_CURRENT_MASK) * APDO_RDO_CURRENT_UNIT_MA;
-                Some((v, i))
+                (
+                    extract_bits(rdo, PPS_RDO_VOLTAGE_SHIFT, PPS_RDO_VOLTAGE_MASK)
+                        * PPS_RDO_VOLTAGE_UNIT_MV,
+                    extract_bits(rdo, 0, APDO_RDO_CURRENT_MASK) * APDO_RDO_CURRENT_UNIT_MA,
+                )
             } else {
-                None
+                return None;
             }
         } else {
-            let v = extract_bits(pdo, FIXED_PDO_VOLTAGE_SHIFT, FIXED_PDO_VOLTAGE_MASK)
-                * FIXED_PDO_VOLTAGE_UNIT_MV;
-            let i = extract_bits(pdo, 0, FIXED_PDO_CURRENT_MASK) * FIXED_PDO_CURRENT_UNIT_MA;
-            Some((v, i))
+            (
+                extract_bits(pdo, FIXED_PDO_VOLTAGE_SHIFT, FIXED_PDO_VOLTAGE_MASK)
+                    * FIXED_PDO_VOLTAGE_UNIT_MV,
+                extract_bits(pdo, 0, FIXED_PDO_CURRENT_MASK) * FIXED_PDO_CURRENT_UNIT_MA,
+            )
+        };
+
+        // A real contract always has a non-zero voltage and current. When the
+        // controller holds no contract (e.g. the board is running from the XT90
+        // feed) the ACTIVE_CONTRACT registers read back as zero, which must NOT
+        // be decoded as a 0 V / 0 A contract — that would drive the output
+        // power cap to zero.
+        if v == 0 || i == 0 {
+            return None;
         }
+        Some((v, i))
     }
 
     /// Read and parse the source-capabilities PDOs advertised by the attached

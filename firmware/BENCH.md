@@ -56,6 +56,9 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 - [ ] CFG (BTN3 from PD): fullscreen list scrolls; EncBtn/BTN1 activates, BTN3 backs out
 - [ ] CFG → Output V sweep: returns to Main asking `ENC TO START`; confirm runs 32 points 10→56 V at ~2 s/point and parks the output at `DONE`; any button aborts and parks
 - [ ] During a sweep the bottom line replaces `MAIN` and `NO PD`, and the Auto-tracking rail does not renegotiate
+- [ ] Sweep efficiency diagnostics: with `DEFMT_LOG=info cargo run --release`, each point prints one `sweep point n/32: … eta=…% n=…` line and the run ends with a `sweep summary` naming the max and min efficiency points; sanity-check `eta` against a reference measurement at one point
+- [ ] Sweep with the INA228 unplugged: every point reports `eta=--`, the summary warns `no valid efficiency points`, and no fault/panic occurs
+- [ ] On the main screen (no sweep) the `Eff` readout still matches the efficiency the sweep logs for the same telemetry
 
 ## 7. Closed-loop & limits
 

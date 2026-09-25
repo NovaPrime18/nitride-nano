@@ -108,6 +108,18 @@ pub struct PdManager {
     next_pp_poll: Instant,
 }
 
+/// Fall back to the board's design input limits when no PD contract governs the
+/// input: an XT90 feed, a removed cable, or an absent controller.
+///
+/// The output stage is limited by *power* only (`control::supply`), so this is
+/// what lets a non-PD feed reach the full 240 W design maximum instead of
+/// inheriting the last negotiated contract's power. `input_current_cap_ma` is
+/// the input-side INA228 backstop, not an output limit.
+fn use_design_input_limits(app: &mut AppState) {
+    app.supply.input_current_cap_ma = board::IIN_MAX_MA as u32;
+    app.supply.input_power_cap_mw = board::POWER_MAX_MW;
+}
+
 impl PdManager {
     pub fn new() -> Self {
         Self {
@@ -261,6 +273,7 @@ impl PdManager {
                     self.epr_probe_pending = false;
                     self.avs_keepalive = None;
                     self.present = false;
+                    use_design_input_limits(app);
                 }
             }
         }
@@ -293,6 +306,9 @@ impl PdManager {
                     self.epr_probe_pending = false;
                     self.avs_keepalive = None;
                     self.negotiate_pending = true;
+                    // The old contract is gone either way; drop back to the
+                    // design limits until the new one is mirrored.
+                    use_design_input_limits(app);
                     Tps26750::set_interrupt_bit(&mut clear, TPS_INT_PLUG_INSERT_REMOVAL);
                 }
                 if Tps26750::is_interrupt_set(&events, TPS_INT_NEW_CONTRACT_AS_SINK) {
@@ -603,14 +619,23 @@ impl PdManager {
                 if self.pending.is_none() {
                     self.maybe_reenable(app, v_mv, now);
                 }
-            } else if app.pd == PdState::ContractActive {
-                // cable removed
-                app.pd = PdState::NoCable;
-                app.pd_cap_count = 0;
+            } else {
+                // No active contract: an XT90 feed, a removed cable, or the
+                // controller has not confirmed one yet. Use the design limits so
+                // a non-PD feed gets the full 240 W rather than inheriting the
+                // last contract's caps (or a zeroed register).
+                use_design_input_limits(app);
+                if app.pd == PdState::ContractActive {
+                    // cable removed
+                    app.pd = PdState::NoCable;
+                    app.pd_cap_count = 0;
+                }
             }
         } else {
-            // Controller absent: it cannot hold a contract.
+            // Controller absent: it cannot hold a contract, so the input is not
+            // PD-limited (XT90 feed or no PD source).
             app.pd = PdState::NoCable;
+            use_design_input_limits(app);
         }
 
         // Safety net: never leave the output parked forever if the source

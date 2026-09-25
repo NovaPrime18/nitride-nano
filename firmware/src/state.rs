@@ -281,7 +281,10 @@ impl Default for SupplyState {
             i_set_ma: 5_000,
             fault: Fault::None,
             input_power_cap_mw: board::POWER_MAX_MW,
-            input_current_cap_ma: board::IOUT_MAX_MA,
+            // Input-bus backstop only (see `control::supply`): the design max
+            // until a PD contract narrows it, and restored to this whenever the
+            // contract goes away so an XT90 feed gets the full design current.
+            input_current_cap_ma: board::IIN_MAX_MA as u32,
         }
     }
 }
