@@ -47,15 +47,31 @@ pub const ADC_VREF_MV: u32 = 3300;
 /// TODO: derive from Converter.kicad_sch resistor networks.
 pub const VOUT_SENSE_NUM: u32 = 85_140; // mV at full scale (248k/10k divider, 3.3V ref)
 /// ISMON monitor gain at the PA3 node, in mV per amp. The LT8390A datasheet
-/// gives `V_ISMON = 10 · V(ISP−ISN) + 0.25 V`, and the board's ISP/ISN shunt is
-/// R18 = 2 mΩ, so the gain is `10 · 2 mΩ = 20 mV/A`. Bench-tune only against a
-/// known load; the offset is measured at runtime (see `sense::adc_sense`).
+/// gives `V_ISMON = 10 · V(ISP−ISN) + V_OFFSET`, and the board's output-current
+/// shunt is R18 = 2 mΩ, so the gain is `10 · 2 mΩ = 20 mV/A`. This is a
+/// datasheet-derived value, not a per-board trim: verify it against a known load
+/// (a shunt swap scales it directly) before changing it.
 pub const ISENSE_MV_PER_A: u32 = 20;
-/// Datasheet-typical ISMON offset (0.25 V typ, 0.20–0.30 V specified). Used only
-/// as the seed/fallback for the runtime zero-current calibration: that offset
-/// spread is far larger than the 20 mV/A signal at low currents, so a fixed
-/// constant would eat the whole low-current range on a low-offset part.
-pub const ISENSE_OFFSET_MV: u32 = 250;
+
+/// Zero-current ISMON voltage at the PA3 node, in mV — the per-board offset
+/// calibration.
+///
+/// The LT8390A offset is only specified to 0.20–0.30 V while the current signal
+/// is 20 mV/A, so the full 100 mV spread is 5 A of error. Even the 5 mV residual
+/// left by a near-typical part is 0.25 A on the display at *every* load — which
+/// is what the 2026-09-25 bench run showed (readings low by ~0.25 A from 0.25 A
+/// to 2.5 A).
+///
+/// MEASURE IT WITH THE OUTPUT **ENABLED** AND NO LOAD. The LT8390A's ISMON
+/// buffer is powered down with the rest of the chip while `EN/UVLO` is low, so
+/// the level read with the converter parked is not the operating offset. The
+/// previous firmware learned the zero at boot with the converter disabled; that
+/// is why the calibration never took. This constant replaces that learn.
+///
+/// Bench procedure: enable the output with no load, read the `isense:` RTT line
+/// (`raw … mV`), or DMM the ISMON node / R49, and set this to that value. The
+/// value below was fitted from the bench run in `analysis/ismon-calibration/`.
+pub const ISENSE_ZERO_MV: u32 = 244;
 pub const VBUS_SENSE_NUM: u32 = 69_600;
 
 /// DAC 12-bit. The DAC reference is VREF+, which this board ties to +3V3 (the

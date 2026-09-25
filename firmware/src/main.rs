@@ -265,17 +265,15 @@ async fn main(spawner: Spawner) {
     }
     defmt::info!("boot: ina init done");
 
-    // Learn the ISMON zero-current level while the output stage is parked: the
-    // DACs and converter-disable above guarantee no load current, so PA3 sits at
-    // the LT8390A's ISMON offset. That offset (0.20–0.30 V specified) is far
-    // larger than the 20 mV/A current signal at low currents, so it must be
-    // measured per board rather than assumed. Let the rail settle first.
-    Timer::after(Duration::from_millis(50)).await;
-    let isense_zero = sense.calibrate_zero(&mut adc1, &mut pin_isense);
+    // The ISMON zero is a bench-calibrated constant (`board::ISENSE_ZERO_MV`),
+    // deliberately NOT learned here: the LT8390A powers its ISMON buffer down
+    // with the rest of the chip while EN/UVLO is low, so a sample taken with the
+    // converter parked does not see the operating offset. Log what is in use.
     defmt::info!(
-        "boot: isense zero = {} counts ({} mV)",
-        isense_zero,
-        isense_zero * board::ADC_VREF_MV / 4096
+        "boot: isense zero = {} counts ({} mV), gain {} mV/A",
+        sense.zero_raw(),
+        board::ISENSE_ZERO_MV,
+        board::ISENSE_MV_PER_A
     );
 
     spawner.spawn(ui_task(app_state, ui_bus)).unwrap();
@@ -367,16 +365,22 @@ async fn main(spawner: Spawner) {
             }
             app.telemetry = filtered;
 
-            // Bring-up ISMON diagnostic: the raw PA3 count is independent of the
-            // scaling constants, so comparing it at 0 A vs a known load shows at
-            // a glance whether the LT8390A's monitor is moving at all.
-            // LT8390A + R18 (2 mΩ) should give ~25 counts/A (20 mV/A).
+            // Bring-up ISMON diagnostic. The raw PA3 count and the node voltage
+            // are independent of the scaling constants, so comparing them at 0 A
+            // vs a known load shows at a glance whether the LT8390A's monitor is
+            // moving and what zero should be (calibrate with the output ON and
+            // no load). LT8390A + R18 (2 mΩ) should give ~25 counts/A.
             if now.duration_since(t_isense_log) >= Duration::from_secs(1) {
                 t_isense_log = now;
+                let raw = sense.last_i_raw();
+                let zero = sense.zero_raw();
                 defmt::info!(
-                    "isense: raw={} zero={} vout={} mV iout={} mA vin={} mV iin={} mA",
-                    sense.last_i_raw(),
-                    sense.zero_raw(),
+                    "isense: raw={} ({} mV) zero={} ({} mV) span={} mV vout={} mV iout={} mA vin={} mV iin={} mA",
+                    raw,
+                    raw * board::ADC_VREF_MV / 4096,
+                    zero,
+                    zero * board::ADC_VREF_MV / 4096,
+                    raw.saturating_sub(zero) * board::ADC_VREF_MV / 4096,
                     app.telemetry.vout_mv,
                     app.telemetry.iout_ma,
                     app.telemetry.vin_mv,

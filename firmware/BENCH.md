@@ -21,6 +21,9 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 
 - [ ] Apply known voltages to sense nets (safe low levels)
 - [ ] Fit `VOUT_SENSE_NUM`, `VBUS_SENSE_NUM`, `ISENSE_MV_PER_A` in `board.rs`
+- [ ] ISMON zero: enable the output with **no load**, set `board::ISENSE_ZERO_MV`
+      from the `isense:` log's `raw (XXX mV)` field (do **not** calibrate with the
+      converter parked — ISMON is unpowered then; see `analysis/ismon-calibration/`)
 - [ ] Verify NTC readings at room temp; adjust `NTC_BETA` / `NTC_R25_OHM`
 
 ## 4. I2C buses

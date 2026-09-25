@@ -7,20 +7,26 @@
 //! Screen layout:
 //!
 //!   ┌──────────────────────────────────────────┐  row 0
-//!   │  nitride-nano               CV  ON        │  ← yellow header
+//!   │  T1:30.0 T2:35.0            CV  ON        │  ← yellow header
 //!   ├──────────────────────────────────────────┤  row 16  (separator line)
-//!   │  Vin    12.000 V  [████████░░░░░]         │
-//!   │  Vout    5.000 V  [████░░░░░░░░░]         │  ← telemetry + inline bars
-//!   │  Iout    0.500 A  [█░░░░░░░░░░░░]         │
-//!   │  Pout    2.500 W  [██░░░░░░░░░░░]         │
-//!   │  ████████████░░░░░░░░░░░░░░░░░░░░░░░░░   │  ← power bar
-//!   │  > MAIN                  SET  5.000 V     │  ← status / setpoint
+//!   │  Vin   12.000 V   Iin   0.500 A           │  row 18  input values
+//!   │  [████████░░░░]   [██░░░░░░░░░░]          │  row 26  input bars
+//!   │  Vout         Iout         Pout           │  row 32  output headers
+//!   │  5.000 V      0.500 A      2.500 W        │  row 40  output values
+//!   │  [██░░░░░]    [█░░░░░░]    [██░░░░░]      │  row 48  output bars
+//!   │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │  row 54  ceiling bar
+//!   │  >MAIN             Eff 87.5% [███░░░░]    │  row 56  status / eff.
 //!   └──────────────────────────────────────────┘  row 63
 //!
-//! Each telemetry row now contains a 6-px-tall bordered bar graph in the
-//! 47-px region to the right of the unit symbol (cols 81–127).  The bar
-//! spans from the board's configured minimum to its maximum for that
-//! measurement channel.
+//! The blue zone is 48 px (rows 16..63) and the 5-px bar is what makes the
+//! content fit: every element gets a 1-px gap, and both the row under the
+//! divider and the panel's last row stay clear.  Inputs sit in two 60-px fields
+//! on one line; outputs form three 42-px columns whose reading is
+//! right-justified directly under its header, so the digits line up in columns.
+//! Every reading keeps a bordered bar graph, scaled from the board's configured
+//! range for that channel (`board.rs`) — no magic bounds live here.  The Iin
+//! field doubles as the input-monitor status field (`NO PD` / `INA!`), and the
+//! efficiency readout shares the bottom line with the screen tag.
 //!
 //! Two other fullscreen layouts share the panel:
 //! - the CFG (Settings) list — header + up to [`CFG_VISIBLE_ROWS`] option rows,
@@ -31,7 +37,7 @@
 //! The CFG "Output V sweep" has no screen of its own: while it is armed,
 //! running, or done, the power screen's bottom line is replaced by a sweep
 //! status line (`>SWEEP` plus the confirm prompt / point progress / `DONE`),
-//! which also displaces the `NO PD`/`Iin` field.
+//! which also displaces the efficiency readout.
 //!
 //! NOTE: uses `draw_line(x0, y0, x1, y1)` for horizontal and vertical rules.
 
@@ -63,41 +69,79 @@ const FONT_W: u8 = 6;
 /// Full display width in pixels.
 const DISPLAY_W: u8 = 128;
 
-// Row y-coordinates
+// Row y-coordinates.  The blue zone is 48 px (rows 16..63).  A 5-px bar is
+// what lets the content plus a 1-px gap around every element fit, keeping both
+// the row under the divider (17) and the panel's last row (63) clear.
 const ROW_HEADER: u8 = 4; // vertically centred in the 16-px yellow zone
 const ROW_DIVIDER: u8 = 16; // separator line at colour boundary (first blue row)
-const ROW_VIN: u8 = 18;
-const ROW_VOUT: u8 = 28;
-const ROW_IOUT: u8 = 38;
-const ROW_POUT: u8 = 48;
-const ROW_POWER_BAR: u8 = 56; // 1-px power bar between telemetry and status
-const ROW_STATUS: u8 = 57; // bottom of blue zone
+const ROW_IN_VALUES: u8 = 18; // Vin | Iin readings, side by side
+const ROW_IN_BARS: u8 = 25; // bars occupy rows 26..30
+const ROW_OUT_LABELS: u8 = 32; // Vout | Iout | Pout column headers
+const ROW_OUT_VALUES: u8 = 40; // output readings, under their headers
+const ROW_OUT_BARS: u8 = 47; // bars occupy rows 48..52
+const ROW_POWER_BAR: u8 = 54; // 1-px setpoint-ceiling bar
+const ROW_STATUS: u8 = 56; // screen tag + setpoint / sweep / efficiency
 
-// Column x-coordinates for measurement rows
-//   "Iout   0.500 A"
-//    x=0    right  x=73
-const COL_LABEL: u8 = 0;
-const COL_VALUE_RIGHT: u8 = 70; // right edge of the right-justified value field
-const COL_UNIT: u8 = 73;
+// Input row: two equal 60-px fields, each laid out as "label value unit" with
+// the value right-justified so the decimal points stay put.
+//   "Vin 12.000 V"    label 0,  value ends at 53, unit at 54
+//   "Iin  0.500 A"    label 66, value ends at 119, unit at 120
+const COL_IN_LABEL: u8 = 0;
+const COL_IN_VALUE_RIGHT: u8 = 54; // Vin value is right-justified to here
+const COL_IN2_LABEL: u8 = 66;
+const COL_IN2_VALUE_RIGHT: u8 = 120; // Iin value is right-justified to here
+const IN_VALUE_CLEAR_X: u8 = 18; // Vin value + unit field, cleared each frame
+const IN_VALUE_CLEAR_W: u8 = 42; // 18..59
+const IN2_VALUE_CLEAR_X: u8 = 84; // Iin value + unit field (also `NO PD`/`INA!`)
+const IN2_VALUE_CLEAR_W: u8 = 42; // 84..125
 
-// Inline bar graph geometry
-//   Starts 2 px after the unit character ends (col 73 + 6 + 2 = 81).
-//   Ends 1 px from the right edge (col 126), leaving a 1-px margin.
-//   Inner fill width  = BAR_INNER_W  (44 px of usable fill space).
-const COL_BAR_LEFT: u8 = COL_UNIT + FONT_W + 2; // 81  – left border pixel
-const COL_BAR_RIGHT: u8 = DISPLAY_W - 2; // 126 – right border pixel
-const BAR_INNER_W: u8 = COL_BAR_RIGHT - COL_BAR_LEFT - 1; // 44 px (excl. borders)
+// Input bars: one 60-px bar under each field.
+const IN_BAR0_LEFT: u8 = 0;
+const IN_BAR0_RIGHT: u8 = 59;
+const IN_BAR1_LEFT: u8 = 66;
+const IN_BAR1_RIGHT: u8 = 125;
 
-// Bar height: 6 px tall, inset 1 px from the top of the 8-px character cell.
+// Output group: three ~42-px columns.  The header sits at the column's left
+// edge on ROW_OUT_LABELS; the value is right-justified to the column's right
+// edge on ROW_OUT_VALUES; the bar spans the column on ROW_OUT_BARS.  The 42-px
+// width is 7 character cells, which is exactly "value + unit" at the widest
+// formatting the channels can produce.
+const OUT_COL0_LEFT: u8 = 0;
+const OUT_COL0_RIGHT: u8 = 42; // value right edge (exclusive)
+const OUT_COL1_LEFT: u8 = 43;
+const OUT_COL1_RIGHT: u8 = 85;
+const OUT_COL2_LEFT: u8 = 86;
+const OUT_COL2_RIGHT: u8 = 128;
+const OUT_BAR0_LEFT: u8 = 0;
+const OUT_BAR0_RIGHT: u8 = 41;
+const OUT_BAR1_LEFT: u8 = 43;
+const OUT_BAR1_RIGHT: u8 = 84;
+const OUT_BAR2_LEFT: u8 = 86;
+const OUT_BAR2_RIGHT: u8 = 127;
+
+// Efficiency readout, right side of the status line: "Eff 87.5%" is
+// right-justified to col 89 and followed by a wide 0–100 % bar.
+const EFF_LABEL: &str = "Eff ";
+const COL_EFF_RIGHT: u8 = 89;
+const EFF_BAR_LEFT: u8 = 92;
+const EFF_BAR_RIGHT: u8 = 127;
+/// Efficiency bar span, in whole percent.
+const EFF_RANGE: (u32, u32) = (0, 100);
+
+// Bar height: 5 px tall, inset 1 px from the top of the 8-px character cell so
+// the row above the bar and the row below it stay clear.
 //   top border  = y + 1
-//   fill rows   = y + 2 … y + 5   (4 px)
-//   bot border  = y + 6
+//   fill rows   = y + 2 … y + 4   (3 px)
+//   bot border  = y + 5
 const BAR_OFFSET_TOP: u8 = 1;
-const BAR_OFFSET_BOT: u8 = 6;
+const BAR_OFFSET_BOT: u8 = 5;
 
 // Header badge positions (right side of yellow zone)
 const COL_MODE: u8 = 92;
 const COL_ENABLE: u8 = 110;
+
+// Label column for the header's left-hand content (temperatures / fault text).
+const COL_LABEL: u8 = 0;
 
 // ── Measurement display ranges ────────────────────────────────────────────────
 //
@@ -113,6 +157,8 @@ const VOUT_RANGE: (u32, u32) = (VOUT_MIN_MV, VOUT_MAX_MV);
 const IOUT_RANGE: (u32, u32) = (0, IOUT_MAX_MA);
 /// Pout bar spans 0 W → POWER_MAX_MW.
 const POUT_RANGE: (u32, u32) = (0, POWER_MAX_MW);
+/// Iin bar uses the same full-scale current as the output stage's INA228.
+const IIN_RANGE: (u32, u32) = (0, IOUT_MAX_MA);
 
 const SSD1306_POWER_ON_DELAY_MS: u64 = 50;
 
@@ -207,39 +253,147 @@ impl Ssd1306Ui {
             .draw_line(0, ROW_DIVIDER, DISPLAY_W - 1, ROW_DIVIDER);
     }
 
-    /// Four telemetry rows, each with label, right-justified decimal value,
-    /// unit symbol, and an inline bar graph spanning the channel's full range.
+    /// The two telemetry groups: `Vin | Iin` on one line with a bar each, then
+    /// the `Vout | Iout | Pout` triple as header/value/bar columns.
     fn draw_telemetry(&mut self, app: &AppState) {
-        draw_row(
+        self.draw_input_values(app);
+        self.draw_input_bars(app);
+        self.draw_output_header();
+        self.draw_output_values(app);
+        self.draw_output_bars(app);
+    }
+
+    /// Input readings side by side, each with its unit.  The Iin field is also
+    /// where a missing input monitor or PD source is reported.
+    fn draw_input_values(&mut self, app: &AppState) {
+        // Vin — the INA228 when present, otherwise the ADC's Vbus fallback.
+        self.display.draw_str(COL_IN_LABEL, ROW_IN_VALUES, "Vin");
+        self.display
+            .fill_rect(IN_VALUE_CLEAR_X, ROW_IN_VALUES, IN_VALUE_CLEAR_W, 8);
+        let mut vin_buf = [0u8; 8];
+        let vin = fmt_value(&mut vin_buf, app.telemetry.vin_mv);
+        self.display.draw_str(
+            COL_IN_VALUE_RIGHT.saturating_sub(vin.len() as u8 * FONT_W),
+            ROW_IN_VALUES,
+            vin,
+        );
+        self.display.draw_str(COL_IN_VALUE_RIGHT, ROW_IN_VALUES, "V");
+
+        // Iin — the field is cleared first so `NO PD`/`INA!` cannot ghost.
+        self.display.draw_str(COL_IN2_LABEL, ROW_IN_VALUES, "Iin");
+        self.display
+            .fill_rect(IN2_VALUE_CLEAR_X, ROW_IN_VALUES, IN2_VALUE_CLEAR_W, 8);
+
+        // No source capabilities were read: there is no PD source on the bus
+        // (dead bus, no cable, or a non-PD input). Say so plainly.
+        if app.pd_control.error == PdAutoError::NoCable {
+            self.display
+                .draw_str(IN2_VALUE_CLEAR_X, ROW_IN_VALUES, "NO PD");
+            return;
+        }
+        if !app.telemetry.ina_ok {
+            self.display
+                .draw_str(IN2_VALUE_CLEAR_X, ROW_IN_VALUES, "INA!");
+            return;
+        }
+
+        let mut iin_buf = [0u8; 8];
+        let iin = fmt_signed_value(&mut iin_buf, app.telemetry.iin_ma);
+        self.display.draw_str(
+            COL_IN2_VALUE_RIGHT.saturating_sub(iin.len() as u8 * FONT_W),
+            ROW_IN_VALUES,
+            iin,
+        );
+        self.display.draw_str(COL_IN2_VALUE_RIGHT, ROW_IN_VALUES, "A");
+    }
+
+    /// One bar under each input field, spanning the channel's full range.  The
+    /// Iin bar is empty whenever the reading is unavailable.
+    fn draw_input_bars(&mut self, app: &AppState) {
+        let iin_ok = app.telemetry.ina_ok && app.pd_control.error != PdAutoError::NoCable;
+        let iin_ma = if iin_ok {
+            app.telemetry.iin_ma.max(0) as u32
+        } else {
+            0
+        };
+
+        draw_bar(
             &mut self.display,
-            ROW_VIN,
-            "Vin ",
+            IN_BAR0_LEFT,
+            IN_BAR0_RIGHT,
+            ROW_IN_BARS,
             app.telemetry.vin_mv,
-            Unit::Voltage,
             VIN_RANGE,
         );
-        draw_row(
+        draw_bar(
             &mut self.display,
-            ROW_VOUT,
-            "Vout",
+            IN_BAR1_LEFT,
+            IN_BAR1_RIGHT,
+            ROW_IN_BARS,
+            iin_ma,
+            IIN_RANGE,
+        );
+    }
+
+    /// Column headers for the output triple.
+    fn draw_output_header(&mut self) {
+        self.display.draw_str(OUT_COL0_LEFT, ROW_OUT_LABELS, "Vout");
+        self.display.draw_str(OUT_COL1_LEFT, ROW_OUT_LABELS, "Iout");
+        self.display.draw_str(OUT_COL2_LEFT, ROW_OUT_LABELS, "Pout");
+    }
+
+    /// Output readings right-justified directly beneath their headers.
+    fn draw_output_values(&mut self, app: &AppState) {
+        draw_column_value(
+            &mut self.display,
+            OUT_COL0_LEFT,
+            OUT_COL0_RIGHT,
+            ROW_OUT_VALUES,
             app.telemetry.vout_mv,
-            Unit::Voltage,
+            "V",
+        );
+        draw_column_value(
+            &mut self.display,
+            OUT_COL1_LEFT,
+            OUT_COL1_RIGHT,
+            ROW_OUT_VALUES,
+            app.telemetry.iout_ma,
+            "A",
+        );
+        draw_column_value(
+            &mut self.display,
+            OUT_COL2_LEFT,
+            OUT_COL2_RIGHT,
+            ROW_OUT_VALUES,
+            app.telemetry.pout_mw,
+            "W",
+        );
+    }
+
+    /// One bar per output channel, spanning each channel's configured range.
+    fn draw_output_bars(&mut self, app: &AppState) {
+        draw_bar(
+            &mut self.display,
+            OUT_BAR0_LEFT,
+            OUT_BAR0_RIGHT,
+            ROW_OUT_BARS,
+            app.telemetry.vout_mv,
             VOUT_RANGE,
         );
-        draw_row(
+        draw_bar(
             &mut self.display,
-            ROW_IOUT,
-            "Iout",
+            OUT_BAR1_LEFT,
+            OUT_BAR1_RIGHT,
+            ROW_OUT_BARS,
             app.telemetry.iout_ma,
-            Unit::Current,
             IOUT_RANGE,
         );
-        draw_row(
+        draw_bar(
             &mut self.display,
-            ROW_POUT,
-            "Pout",
+            OUT_BAR2_LEFT,
+            OUT_BAR2_RIGHT,
+            ROW_OUT_BARS,
             app.telemetry.pout_mw,
-            Unit::Power,
             POUT_RANGE,
         );
     }
@@ -260,15 +414,19 @@ impl Ssd1306Ui {
         }
     }
 
-    /// Bottom row: active screen name on the left, setpoint on the right when editing.
+    /// Bottom row: active screen name on the left, then the setpoint (when
+    /// editing) or the efficiency readout (main screen) on the right.
     fn draw_status_bar(&mut self, app: &AppState) {
-        // A CFG sweep owns the whole bottom line while armed/running/done. It
-        // replaces the screen tag and the right-hand input field (including the
-        // `NO PD` warning) in one shot.
+        // A CFG sweep owns the whole bottom line while armed/running/done.
         if app.sweep.phase != SweepPhase::Off {
             self.draw_sweep_status(app);
             return;
         }
+
+        // Clear the whole line: the tag, the setpoint, the efficiency readout
+        // and the transient sweep text all differ in length, and this row is
+        // not otherwise redrawn, so leftover pixels would ghost.
+        self.display.fill_rect(0, ROW_STATUS, DISPLAY_W, 8);
 
         let auto = app.pd_control.mode == PdMode::Auto;
         let tag = match app.ui.screen {
@@ -296,50 +454,51 @@ impl Ssd1306Ui {
             MenuScreen::CcLimit => {
                 draw_setpoint_right(&mut self.display, app.supply.i_set_ma, Unit::Current)
             }
-            MenuScreen::Main => self.draw_main_input_right(app),
+            MenuScreen::Main => self.draw_efficiency(app),
             _ => {}
         }
     }
 
-    /// Input current (INA228) on the main screen's status bar, `NO PD` when no
-    /// USB-PD source is present, or `INA!` when the monitor is not responding.
-    /// A fixed-width field is cleared first so a shorter reading cannot leave
-    /// ghost pixels behind.
-    fn draw_main_input_right(&mut self, app: &AppState) {
-        const FIELD_CHARS: u8 = 12;
-        let x0 = DISPLAY_W.saturating_sub(FIELD_CHARS * FONT_W);
-        self.display
-            .fill_rect(x0, ROW_STATUS, FIELD_CHARS * FONT_W, 8);
+    /// Efficiency readout on the main screen's status line: the input-to-output
+    /// percentage, right-justified next to the tag, followed by a 0–100 % bar.
+    ///
+    /// `pin_mw` is the INA228's input power and `pout_mw` the ADC's output
+    /// power, so the ratio is only meaningful while the monitor is responding.
+    fn draw_efficiency(&mut self, app: &AppState) {
+        let pin_mw = app.telemetry.pin_mw;
+        let pout_mw = app.telemetry.pout_mw;
 
-        // No source capabilities were read: there is no PD source on the bus
-        // (dead bus, no cable, or a non-PD input). Say so plainly.
-        if app.pd_control.error == PdAutoError::NoCable {
-            self.display.draw_str(x0, ROW_STATUS, "NO PD");
-            return;
-        }
-
-        if !app.telemetry.ina_ok {
-            self.display.draw_str(x0, ROW_STATUS, "INA!");
-            return;
-        }
-
-        self.display.draw_str(x0, ROW_STATUS, "Iin");
-        let mut x = x0 + 3 * FONT_W;
-        if app.telemetry.iin_ma < 0 {
-            self.display.draw_str(x, ROW_STATUS, "-");
-            x += FONT_W;
-        }
         let mut buf = [0u8; 8];
-        let mag = app.telemetry.iin_ma.unsigned_abs();
-        let s = fmt_decimal(&mut buf, mag);
-        self.display.draw_str(x, ROW_STATUS, s);
-        self.display.draw_str(x + s.len() as u8 * FONT_W, ROW_STATUS, "A");
+        let pct = fmt_efficiency(&mut buf, pin_mw, pout_mw);
+        let text_w = (EFF_LABEL.len() + pct.len()) as u8 * FONT_W;
+        let x = COL_EFF_RIGHT.saturating_sub(text_w);
+        self.display.draw_str(x, ROW_STATUS, EFF_LABEL);
+        self.display
+            .draw_str(x + EFF_LABEL.len() as u8 * FONT_W, ROW_STATUS, pct);
+
+        // Bar caps at 100 % so a measurement-error reading above unity still
+        // shows a full bar next to its `>100%` label.
+        let bar_pct = if pin_mw > 0 {
+            let pin = pin_mw as i64;
+            let pout = pout_mw as i64;
+            (pout.clamp(0, pin) * 100 / pin) as u32
+        } else {
+            0
+        };
+        draw_bar(
+            &mut self.display,
+            EFF_BAR_LEFT,
+            EFF_BAR_RIGHT,
+            ROW_STATUS,
+            bar_pct,
+            EFF_RANGE,
+        );
     }
 
     /// Bottom line while the CFG "Output V sweep" is armed, running, or done.
     ///
     /// Clears the entire row first so the previous `MAIN`/`AUTO` tag and the
-    /// `NO PD`/`INA!`/`Iin` field cannot ghost through underneath it.
+    /// efficiency readout cannot ghost through underneath it.
     fn draw_sweep_status(&mut self, app: &AppState) {
         self.display.fill_rect(0, ROW_STATUS, DISPLAY_W, 8);
         self.display.draw_str(0, ROW_STATUS, ">SWEEP");
@@ -390,7 +549,9 @@ impl Ssd1306Ui {
 
         self.display.draw_str(0, 22, title);
         self.display.draw_str(0, 34, message);
-        draw_percent_bar(&mut self.display, 48, progress_percent);
+        // 8-px bar at rows 47..54, keeping row 55 clear above the percentage
+        // text on the status row.
+        draw_percent_bar(&mut self.display, 47, progress_percent);
 
         let mut pct_buf = [0u8; 4];
         let pct = fmt_percent(&mut pct_buf, progress_percent);
@@ -694,11 +855,12 @@ impl Default for Ssd1306Ui {
 }
 // ── Unit type ─────────────────────────────────────────────────────────────────
 
+/// Unit suffix for the status line's setpoint readout.  Measurement values in
+/// the telemetry grid carry their unit as a string literal instead.
 #[derive(Clone, Copy)]
 enum Unit {
     Voltage,
     Current,
-    Power,
 }
 
 impl Unit {
@@ -706,78 +868,73 @@ impl Unit {
         match self {
             Unit::Voltage => "V",
             Unit::Current => "A",
-            Unit::Power => "W",
         }
     }
 }
 
 // ── Drawing helpers ───────────────────────────────────────────────────────────
 
-/// Draw one labelled measurement row with a right-justified value column and
-/// an inline bar graph.
+/// Draw one measurement column: clear the column's value field, then draw
+/// `value` + unit flush with the column's right edge so readings line up under
+/// their headers and never overrun into the neighbouring column.
 ///
 /// ```text
-/// "Vout   5.000 V  [████░░░░░░░░░]"
-///  ^      ^     ^   ^            ^
-///  label  val  unit bar_left  bar_right
+/// "Vout"        header, drawn separately on ROW_OUT_LABELS at x0
+/// "  5.000 V"   this function, on ROW_OUT_VALUES, right-justified to `right`
 /// ```
-///
-/// `range` is `(min_milliunit, max_milliunit)` sourced from `board.rs`.
-fn draw_row(d: &mut Ssd1306, y: u8, label: &str, millivalue: u32, unit: Unit, range: (u32, u32)) {
-    // ── Text ──────────────────────────────────────────────────────────────────
-    d.draw_str(COL_LABEL, y, label);
-
-    // Clear the value + unit field first: readings are right-justified, so a
-    // shorter string would otherwise leave the previous leftmost digit lit
-    // (partial refresh only pushes pages whose contents changed).
-    d.fill_rect(FONT_W * 4, y, COL_BAR_LEFT - FONT_W * 4, 8);
+fn draw_column_value(
+    d: &mut Ssd1306,
+    x0: u8,
+    right: u8,
+    y: u8,
+    millivalue: u32,
+    unit: &str,
+) {
+    // Clear the field first: readings are right-justified, so a shorter string
+    // would otherwise leave the previous leftmost digit lit (partial refresh
+    // only pushes pages whose contents changed).
+    d.fill_rect(x0, y, right.saturating_sub(x0), 8);
 
     let mut buf = [0u8; 8];
-    let s = fmt_decimal(&mut buf, millivalue);
-
-    // Right-justify against COL_VALUE_RIGHT
-    let x = COL_VALUE_RIGHT.saturating_sub(s.len() as u8 * FONT_W);
-    d.draw_str(x, y, s);
-
-    d.draw_str(COL_UNIT, y, unit.symbol());
-
-    // ── Bar graph ─────────────────────────────────────────────────────────────
-    draw_bar(d, y, millivalue, range);
+    let value = fmt_value(&mut buf, millivalue);
+    let total_w = (value.len() + unit.len()) as u8 * FONT_W;
+    let x = right.saturating_sub(total_w);
+    d.draw_str(x, y, value);
+    d.draw_str(x + value.len() as u8 * FONT_W, y, unit);
 }
 
-/// Draw a bordered horizontal bar graph for a single measurement row.
-///
-/// The bar occupies columns `COL_BAR_LEFT..=COL_BAR_RIGHT` and is inset
-/// vertically within the character cell:
+/// Draw a bordered horizontal bar graph spanning `left..=right` (inclusive
+/// border columns), inset vertically within the 8-px character cell:
 ///
 /// ```text
 /// y+1  ┌─────────────────────────────┐   ← top border (1 px)
 /// y+2  │ ████████████░░░░░░░░░░░░░░░ │   ┐
-/// y+3  │ ████████████░░░░░░░░░░░░░░░ │   │ fill (4 px)
-/// y+4  │ ████████████░░░░░░░░░░░░░░░ │   │
-/// y+5  │ ████████████░░░░░░░░░░░░░░░ │   ┘
-/// y+6  └─────────────────────────────┘   ← bottom border (1 px)
+/// y+3  │ ████████████░░░░░░░░░░░░░░░ │   │ fill (3 px)
+/// y+4  │ ████████████░░░░░░░░░░░░░░░ │   ┘
+/// y+5  └─────────────────────────────┘   ← bottom border (1 px)
 /// ```
 ///
-/// `range` is `(min_milliunit, max_milliunit)`.  Values outside the range are
-/// clamped so the bar always stays within its borders.
-fn draw_bar(d: &mut Ssd1306, y: u8, millivalue: u32, range: (u32, u32)) {
-    let (min_mv, max_mv) = range;
+/// `range` is `(min_value, max_value)` in the same unit as `millivalue`.
+/// Values outside the range are clamped so the bar always stays within its
+/// borders.
+fn draw_bar(d: &mut Ssd1306, left: u8, right: u8, y: u8, millivalue: u32, range: (u32, u32)) {
+    let (min_v, max_v) = range;
     let top = y + BAR_OFFSET_TOP;
     let bot = y + BAR_OFFSET_BOT;
+    let inner_w = right.saturating_sub(left).saturating_sub(1); // usable fill columns
 
     // Outline rectangle (4 lines)
-    d.draw_line(COL_BAR_LEFT, top, COL_BAR_RIGHT, top); // top border
-    d.draw_line(COL_BAR_LEFT, bot, COL_BAR_RIGHT, bot); // bottom border
-    d.draw_line(COL_BAR_LEFT, top, COL_BAR_LEFT, bot); // left border
-    d.draw_line(COL_BAR_RIGHT, top, COL_BAR_RIGHT, bot); // right border
+    d.draw_line(left, top, right, top); // top border
+    d.draw_line(left, bot, right, bot); // bottom border
+    d.draw_line(left, top, left, bot); // left border
+    d.draw_line(right, top, right, bot); // right border
 
     // Clear the interior before filling: `draw_line` only ever sets pixels, so
     // a falling reading would otherwise leave the previous, longer bar lit.
     let mut clear_row = top + 1;
     while clear_row < bot {
-        let mut cx = COL_BAR_LEFT + 1;
-        while cx < COL_BAR_RIGHT {
+        let mut cx = left + 1;
+        while cx < right {
             d.set_pixel(cx, clear_row, false);
             cx += 1;
         }
@@ -785,16 +942,16 @@ fn draw_bar(d: &mut Ssd1306, y: u8, millivalue: u32, range: (u32, u32)) {
     }
 
     // Filled portion: proportional to (value − min) / (max − min)
-    let span = max_mv.saturating_sub(min_mv).max(1);
-    let clamped = millivalue.clamp(min_mv, max_mv) - min_mv;
-    let fill_w = ((clamped as u64 * BAR_INNER_W as u64) / span as u64) as u8;
+    let span = max_v.saturating_sub(min_v).max(1);
+    let clamped = millivalue.clamp(min_v, max_v) - min_v;
+    let fill_w = ((clamped as u64 * inner_w as u64) / span as u64) as u8;
 
     if fill_w > 0 {
-        let fill_right = COL_BAR_LEFT + fill_w; // still ≤ COL_BAR_RIGHT − 1
-                                                // Fill all interior rows (y+2 … y+5)
+        let fill_right = left + fill_w; // still ≤ right − 1
+                                        // Fill all interior rows (y+2 … y+5)
         let mut row = top + 1;
         while row < bot {
-            d.draw_line(COL_BAR_LEFT + 1, row, fill_right, row);
+            d.draw_line(left + 1, row, fill_right, row);
             row += 1;
         }
     }
@@ -899,6 +1056,139 @@ fn fmt_decimal(buf: &mut [u8; 8], millivalue: u32) -> &str {
     i += 1;
 
     core::str::from_utf8(&buf[..i]).unwrap_or("?.???")
+}
+
+/// Write `value` as decimal digits with no leading zeros (at least one digit).
+/// Returns the next free index in `buf`.
+fn write_uint(buf: &mut [u8], mut i: usize, value: u32) -> usize {
+    if value == 0 {
+        buf[i] = b'0';
+        return i + 1;
+    }
+    let mut tmp = [0u8; 10];
+    let mut ti = tmp.len();
+    let mut n = value;
+    while n > 0 && ti > 0 {
+        ti -= 1;
+        tmp[ti] = b'0' + (n % 10) as u8;
+        n /= 10;
+    }
+    for &byte in &tmp[ti..] {
+        buf[i] = byte;
+        i += 1;
+    }
+    i
+}
+
+/// Format a measurement to at most six characters, buying the extra integer
+/// digits by dropping fractional ones.
+///
+/// The width budget is what the output columns provide — 42 px is seven
+/// character cells, i.e. the value plus its unit symbol — so a 240 W reading
+/// must render as `240.00` rather than `240.000` to stay inside its column.
+///
+/// ```text
+/// 12_000   →  "12.000"
+/// 99_999   →  "99.999"
+/// 100_000  →  "100.00"
+/// 240_000  →  "240.00"
+/// 9_999_999 → "9999.9"
+/// ```
+fn fmt_value(buf: &mut [u8; 8], millivalue: u32) -> &str {
+    let value = millivalue.min(9_999_999);
+    if value < 100_000 {
+        // Up to "99.999".
+        return fmt_decimal(buf, value);
+    }
+
+    let mut i = write_uint(buf, 0, value / 1000);
+    buf[i] = b'.';
+    i += 1;
+    let frac = value % 1000;
+    if value < 1_000_000 {
+        // Up to "999.99".
+        buf[i] = b'0' + (frac / 100) as u8;
+        i += 1;
+        buf[i] = b'0' + ((frac / 10) % 10) as u8;
+        i += 1;
+    } else {
+        // Up to "9999.9".
+        buf[i] = b'0' + (frac / 100) as u8;
+        i += 1;
+    }
+
+    core::str::from_utf8(&buf[..i]).unwrap_or("?.??")
+}
+
+/// Format a signed current reading to at most six characters.
+///
+/// A negative reading spends one character on the sign, so it drops a decimal
+/// to stay within the same budget.
+///
+/// ```text
+///     500  →  "0.500"
+///    -500  →  "-0.50"
+/// -20_000  →  "-20.00"
+/// ```
+fn fmt_signed_value(buf: &mut [u8; 8], milliunit: i32) -> &str {
+    if milliunit >= 0 {
+        return fmt_value(buf, milliunit as u32);
+    }
+
+    let magnitude = milliunit.unsigned_abs().min(9_999_999);
+    let mut i = 0usize;
+    buf[i] = b'-';
+    i += 1;
+
+    let frac = magnitude % 1000;
+    i = write_uint(buf, i, magnitude / 1000);
+    if magnitude < 1_000_000 {
+        buf[i] = b'.';
+        i += 1;
+        buf[i] = b'0' + (frac / 100) as u8;
+        i += 1;
+        if magnitude < 100_000 {
+            buf[i] = b'0' + ((frac / 10) % 10) as u8;
+            i += 1;
+        }
+    }
+
+    core::str::from_utf8(&buf[..i]).unwrap_or("-.--")
+}
+
+/// Format the input-to-output efficiency as a percentage.
+///
+/// `pin_mw` is the INA228 input power (signed) and `pout_mw` the ADC output
+/// power.  A non-positive input power means the ratio is undefined, and a
+/// reading above unity is measurement error rather than a real result, so both
+/// are called out instead of printing a misleading number.
+///
+/// ```text
+///  (12_000,  10_500)  →  "87.5%"
+///  (12_000,  12_060)  →  ">100%"
+///  (      0,      0)  →  "--%"
+/// ```
+fn fmt_efficiency(buf: &mut [u8; 8], pin_mw: i32, pout_mw: u32) -> &str {
+    if pin_mw <= 0 {
+        return "--%";
+    }
+
+    // Tenths of a percent, integer-only: no float formatting in the display path.
+    let tenths = (pout_mw as i64 * 1000) / pin_mw as i64;
+    if tenths >= 1000 {
+        return ">100%";
+    }
+    let tenths = tenths.max(0) as u32;
+
+    let mut i = write_uint(buf, 0, tenths / 10);
+    buf[i] = b'.';
+    i += 1;
+    buf[i] = b'0' + (tenths % 10) as u8;
+    i += 1;
+    buf[i] = b'%';
+    i += 1;
+
+    core::str::from_utf8(&buf[..i]).unwrap_or("?.?%")
 }
 
 /// Format a millivolt value as a short integer-with-unit label, e.g.
