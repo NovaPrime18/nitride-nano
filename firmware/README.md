@@ -4,7 +4,7 @@ Embassy-based Rust firmware for the **STM32G474CEU6** on the nitride-nano pocket
 
 ## Features
 
-- **CV/CC control** via 12-bit DAC (PA4 CV, PA6 CC) referenced to VREF+ = +3V3 (the on-board tie; the internal VREFBUF is left high-Z); open-loop CV driven as an (inverted) calibration map from setpoint to DAC code with code-rate slew limiting (no feedback loop)
+- **CV/CC control** via 12-bit DAC (PA4 CV, PA6 CC) referenced to VREF+ = +3V3 (the on-board tie; the internal VREFBUF is left high-Z); open-loop CV driven as an (inverted) map from setpoint to DAC code, derived analytically from the LT8390A feedback divider (R19/R20/R36), with code-rate slew limiting (no feedback loop)
 - **ADC telemetry** on PA0/PA1/PA3/PA7/PA9 (output side)
 - **INA228** input power monitor (Vin/Iin/Pin + die temp) on I2C1
 - **Auto-tracking PD** — negotiates a fixed input rail from the output setpoint, keeping the LT8390A out of its 4-switch buck-boost region when the requested power allows
@@ -93,6 +93,23 @@ rail only when the requested `v_set × i_set` power exceeds what the clean rail
 can deliver. Lower the current limit to get the efficient rail at high `Vset`.
 Guard bands live in [`src/board.rs`](src/board.rs) (`AUTO_TRACK_*`) and should be
 tuned from a bench efficiency sweep.
+
+## CFG menu & output V sweep
+
+`CFG` (reached with BTN3 from the `PD` screen) is a fullscreen, scrollable list:
+`EEPROM WRITE`, `OUTPUT V SWEEP`, `PD CONTRACT`. Turn the encoder to move the
+highlight, press the encoder (or BTN1) to activate, BTN3 to go back. The list
+scrolls with a right-edge scrollbar once more entries are added.
+
+`OUTPUT V SWEEP` returns to the main screen and waits for an encoder-button
+press, then sweeps the output setpoint through 32 points from 10 V to 56 V at
+2 s per point (≈64 s) in CV mode. The bottom line shows `>SWEEP` plus the
+confirm prompt, the point/percent progress, or `DONE`, replacing the usual
+`MAIN` tag and the `NO PD`/`Iin` field for the whole run. Any button press
+aborts and parks the output, and the sweep also parks itself on completion or a
+latched fault. Auto-tracking PD holds its rail for the duration of the sweep.
+Range, point count and dwell live in [`src/board.rs`](src/board.rs)
+(`SWEEP_*`); the map reaches all 32 points, including the final 56 V one.
 
 ## Bring-up
 

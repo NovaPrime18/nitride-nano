@@ -1,0 +1,1093 @@
+www.ti.com                                                                                                                                                            Table of Contents
+
+Application Note
+TPS257xx/TPS267xx Autonegotiate Sink Configuration
+
+
+
+Christodulos Tsongas
+                                                                                    ABSTRACT
+TPS257xx/TPS267xx devices have a Autonegotiate Sink register that provide fine control on how power can be
+delivered to the system. With USB Power Delivery (USB-PD) now capable of delivering up to 240 Watts (48V
+at 5A) there is more emphasis to make sure a system is getting the correct power. This document covers the
+fields within the Autonegotiate Sink register common among these devices, how these fields control the USB-PD
+Contract, and how the fields can provide and limit system power.
+
+
+
+
+                                                                           Table of Contents
+1 Applicability to other TI USB-PD Controllers.......................................................................................................................2
+  1.1 USB-PD Sink Introduction..................................................................................................................................................2
+  1.2 Autonegotiate Sink Purpose...............................................................................................................................................2
+  1.3 Definitions.......................................................................................................................................................................... 3
+2 Fields Covered........................................................................................................................................................................ 4
+3 Autonegotiate Sink Basics with Examples.......................................................................................................................... 6
+  3.1 Auto Neg RDO Priority (ANRDOPriority)............................................................................................................................6
+  3.2 Auto Compute Sink Min Power and Auto Neg Sink Min Required Power..........................................................................8
+  3.3 No Capability Mismatch and Auto Disable Sink Upon Capability Mismatch...................................................................... 8
+  3.4 Auto Compute Sink Min Voltage and Auto Neg Min Voltage............................................................................................ 11
+  3.5 Auto Compute Sink Max Voltage & Auto Neg Max Voltage............................................................................................. 12
+4 Autonegotiate Sink Basics with EPR Examples................................................................................................................ 14
+  4.1 Systems Requiring ≥140W...............................................................................................................................................14
+  4.2 Sink Path SPR to EPR Transitions...................................................................................................................................14
+5 Common Mistakes or Unique System Constraints............................................................................................................19
+  5.1 System Needs More Power but PD Selects Lower Power PDOs.................................................................................... 19
+  5.2 System Supports EPR Power but PD Keeps Selecting 20V PDOs................................................................................. 19
+  5.3 Setting the Min Voltage and Max Voltage to the Same Values........................................................................................ 20
+6 Advanced Autonegotiate Sink Examples........................................................................................................................... 22
+  6.1 Downgrading to 5V Fixed PDO........................................................................................................................................ 22
+  6.2 Autonegotiate Sink With Interrupt Driven EC................................................................................................................... 26
+  6.3 ANeg: Auto Negotiate Sink Update..................................................................................................................................26
+  6.4 AUTO_NEGOTIATE_SINK Register................................................................................................................................ 26
+7 References............................................................................................................................................................................ 30
+Trademarks
+All trademarks are the property of their respective owners.
+
+
+
+
+SDAA265 – APRIL 2026                                                                                               TPS257xx/TPS267xx Autonegotiate Sink Configuration                       1
+Submit Document Feedback
+                                                                 Copyright © 2026 Texas Instruments Incorporated
+Applicability to other TI USB-PD Controllers                                                                     www.ti.com
+
+
+1 Applicability to other TI USB-PD Controllers
+The fields covered in this application note details the behavior of the TPS257xx and TPS267xx devices. This
+information is applicable to any device that contains the Autonegotiate Sink register; however, the complete
+register implementation can vary across different product families.
+Not all devices share identical Autonegotiate Sink register fields. While the fields documented herein operate
+identically across all devices that include them, additonal fields, reserved bits, or alternate field configurations
+present in other devices can introduce supplementary functionality or constraints not described in this application
+note. The presence of these additional or modified fields in other devices can result in system-level behavior that
+differs from the behavior observed when operating solely with the fields documented in this datasheet.
+For complete register definitions applicable to a specific device, refer to the corresponding device-specific
+technical reference manual (TRM).
+1.1 USB-PD Sink Introduction
+USB Power Delivery (USB-PD) is an open protocol that enables intelligent, high-power transmission over a USB
+Type-C connector. In every USB-PD connection, two primary roles are defined:
+•   Source: The device that actively provides power. Examples include a wall charger, a laptop's Type-C port,
+    or a power bank. The source broadcasts the available voltage and current combinations (example 5V at
+    3A, 20V at 3A) over the Configuration Channel (CC) pin. The source is also responsible for detecting the
+    connection or disconnection of a sink device.
+•   Sink: The device that consumes power. Examples include but are not limited to a smartphone, tablet,
+    headset, or a cordless power tool. The sink reads the power capabilities of the source and selects the best
+    option for operation.
+Once a connection is established, the source first outputs vSafe5V (default 5V) over VBUS. Then both devices
+being USB-PD negotiation by sending messages over the CC pin. The source sends a Source_Capabilities
+message containing one or more Power Data Objects (PDOs). Each PDO describes a specific voltage-current
+pair. The first PDO is always a 5V PDO with varying current depending on the USB-PD source the other PDOs
+can be anything from 5V up to 48V with currents ranging from 0.1A to 5A.
+The sink selects the best PDO from the Source_Capabilities list and sends a Request Data Object (RDO) back
+to the source. The source either accepts or rejects the request. If accepted, the source adjusts the VBUS output
+to the negotiated voltage and current, and then sends a PS Ready signal indicating that the sink can safely
+consume the agreed power. For system designers, the sink side relies on a dedicated PD port controller to
+perform this negotiation. The controller can be pre‑configured to request power autonomously, without involving
+a main processor. That is exactly where the Autonegotiate Sink Register becomes valuable – by allowing
+designers to pre‑set voltage limits, minimum power, and other parameters, the PD controller can safely and
+automatically secure a power contract, simplifying system design and improving reliability.
+1.2 Autonegotiate Sink Purpose
+For system designers, the sink side relies on a dedicated USB-PD port controller to perform this negotiation. The
+controller can be pre‑configured to request power autonomously without system intervention. That is exactly
+where the Autonegotiate Sink Register becomes valuable as it allows designers to pre‑set voltage limits,
+minimum power, and other parameters, the PD controller can safely and automatically secure a power contract,
+simplifying system design and improving reliability.
+Autonegotiate Sink Register is a critical component for any system acting as a USB-PD sink. The primary
+purpose is to define the power requirements that the device can request from a connected USB-PD source,
+providing the system receives safe and sufficient power for operation. By configuring the Autonegotiate Sink
+register fields, the PD device can autonomously negotiate a power contract without host intervention, which is
+essential for robust system design.
+
+
+
+
+2      TPS257xx/TPS267xx Autonegotiate Sink Configuration                                              SDAA265 – APRIL 2026
+                                                                                                    Submit Document Feedback
+                                                  Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                                       Applicability to other TI USB-PD Controllers
+
+1.3 Definitions
+This section reviews some keywords and definitions within this document. Definitions based on the USB Power
+Delivery Specification Revision 3.1 www.usb.org/developers/docs.
+ PD Controller/Device                                                Refers to the USB-PD capable device sending/receiving USB-PD
+ Power Delivery Controller/Device                                    protocol comunications
+ PDO                                                                 Data Object used to expose a Source Port's
+ Power Data Object                                                   or Sink Port's power Capabilities as part of a
+                                                                     Source_Capabilities/EPR_Source_Capabilities or Sink_Capabilities/
+                                                                     EPR_Sink_Capabilities Message respectively.
+ RDO                                                                 Data Object the PD sink uses to request a specific PDO from the PD
+ Request Data Object                                                 source
+ SPR                                                                 Only the Source_Capabilities and the Request Messages are
+ Standard Power Range                                                allowed to Negotiate SPR Explicit Contracts. The EPR Messages
+                                                                     (the EPR_Source_Capabilities Message and the EPR_Request
+                                                                     Message) are not allowed to be used while in SPR Mode. SPR range
+                                                                     is 5V-20V going up to 100W (20V at 5A)
+ EPR                                                                 Extends the power range from a maximum of 100W (SPR) to a
+ Extended Power Range                                                maximum of 240W (EPR). When operating in the EPR Mode, only
+                                                                     EPR specific Messages (the EPR_Source_Capabilities Message
+                                                                     and the EPR_Request Message) are used to Negotiate Explicit
+                                                                     Contracts. EPR range is 5V-48V going up to 240W (48V at 5A)
+ PP_EXT/PPHV_EN/PP_EN                                                These are generic names for the power path used in TI PD
+ Power Path External/Power Path High Voltage Enable/Power Path       Controllers to designate the high-voltage (>5V) when the PD
+ Enable                                                              controller is conusming power (PD is the sink)
+
+
+
+
+SDAA265 – APRIL 2026                                                                 TPS257xx/TPS267xx Autonegotiate Sink Configuration    3
+Submit Document Feedback
+                                             Copyright © 2026 Texas Instruments Incorporated
+Fields Covered                                                                                                                          www.ti.com
+
+
+2 Fields Covered
+
+Table 2-1 references the TPS25751 TRM and covers most of these fields.
+                         Table 2-1. Autonegotiate Sink Register Field Descriptions
+      Bit        Field                     Type            Reset          Description
+    191-116      RESERVED                  R/W             0h             Reserved
+    115-105      PPS Output Voltage        R/W             0h             This is the desired output voltage in 20mV units. This is inserted as-
+                                                                          is into the Request USB PD message. Note that some PD controllers
+                                                                          are unable to turn on the gate-drivers if VBUS less than 3.8V, check
+                                                                          the VBUS UVLO value in the data-sheet.
+    104-103      RESERVED                  R/W             0h             Reserved
+    102-96       PPS Operating Current     R/W             0h             Operation current in Sink PPS mode. This is the desired operating
+                                                                          current in 50mA units. This is inserted as-is into the Request USB
+                                                                          PD message.
+     95-70       RESERVED                  R/W             0h             Reserved
+      69         PPS Disable Sink Upon     R/W             0h             Sink path handling during supply type transition. If this bit is asserted
+                 Non APDO Contract                                        and the selected supply type is NOT a PPS APDO, then the sink
+                                                                          path is disabled before sending the Request message. The host
+                                                                          should only assert this bit after a PPS contract has been negotiated.
+                                                                          This bit has no effect unless PPSEnableSinkMode is asserted.
+      68         PPS Required Full Voltage R/W             0h             Select only a source with full voltage range. If this
+                 Range                                                    bit is asserted, a PPS supply type is not selected
+                                                                          unless the APDO.MinVoltage ≤ TX_SINK_CAPS.MinPpsVoltage,
+                                                                          APDO.MaxVoltage ≥ TX_SINK_CAPS.MaxPpsVoltage, and
+                                                                          APDO.MaxCurrent ≥ TX_SINK_CAPS.MaxPpsCurrent. This bit has
+                                                                          no effect unless PPSEnableSinkMode is asserted.
+      67         PPS Source Operating      R/W             0h             Selection for CV or CC mode. If this bit is set to 1, then the PD
+                 Mode                                                     controller assumes the system is in constant voltage mode and sets
+                                                                          the VBUS disconnect threshold accordingly. If this bit is set to 0, then
+                                                                          the PD controller assumes the system is in current limit mode and it
+                                                                          lowers the VBUS disconnect threshold accordingly.
+     66-65       PPS Request Interval      R/W             0h             Sink PPS request interval. This field sets the frequency at which the
+                                                                          PD controller sends a new request to the source even if the host has
+                                                                          not made any change in the request.
+                                                                          0h = 8 seconds
+                                                                          1h = 4 seconds
+                                                                          2h = 2 seconds
+                                                                          3h = 1 second
+      64         PPS Enable Sink Mode      R/W             0h             Enable Sink PPS mode. If this bit is asserted, then the PD controller
+                                                                          attempts to negotiate a PPS sink contract. PPS contracts are
+                                                                          prioritized over any other supply type.
+     63-62       RESERVED                  R/W             0h             Reserved
+     61-52       Auto Neg Capabilities     R/W             2h             Capabilities Mismatch Power Threshold. If the selected PDO offers
+                 Mismatch Power                                           less power than what is specified in this register, then the PD
+                                                                          controller asserts the Capability Mismatch bit in its Request message
+                                                                          unless NoCapabilityMismatch is set to 1. (250mW per LSB)
+     51-42       Auto Neg Min Voltage      R/W             64h            Minimum voltage to request. During PD power contract negotiation,
+                                                                          the PD controller only selects voltages that are greater than
+                                                                          or equal to the value specified in this field. Not used unless
+                                                                          AutoComputeSinkMinVoltage=0. (50mV per LSB)
+     41-32       Auto Neg Max Voltage      R/W             190h           Maximum voltage to request. During PD power contract negotiation,
+                                                                          the PD controller only selects voltages that are less than or
+                                                                          equal to the value specified in this field. Not used unless
+                                                                          AutoComputeSinkMinVoltage=0. (50mV per LSB) See description in
+                                                                          AutoComputeSinkMinPower.
+     31-22       Auto Neg Sink Min         R/W             104h           Minimum operating power required by the Sink. The PD Controller
+                 Required Power                                           attempts to receive this power level from the Source. (250mW per
+                                                                          LSB)
+
+
+
+
+4     TPS257xx/TPS267xx Autonegotiate Sink Configuration                                                                     SDAA265 – APRIL 2026
+                                                                                                                          Submit Document Feedback
+                                                  Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                                                                       Fields Covered
+
+                       Table 2-1. Autonegotiate Sink Register Field Descriptions (continued)
+      Bit     Field                    Type           Reset           Description
+    21-12     Auto Neg Max Current     R/W            145h            Maximum current to request. The PD controller will not request more
+                                                                      current than indicated by this field. The host should ensure that the
+                                                                      max current for all PDO's in the TX_SINK_CAPS register do not
+                                                                      exceed this value. (10mA per LSB).
+     11-8     RESERVED                 R/W            0h              Reserved
+      7       RESERVED                 R/W            0h              Reserved
+      6       Auto Disable Sink Upon   R/W            1h              Sink path and capability mismatch settings. If this bit is asserted,
+              Capability Mismatch                                     then any time the implicit or explicit power contract can cause
+                                                                      the Capability Mismatch bit to be set the PD controller will
+                                                                      disable the sinking path. This bit should only be asserted if the
+                                                                      NoCapabilityMismatch bit is set to 0.
+      5       Auto Compute Sink Max    R/W            1h              Configuration for maximum voltage. The PD controller can
+              Voltage                                                 automatically compute ANMaxVoltage, or allow the host to specify
+                                                                      it.
+                                                                      0h = Provided by host
+                                                                      1h = Computed by PD controller
+      4       Auto Compute Sink Min    R/W            1h              Configuration for minimum voltage. The PD controller can
+              Voltage                                                 automatically compute ANMinVoltage, or allow the host to specify
+                                                                      it.
+                                                                      0h = Provided by host
+                                                                      1h = Computed by PD controller
+      3       No Capabality Mismatch   R/W            0h              Configuration for capability mismatch in RDO. There are two
+                                                                      conditions that will trigger a capability mismatch:
+                                                                      •   If the attached source does not offer a PDO whose power is
+                                                                          greater or equal to the ANSinkCapMismatchPower field in this
+                                                                          register.
+                                                                      •   PPS is enabled in this register and the attached source
+                                                                          did not offer a PPS PDO that matches the requirements in
+                                                                          TX_SINK_CAPS.
+
+                                                                      If either condition is true, then the PD controller asserts the capability
+                                                                      mismatch bit in its request unless this bit is asserted.
+                                                                      0h = Capabiltiy mismatch enabled
+                                                                      1h = Capability mismatch disabled.
+      2       Auto Compute Sink Min    R/W            1h              Minimum power sink requires. The minimum sink power is the largest
+              Power                                                   power reported in any valid PDO in the TX_SINK_CAPS (0x33).
+                                                                      The power for a particular PDO from the TX_SINK_CAPS follows for
+                                                                      each supply type:
+                                                                      •   Battery Supply: OperatingPower
+                                                                      •   Variable Supply: MaxVoltage*OperatingCurrent
+                                                                      •   Fixed Supply: Voltage*OperatingCurrent.
+
+                                                                      However, if the TX_SINK_CAPS register includes Battery
+                                                                      supply type PDO(s), then ANSinkMinRequiredPower = maximum
+                                                                      OperatingPower in a Battery supply type PDO.
+                                                                      0h = Provided by host
+                                                                      1h = Computed by PD controller
+      1       No USB Suspend           R/W            1h              Value used for the NoUSBSusp Flag in the RDO. This is as defined
+                                                                      by USB PD.
+      0       Auto Neg RDO Priority    R/W            0h              Configuration for tie-breaker in PDO selection. The PD controller will
+                                                                      find the set of PDO's that fulfill the voltage requirements. From that
+                                                                      set of PDO's it will pick the one with higher power. If two acceptable
+                                                                      PDO's have the same power, Fixed Supply Type is preferred, and
+                                                                      then Variable Supply has second preference. If two PDO's have the
+                                                                      same power and the same type, then this bit determines which PDO
+                                                                      is selected.
+                                                                      0h = Higher voltage
+                                                                      1h = Lower voltage
+
+
+
+
+SDAA265 – APRIL 2026                                                                  TPS257xx/TPS267xx Autonegotiate Sink Configuration           5
+Submit Document Feedback
+                                              Copyright © 2026 Texas Instruments Incorporated
+Autonegotiate Sink Basics with Examples                                                                         www.ti.com
+
+
+3 Autonegotiate Sink Basics with Examples
+
+Default Values
+The PD Controller can have these settings by default and each section below shows what happens when the
+field is changed. Refer to the Autonegotiate Sink Register Field Descriptions for details on each field.
+•   AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 2d (0.5W)
+•   AUTO_NEGOTIATE_SINK.AutoNegMinVoltage = Set by PD
+•   AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = Set by PD
+•   AUTO_NEGOTIATE_SINK.ANSinkMinRequiredPower = Set by PD
+•   AUTO_NEGOTIATE_SINK.AutoDisableSinkUponCapabilityMismatch = 1
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 1
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMinVoltage = 1
+•   AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = 0
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMinPower = 1
+•   AUTO_NEGOTIATE_SINK.NoUSBSuspend = 1
+•   AUTO_NEGOTIATE_SINK.ANRDOPriority = 0
+3.1 Auto Neg RDO Priority (ANRDOPriority)
+Changed fields from the default values for this example:
+•   AUTO_NEGOTIATE_SINK.ANRDOPriority = Varied
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMinPower = 0 Allow the ANSinkMinRequiredPower to be static
+    (set by configuration default or by EC if needed)
+•   AUTO_NEGOTIATE_SINK.ANSinkMinRequiredPower = 120d (30W) The amount of minimum
+    power required by the system set by configuration of modified by EC if needed). When
+    AUTO_NEGOTIATE_SINK.AutoComputeSinkMinPower is set to 1, this is overwritten.
+Some Source devices can offer PDOs with different voltage/current but identical power. For instance a 30W
+Source is used which offers:
+•   PDO1: 5V at 3A (15W)
+•   PDO2: 9V at 3A (27W)
+•   PDO3: 15V at 2A (30W)
+•   PDO4: 20V at 1.5A (30W)
+This fields helps when systems need more current over voltage or vice-versa. When
+AUTO_NEGOTIATE_SINK.ANRDOPriority = 0, the higher voltage (PDO4) is selected.
+
+
+
+
+6     TPS257xx/TPS267xx Autonegotiate Sink Configuration                                              SDAA265 – APRIL 2026
+                                                                                                   Submit Document Feedback
+                                                 Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                                Autonegotiate Sink Basics with Examples
+
+
+
+
+             Figure 3-1. 20V PDO being chosen when AUTO_NEGOTIATE_SINK.ANRDOPriority = 0
+
+When AUTO_NEGOTIATE_SINK.ANRDOPriority = 1, the lower voltage (PDO3) is selected.
+
+
+
+
+             Figure 3-2. 15V PDO being chosen when AUTO_NEGOTIATE_SINK.ANRDOPriority = 1
+
+
+SDAA265 – APRIL 2026                                                        TPS257xx/TPS267xx Autonegotiate Sink Configuration   7
+Submit Document Feedback
+                                    Copyright © 2026 Texas Instruments Incorporated
+Autonegotiate Sink Basics with Examples                                                                                                www.ti.com
+
+3.2 Auto Compute Sink Min Power and Auto Neg Sink Min Required Power
+
+Auto Compute Sink Min Power and Auto Neg Sink Min Required Power
+Changed fields from the default values for this example:
+• AUTO_NEGOTIATE_SINK.AutoComputeSinkMinPower = Varied
+• AUTO_NEGOTIATE_SINK.ANSinkMinRequiredPower = Varied
+When AUTO_NEGOTIATE_SINK.AutoComputeSinkMinPower = 1, the PD automatically sets this value based
+on the TX_Sink_Caps register.
+•     Highest Power PDO: 20V at 3A, AUTO_NEGOTIATE_SINK.ANSinkMinRequiredPower = 60W
+•     Highest Power PDO: 20V at 2.25A, AUTO_NEGOTIATE_SINK.ANSinkMinRequiredPower = 45W
+•     Highest Power PDO: 15V at 2.4A, AUTO_NEGOTIATE_SINK.ANSinkMinRequiredPower = 36W
+When AUTO_NEGOTIATE_SINK.AutoComputeSinkMinPower = 0, the value in
+AUTO_NEGOTIATE_SINK.ANSinkMinRequiredPower set by configuration or by the EC determines the
+minimum power for the system regardless of the supported TX_Sink_Caps register.
+3.3 No Capability Mismatch and Auto Disable Sink Upon Capability Mismatch
+Changed fields from the default values for this example:
+• AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 240d (60W)
+• AUTO_NEGOTIATE_SINK.AutoDisableSinkUponCapabilityMismatch = Varied
+• AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = Varied
+                               Table 3-1. Capability Mismatch Fields Effects on the Sink Path
+    NoCapabilityMismatch                          AutoDisableSinkUponCapabilityMismatch Sink Path Effects
+
+                         0                                               0                           Request PDO asserts Capability Mismatch
+                                                                                                     but sink path is still enabled regardless of
+                                                                                                             ANSinkCapMismatchPower.
+
+                         0                                               0                           Request PDO asserts Capability Mismatch
+                                                                                                     and sink path disabled when PDO Power <
+                                                                                                             ANSinkCapMismatchPower
+
+                         1                                               0                                   Request PDO does NOT
+                                                                                                           assert Capability Mismatch.
+                                                                                                      AutoDisableSinkUponCapabilityMismatch
+                                                                                                                     ignored
+
+                         1                                               1                                   Request PDO does NOT
+                                                                                                           assert Capability Mismatch.
+                                                                                                      AutoDisableSinkUponCapabilityMismatch
+                                                                                                                     ignored
+
+If the system requires a minimum of power from USB-PD, then make sure to set the
+AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower to the minimum value of the system. Make sure the
+AUTO_NEGOTIATE_SINK.NoCapabilityMismatch is = 0 to keep Capabiltiy Mismatch assertion behavior. Finally
+set AUTO_NEGOTIATE_SINK.AutoDisableSinkUponCapabilityMismatch = 1 to allow PD to disable sink path
+automatically if system requirements are not met.
+•     AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 240d (60W)
+•     AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = 0
+•     AUTO_NEGOTIATE_SINK.AutoDisableSinkUponCapabilityMismatch = 1
+
+
+
+
+8       TPS257xx/TPS267xx Autonegotiate Sink Configuration                                                                   SDAA265 – APRIL 2026
+                                                                                                                          Submit Document Feedback
+                                                   Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                                    Autonegotiate Sink Basics with Examples
+
+
+
+
+ Figure 3-3. Capability Mismatch is asserted in the Request Message causing PD device to not enable the
+                                                 PPHV_EN
+
+The Capability mismatch flag is set here which causes the PD Device to NOT enable the PPHV_EN above.
+
+
+
+
+                       Figure 3-4. Request Data Object from the PD Device to the PD Source
+
+If the system can still be powered at less than the AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower
+value, then set AUTO_NEGOTIATE_SINK.NoCapabilityMismatch to 0 or 1 depending
+on if system needs to assert Capability Mismatch in the Request PDO. And
+AUTO_NEGOTIATE_SINK.AutoDisableSinkUponCapabilityMismatch to 0.
+•   AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 240d (60W)
+•   AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = 0
+•   AUTO_NEGOTIATE_SINK.AutoDisableSinkUponCapabilityMismatch = 0
+
+
+
+
+SDAA265 – APRIL 2026                                                            TPS257xx/TPS267xx Autonegotiate Sink Configuration   9
+Submit Document Feedback
+                                        Copyright © 2026 Texas Instruments Incorporated
+Autonegotiate Sink Basics with Examples                                                                         www.ti.com
+
+
+
+
+       Figure 3-5. Capability Mismatch is asserted in the Request Message but PD device still enables
+                                                 PPHV_EN
+
+
+
+
+                        Figure 3-6. Request Data Object from the PD Device to the PD Source
+
+•    AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 240d (60W)
+•    AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = 1
+•    AUTO_NEGOTIATE_SINK.AutoDisableSinkUponCapabilityMismatch = 0
+
+
+
+
+10    TPS257xx/TPS267xx Autonegotiate Sink Configuration                                              SDAA265 – APRIL 2026
+                                                                                                   Submit Document Feedback
+                                                 Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                                     Autonegotiate Sink Basics with Examples
+
+
+
+
+                      Figure 3-7. Capability Mismatch is not asserted in the Request Message
+
+
+
+
+                       Figure 3-8. Request Data Object from the PD Device to the PD Source
+
+3.4 Auto Compute Sink Min Voltage and Auto Neg Min Voltage
+Changed fields from the default values for this example:
+• AUTO_NEGOTIATE_SINK.AutoNegMinVoltage = Varied
+• AUTO_NEGOTIATE_SINK.AutoComputeSinkMinVoltage = Varied
+Typical applications set this to AUTO_NEGOTIATE_SINK.AutoComputeSinkMinVoltage = 1 to allow PD to
+compute this value. The PD always sets this to 4.75V. This means PD can always fall-back to the 5V PDO
+if no other PDO works for PD controller.
+
+
+
+
+SDAA265 – APRIL 2026                                                             TPS257xx/TPS267xx Autonegotiate Sink Configuration   11
+Submit Document Feedback
+                                         Copyright © 2026 Texas Instruments Incorporated
+Autonegotiate Sink Basics with Examples                                                                         www.ti.com
+
+3.5 Auto Compute Sink Max Voltage & Auto Neg Max Voltage
+Changed fields from the default values for this example:
+• AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = 300d (15V)
+• AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = Varied
+If the system can always handle the largest voltage in SPR (up to 20V) or EPR (up to 48V) then leaving
+AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 1 is acceptable. This means PD looks at the source
+PDOs offered and set this value to the maximum voltage value.
+If the system requires a specific maximum and cannot exceed the voltage,
+then setting AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 0 means the
+AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage is set by configuration or by the EC regardless of the source
+PDO voltages.
+(Show test 4 with PD setting MaxVoltage
+•    AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = 300d (15V)
+•    AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 1
+
+
+
+
+             Figure 3-9. PD Device auto computes AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage
+
+•    AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = 300d (15V)
+•    AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 0
+
+
+
+
+12    TPS257xx/TPS267xx Autonegotiate Sink Configuration                                              SDAA265 – APRIL 2026
+                                                                                                   Submit Document Feedback
+                                                 Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                                Autonegotiate Sink Basics with Examples
+
+
+
+
+                           Figure 3-10. PD Device Always Requesting 15V PDO
+
+
+
+
+                           Figure 3-11. USB-PD Capture of the 20V PDO Offered
+
+
+
+
+SDAA265 – APRIL 2026                                                        TPS257xx/TPS267xx Autonegotiate Sink Configuration   13
+Submit Document Feedback
+                                    Copyright © 2026 Texas Instruments Incorporated
+Autonegotiate Sink Basics with EPR Examples                                                                     www.ti.com
+
+
+4 Autonegotiate Sink Basics with EPR Examples
+
+Default Values
+Most values are the same as the previous section. However the TPS26750 device is used for these
+demonstrations to show how Autonegotiate Sink effects USB-PD contract negotation for EPR ranges (21V -
+48V).
+4.1 Systems Requiring ≥140W
+Changed fields from the default values for this example:
+• AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 560d (140W)
+The AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = 0 so the PD does not turn on the sink path unless
+EPR 28V or higher is available. The PD also sets the maximum voltage to 20V during SPR negotiation due to
+AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 1, and the maximum EPR voltage once EPR entry
+happens to allow PD to always request the highest possible voltage.
+4.2 Sink Path SPR to EPR Transitions
+Some systems do not want to handle the sink path going from 0V to 28V+. This section reviews examples of
+how the to smoothly transition from SPR to EPR or only allow EPR.
+Suppose the system requires EPR voltages (36V at 5A) but the transition from 0V to 36V on the sink path can
+be detrimental. Setting the following turns on the sink path at 5V and keep the sink path on until the 36V EPR
+contract is achieved. These settings also keep the Capabilites Mismatch bit asserted in the Request PDO until
+36V EPR entry.
+•    AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 720d (180W)
+•    AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = 0
+•    AUTO_NEGOTIATE_SINK.AutoDisableSinkUponCapabilityMismatch = 0
+
+
+
+
+                            Figure 4-1. PP_EXT Enabled for Whole PD Contract Negotation
+
+Shows the USB-PD messages from initial connection to EPR PDO negotiation.
+
+
+
+
+14    TPS257xx/TPS267xx Autonegotiate Sink Configuration                                              SDAA265 – APRIL 2026
+                                                                                                   Submit Document Feedback
+                                                 Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                               Autonegotiate Sink Basics with EPR Examples
+
+
+Note: EPR Keep-Alive messages are filtered out in this log for readability.
+
+
+
+
+                           Figure 4-2. USB-PD Capture of the PD Contract Negotiation
+
+Suppose the system requires at least 60W, but prefers EPR voltages. Setting the following turns on the sink path
+at 20V at 3A and keep the sink path on after 20V. Setting the following turns on the sink path at 20V and keep
+the sink path on until the 36V EPR contract is achieved.
+•   AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower= 240d (60W)
+•   AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = 0
+•   AUTO_NEGOTIATE_SINK.AutoDisableSinkUponCapabilityMismatch = 1
+
+
+
+
+SDAA265 – APRIL 2026                                                           TPS257xx/TPS267xx Autonegotiate Sink Configuration   15
+Submit Document Feedback
+                                       Copyright © 2026 Texas Instruments Incorporated
+Autonegotiate Sink Basics with EPR Examples                                                                     www.ti.com
+
+
+
+
+        Figure 4-3. PP_EXT Enabled After AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower Met
+
+Suppose the system requires at least 140W to function. Setting the following turns on the sink path at 140W
+(28V at 5A) and above. Designers must verify the system can handle the inrush of power to avoid damage/
+brownouts within the system. Setting the following turns on the sink path at 28V only.
+•    AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 560d (140W)
+•    AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = 0
+•    AUTO_NEGOTIATE_SINK.AutoDisableSinkUponCapabilityMismatch = 1
+•    AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 560d (140W)
+•    AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = 0
+•    AUTO_NEGOTIATE_SINK.AutoDisableSinkUponCapabilityMismatch = 1
+
+
+
+
+16    TPS257xx/TPS267xx Autonegotiate Sink Configuration                                              SDAA265 – APRIL 2026
+                                                                                                   Submit Document Feedback
+                                                 Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                             Autonegotiate Sink Basics with EPR Examples
+
+
+
+
+                           Figure 4-4. PP_EN only enabled for EPR voltage of 28V
+
+•   AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 560d (140W)
+•   AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = 0
+•   AUTO_NEGOTIATE_SINK.AutoDisableSinkUponCapabilityMismatch = 1
+
+
+
+
+SDAA265 – APRIL 2026                                                         TPS257xx/TPS267xx Autonegotiate Sink Configuration   17
+Submit Document Feedback
+                                     Copyright © 2026 Texas Instruments Incorporated
+Autonegotiate Sink Basics with EPR Examples                                                                     www.ti.com
+
+
+
+
+                                 Figure 4-5. PP_EN Only Enabled for EPR Voltage of 36V
+
+
+
+
+18    TPS257xx/TPS267xx Autonegotiate Sink Configuration                                              SDAA265 – APRIL 2026
+                                                                                                   Submit Document Feedback
+                                                 Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                          Common Mistakes or Unique System Constraints
+
+
+5 Common Mistakes or Unique System Constraints
+The Autonegotiate Sink settings are used together can be a very powerful tool to automatically request the
+correct power for a system and avoid powering on with limited USB-PD supplies. However some of these
+settings when combined incorrectly can lead to some common mistakes. This section reviews some of the
+common issues and ways to mitigate.
+5.1 System Needs More Power but PD Selects Lower Power PDOs
+Assume there is a system that has the default settings discussed however the following are selected:
+•   AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = 300d (15V)
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 0
+•   AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 240d (60W)
+When a USB-PD Source is connected that can meet the 60W requirement, the PD device always requests the
+15V PDO contract and never goes higher. This is because at configuration (or set by the EC) the PD is being
+limited to 15V maximum. So regardless of the USB-PD Source offerings, the PD device never accepts more than
+15V PDO.
+
+
+
+
+                           Figure 5-1. 15V PDO Requested and 20V PDO Ignored
+
+5.2 System Supports EPR Power but PD Keeps Selecting 20V PDOs
+Assume there is a system that has the default settings discussed however the following are selected:
+•   AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = 400d (20V)
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 0
+This PD device is EPR-capable and can successfully enter into EPR mode with an EPR-capable USB-PD
+Source. However the PD device only requests 20V even in EPR mode. This is due to the fact that the
+AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage is configuration (or set by the EC) to 20V meaning the PD
+device never accepts any voltage higher than 20V.
+
+
+
+
+                                Figure 5-2. 20V PDO Requested in EPR Mode
+
+
+
+
+SDAA265 – APRIL 2026                                                          TPS257xx/TPS267xx Autonegotiate Sink Configuration   19
+Submit Document Feedback
+                                      Copyright © 2026 Texas Instruments Incorporated
+Common Mistakes or Unique System Constraints                                                                    www.ti.com
+
+5.3 Setting the Min Voltage and Max Voltage to the Same Values
+Assume there is a system that has the default settings discussed however the following are selected:
+•    AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = 300d (15V)
+•    AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 0
+•    AUTO_NEGOTIATE_SINK.AutoNegMinVoltage = 300d (15V)
+•    AUTO_NEGOTIATE_SINK.AutoComputeSinkMinVoltage = 0
+Suppose the system requires only a specific voltage (15V) and cannot work with any other voltage. Then
+setting the AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = AUTO_NEGOTIATE_SINK.AutoNegMinVoltage
+can accomplish this. As long as the PD is setup to NOT autocompute these fields, then at configuration (or
+set by the EC) only the PDOs chosen are set.
+Whenever the AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage or
+AUTO_NEGOTIATE_SINK.AutoNegMinVoltage is not met, the 5V PDO is chosen as a default since USB-PD
+requires this.
+
+
+
+
+                    Figure 5-3. PD Device Behavior for Various PD Source Capability Offerings
+
+
+
+
+20    TPS257xx/TPS267xx Autonegotiate Sink Configuration                                              SDAA265 – APRIL 2026
+                                                                                                   Submit Document Feedback
+                                                 Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                         Common Mistakes or Unique System Constraints
+
+
+The AUTO_NEGOTIATE_SINK.AutoNegMinVoltage and AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage do not
+have to be the same value so if the system requires a minimum of 9V but a maximum of 20V, then the following
+always limits the system to the 9V-20V range:
+•   AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = 400d (20V)
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 0
+•   AUTO_NEGOTIATE_SINK.AutoNegMinVoltage = 180d (9V)
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMinVoltage = 0
+
+
+
+
+SDAA265 – APRIL 2026                                                         TPS257xx/TPS267xx Autonegotiate Sink Configuration   21
+Submit Document Feedback
+                                     Copyright © 2026 Texas Instruments Incorporated
+Advanced Autonegotiate Sink Examples                                                                            www.ti.com
+
+
+6 Advanced Autonegotiate Sink Examples
+This section reviews the benefits of the Autonegotiate Sink register when paired with some embedded controller
+(EC). There is examples including Autonegotiate Sink examples located on github for public use on various
+devices.
+6.1 Downgrading to 5V Fixed PDO
+In some cases, once a system no longer needs full power, the Autonegotiate Sink register can be used to
+lower the power provided to the system. This requires an EC to change the default settings so cannot be done
+autonomously. Consider a system that has the default settings then the EC updates the following:
+•    AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = 100d (5V)
+•    AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 0
+From the example System supports EPR power but PD keeps selecting 20V PDOs, this forces the USB-PD to
+always negotiate 5V Fixed PDO. 5V is always offered by USB-PD as a standard. So before the EC updates the
+above settings, the PD automatically negotiates to the highest voltage.
+
+
+
+
+                             Figure 6-1. 20V USB-PD Source being plugged into TPS25751
+
+
+
+
+22    TPS257xx/TPS267xx Autonegotiate Sink Configuration                                              SDAA265 – APRIL 2026
+                                                                                                   Submit Document Feedback
+                                                 Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                                       Advanced Autonegotiate Sink Examples
+
+
+
+
+                           Figure 6-2. 28V USB-PD EPR Source being plugged into TPS26750
+
+Initially the AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage is set to 1 so PD computes
+and fills out AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage to whatever the maximum voltage offered
+is. Some time later, system determines the power is no longer needed and can reduce
+the USB-PD contract by setting the AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage to 5V and
+AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage to 0 for EC controlled value.
+Race Condition Warning: The PD does not overwrite the Autonegotiate Sink setting
+AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage until a new contract is negotiated OR if
+AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage is 0. So if a USB-PD source sends new Source
+Capabilities message while EC is modifying the Autonegotiate Sink register, this can lead to EC changes being
+overwritten.
+Once the Autonegotiate Sink register is changed, the EC can now send the 4CC command 'ANeg'. For details
+on how to send 4CC commands, consult the USB-PD Controller Technical Reference Manual ( TPS25751 TRM).
+This can cause the PD to re-evaluate the Autonegotiate Sink register and the changes made by the EC to take
+effect.
+(20V to 5V and 28V to 5V)
+•   AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = 100d (5V)
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 0
+
+
+
+
+SDAA265 – APRIL 2026                                                              TPS257xx/TPS267xx Autonegotiate Sink Configuration   23
+Submit Document Feedback
+                                          Copyright © 2026 Texas Instruments Incorporated
+Advanced Autonegotiate Sink Examples                                                                            www.ti.com
+
+
+
+
+                             Figure 6-3. 4CC 'ANeg' command sent reducing USB-PD to 5V
+
+•    AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = 100d (5V)
+•    AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 0
+
+
+
+
+24    TPS257xx/TPS267xx Autonegotiate Sink Configuration                                              SDAA265 – APRIL 2026
+                                                                                                   Submit Document Feedback
+                                                 Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                                     Advanced Autonegotiate Sink Examples
+
+
+
+
+                           Figure 6-4. 4CC 'ANeg' command sent reducing USB-PD to 5V
+
+
+
+
+SDAA265 – APRIL 2026                                                            TPS257xx/TPS267xx Autonegotiate Sink Configuration   25
+Submit Document Feedback
+                                        Copyright © 2026 Texas Instruments Incorporated
+Advanced Autonegotiate Sink Examples                                                                                                www.ti.com
+
+6.2 Autonegotiate Sink With Interrupt Driven EC
+Most ECs rely on interrupts to service many devices. Most TI PD controllers offer an I2Ct_IRQ (interrupt) line
+typically asserts low when PD has information for the EC. Take the example Downgrading to 5V Fixed PDO can
+be interrupt driven and there is an example of this on the USB-PD github. Below is the pseudo code and basic
+information about the EC/PD flow for this example.
+
+     while(true){
+       if (connection_present() )
+         break
+     }
+     // begin example code
+     // connection of USB-PD capable charger causes
+     // Plug Insert or Removal
+     // New Contract as Consumer
+     // Source Capabilities Message Received
+     // to assert.
+     interrupt_events = read_i2c1_irq()
+     if ( interrupt_events.plug_insert_or_removal ){
+       // do something
+     } else if ( .... ){
+        ...
+     }
+     // clear the interrupts by writing back the same bits
+     write_i2c1_clear(interrupt_events)
+     // setup the autonegotiate sink register to 5V max
+     reduce_power_5v()
+     // sets AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 0
+     // sets AUTO_NEGOTIATE_SINK.AutoNegMaxVoltage = 100
+     write_4CC("ANeg")
+
+
+6.3 ANeg: Auto Negotiate Sink Update
+                                 Table 6-1. ANeg: Re-evaluate the auto-negotiate sink register
+                    The 'ANeg' Task instructs PD Controller to re-evaluate the Auto Negotiate Sink register (0x37). If the re-evaluation
+     Description
+                             produces a different RDO than the Active Contract RDO then a new Request message is sent.
+       INPUT
+                                                                                 None
+       DATAX
+      OUTPUT
+                                              Byte 1: Standard Task Return Code. See also Standard Task Response.
+       DATAX
+                       The ANeg Task completes after the new RDO is calculated and PD Controller either decides to send a new request
+       Task
+                     message (and that message is sent and the GoodCRC received) or determines that no request is necessary. The task is
+     Completion
+                                                   rejected if the PD controller is not in a sink power role.
+    Side Effects                  The side effects include a new PD contract negotiation and updates to the associated registers.
+      Additional
+                                                                                 None
+     Information
+
+
+6.4 AUTO_NEGOTIATE_SINK Register
+In general, writing to AUTO_NEGOTIATE_SINK register while a sink contract is in place does not cause an
+automatic renegotiation, and changes take effect the next time a contract is negotiated. The ANeg command
+forces a re-evaluation of this register and a new Request message is issued if appropriate.
+However, if a Sink PPS Contract is already in place there are some fields that do cause the PD controller to
+automatically reevaluate the register and send a new Request message if appropriate:
+•      PPSOutputVoltage
+•      PPSOperatingCurrent
+•      PPSEnableSinkMode
+•      PPSRequestInterval
+•      RequireFullVoltageRange
+•      PPSSourceMode
+If PPSEnableSinkMode is changed while a Sink PPS Explicit Contract is not already in place the PD controller
+also automatically re-evaluates the register and sends a new Request message if appropriate.
+
+
+
+26       TPS257xx/TPS267xx Autonegotiate Sink Configuration                                                               SDAA265 – APRIL 2026
+                                                                                                                       Submit Document Feedback
+                                                    Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                                     Advanced Autonegotiate Sink Examples
+
+
+If the first four bytes of this register are written as zero, then the PD controller always requests a 5V Fixed
+Supply contract at 100mA ; unless PPSEnableSinkMode is asserted in which case an APDO can be selected.
+To implement Sink PPS features in this register, the host shall provide an APDO in the TX_SINK_CAPS register.
+If the PD controller is evaluating a PPS supply type, it only uses the first APDO in the TX_SINK_CAPS register
+to determine when to assert the Capability Mismatch bit. Therefore, it is recommended that the host only have
+one APDO in the TX_SINK_CAPS register. In order to not assert the Capability Mismatch bit, the source APDO
+advertised by the source must meet these conditions:
+•   RX_SOURCE_CAPS.APDO.MinVoltage <= TX_SINK_CAPS.APDO.MinVoltage
+•   RX_SOURCE_CAPS.APDO.MaxVoltage >= TX_SINK_CAPS.APDO.MaxVoltage
+•   RX_SOURCE_CAPS.APDO.MaxCurrent >= TX_SINK_CAPS.APDO.MaxCurrent
+If the source fails any of the conditions above, a sink PPS contract is still requested if one of the source APDOs
+meets these conditions:
+•   RX_SOURCE_CAPS.APDO.MinVoltage <= AUTO_NEGOTIATE_SINK.PPSOutputVoltage
+•   RX_SOURCE_CAPS.APDO.MinVoltage >= AUTO_NEGOTIATE_SINK.PPSOutputVoltage
+•   RX_SOURCE_CAPS.APDO.MaxCurrent >= AUTO_NEGOTIATE_SINK.PPSOperatingCurrent
+During PPS operation, if the host sets the PPSOutputVolage field to a value outside what the source APDO can
+deliver as reported in the RX_SOURCE_CAPS register, then a Fixed Supply PDO is selected and the sink path
+can be automatically disabled (see AUTO_NEGOTIATE_SINK.PPSDisableSinkUponNonAPDOContract).
+If PPS is enabled, then an APDO that fulfills the requirements is given highest priority.
+The following is a high-level summary of how this register drives the PDO selection when PPS is disabled or no
+matching APDO is found.
+•   Parse the received PDOs in the register RX_SOURCE_CAPS. Discard any PDO whose voltage range is
+    below ANMinVoltage or above ANMaxVoltage.
+•   Calculate the PDO power for each received PDO (RX_SOURCE_CAPS.SourcePdoX). Rank all PDOs
+    according to the PDO power.
+    – PDO Power = Voltage × MaximumCurrent (Fixed Supply)
+    – PDO Power = MinimumVoltage × MaximumCurrent (Variable Supply)
+    – PDO Power = MaximumPower (Battery Supply)
+•   The PDO with maximum PDO Power that also passes the voltage check is selected. In case there are
+    multiple PDOs that pass the voltage check and have the same maximum PDO Power, tie breakers are
+    applied as described below:
+    – A Fixed supply type is preferred, and Variable supply type is preferred over Battery supply type.
+    – If the PDOs being compared have the same supply type, then ANRDOPriority specifies how to break the
+       tie.
+6.4.1 AUTO_NEGOTIATE_SINK Usage Example 1
+When attached to a 36W source the PD controller has RX_SOURCE_CAPS:
+•   PDO1: 5V at 3A
+•   PDO2: 9V at 3A
+•   PDO3: 15V at 2.4A
+•   PDO4: 20V at 1.8A
+The PD controller has TX_SINK_CAPS set as:
+•   PDO1: 5V at 3A (fixed)
+•   PDO2: 20V at 3A (fixed)
+The PD controller has AUTO_NEGOTIATE_SINK set as:
+•   AUTO_NEGOTIATE_SINK = 0
+•   AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 240d (60W)
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMinPower = 1
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMinVoltage = 1
+
+
+SDAA265 – APRIL 2026                                                            TPS257xx/TPS267xx Autonegotiate Sink Configuration   27
+Submit Document Feedback
+                                        Copyright © 2026 Texas Instruments Incorporated
+Advanced Autonegotiate Sink Examples                                                                                                www.ti.com
+
+•    AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 1
+•    AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = x (see table below)
+•    AUTO_NEGOTIATE_SINK.ANRDOPriority = y (see table below)
+The settings give the following results:
+•    ANSinkMinRequiredPower computed as 60W
+•    ANMaxVoltage computed as 20V
+•    ANMinVoltage computed as 4.75V
+                                   Table 6-2. AUTO_NEGOTIATE_SINK Usage Example 1
+         AUTO_NEGOTIATE_SINK                                                       ACTIVE_CONTRACT_RDO
+ NoCapabilityMismatch       ANRDOPriority           OperatingX          MinMaxOperatingX             ObjectPosition   Capability Mismatch
+            0                       0                      1.8A                    3.0A                      4                  1
+            1                       0                      1.8A                    1.8A                      4                  0
+            1                       1                      2.4A                    2.4A                      3                  0
+
+
+6.4.2 AUTO_NEGOTIATE_SINK Usage Example 2
+When attached to a 36W source the PD controller has RX_SOURCE_CAPS:
+•    PDO1: 5V at 3A
+•    PDO2: 9V at 3A
+•    PDO3: 15V at 2.4A
+The PD controller has TX_SINK_CAPS set as:
+•    PDO1: 5V at 0.1A (fixed)
+•    PDO2: 20V at 3A (fixed)
+The PD controller has AUTO_NEGOTIATE_SINK set as:
+•    AUTO_NEGOTIATE_SINK = 0
+•    AUTO_NEGOTIATE_SINK.AutoComputeSinkMinPower = 1
+•    AUTO_NEGOTIATE_SINK.AutoComputeSinkMinVoltage = 0
+•    AUTO_NEGOTIATE_SINK.ANMinVoltage = 20V
+•    AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 1
+•    AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = x (see table below)
+•    AUTO_NEGOTIATE_SINK.ANRDOPriority = 0
+The settings give the results in the table below. Note that ANMaxVoltage computed as 20V, but this does not
+affect the result. Because the ANMinVoltage was set to 20V, and the source is not offering 20V none of the
+source PDOs fulfill the sink requirements. Even though ANSinkCapMismatchPower=0 in this example, because
+the voltages offered are insufficient, the capability mismatch bit can still be set.
+                                   Table 6-3. AUTO_NEGOTIATE_SINK Usage Example 2
+      AUTO_NEGOTIATE_SINK                                                     ACTIVE_CONTRACT_RDO
+       NoCapabilityMismatch                  OperatingX            MinMaxOperatingX                ObjectPosition     Capability Mismatch
+                   0                             3.0A                       3.0A                         1                     1
+                   1                             3.0A                       3.0A                         1                     0
+
+
+6.4.3 AUTO_NEGOTIATE_SINK Usage Example 3
+When attached to a 45W source the PD controller has RX_SOURCE_CAPS:
+•    PDO1: 5V at 3A
+•    PDO2: 9V at 3A
+•    PDO3: 15V at 3A
+•    PDO4: 20V at 2.25A
+The PD controller has TX_SINK_CAPS set as:
+
+
+
+28    TPS257xx/TPS267xx Autonegotiate Sink Configuration                                                                 SDAA265 – APRIL 2026
+                                                                                                                      Submit Document Feedback
+                                                 Copyright © 2026 Texas Instruments Incorporated
+www.ti.com                                                                                         Advanced Autonegotiate Sink Examples
+
+•   PDO1: 5V at 3A (fixed)
+•   PDO2: 20V at 2.25A (fixed)
+The PD controller has AUTO_NEGOTIATE_SINK set as:
+•   AUTO_NEGOTIATE_SINK = 0
+•   AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 180d (45W)
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMinPower = 1
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMinVoltage = 1
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 1
+•   AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = 0
+•   AUTO_NEGOTIATE_SINK.ANRDOPriority = y (see table below)
+The settings give the following results:
+•   ANSinkMinRequiredPower computed as 45W
+•   ANMaxVoltage computed as 20V
+•   ANMinVoltage computed as 4.75V
+                             Table 6-4. AUTO_NEGOTIATE_SINK Usage Example 3.
+      AUTO_NEGOTIATE_SINK                                               ACTIVE_CONTRACT_RDO
+             ANRDOPriority           OperatingX              MinMaxOperatingX                ObjectPosition      Capability Mismatch
+                   0                       2.25A                     2.25A                         4                        0
+                   1                       3.0A                       3.0A                         3                        0
+
+
+6.4.4 AUTO_NEGOTIATE_SINK Usage Example 4
+When attached to a 100W source the PD controller has RX_SOURCE_CAPS:
+•   PDO1: 5V at 3A
+•   PDO2: 9V at 3A
+•   PDO3: 15V at 3A
+•   PDO4: 20V at 5A
+The PD controller has TX_SINK_CAPS set as:
+•   PDO1: 5V at 3A (fixed)
+•   PDO2: 20V at 5A (fixed)
+The PD controller has AUTO_NEGOTIATE_SINK set as:
+•   AUTO_NEGOTIATE_SINK = 0
+•   AUTO_NEGOTIATE_SINK.ANSinkCapMismatchPower = 240d (60W)
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMinPower = 1
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMinVoltage = 1
+•   AUTO_NEGOTIATE_SINK.AutoComputeSinkMaxVoltage = 1
+•   AUTO_NEGOTIATE_SINK.NoCapabilityMismatch = 0
+•   AUTO_NEGOTIATE_SINK.ANRDOPriority = y (see table below)
+The settings give the following results:
+•   ANSinkMinRequiredPower computed as 100W
+•   ANMaxVoltage computed as 20V
+•   ANMinVoltage computed as 4.75V
+                             Table 6-5. AUTO_NEGOTIATE_SINK Usage Example 3.
+      AUTO_NEGOTIATE_SINK                                               ACTIVE_CONTRACT_RDO
+             ANRDOPriority           OperatingX              MinMaxOperatingX                ObjectPosition      Capability Mismatch
+                   0                        5A                         5A                          4                        0
+                   1                        5A                         5A                          4                        0
+
+
+
+
+SDAA265 – APRIL 2026                                                               TPS257xx/TPS267xx Autonegotiate Sink Configuration   29
+Submit Document Feedback
+                                           Copyright © 2026 Texas Instruments Incorporated
+References                                                                                                      www.ti.com
+
+
+7 References
+•    Texas Instruments, TPS25751, product page.
+•    Texas Instruments, TPS26750, product page.
+•    Texas Instruments, TI USB-PD Github, webpage.
+
+
+
+
+30    TPS257xx/TPS267xx Autonegotiate Sink Configuration                                              SDAA265 – APRIL 2026
+                                                                                                   Submit Document Feedback
+                                                 Copyright © 2026 Texas Instruments Incorporated
+                                         IMPORTANT NOTICE AND DISCLAIMER
+TI PROVIDES TECHNICAL AND RELIABILITY DATA (INCLUDING DATASHEETS), DESIGN RESOURCES (INCLUDING REFERENCE
+DESIGNS), APPLICATION OR OTHER DESIGN ADVICE, WEB TOOLS, SAFETY INFORMATION, AND OTHER RESOURCES “AS IS”
+AND WITH ALL FAULTS, AND DISCLAIMS ALL WARRANTIES, EXPRESS AND IMPLIED, INCLUDING WITHOUT LIMITATION ANY
+IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT OF THIRD
+PARTY INTELLECTUAL PROPERTY RIGHTS.
+These resources are intended for skilled developers designing with TI products. You are solely responsible for (1) selecting the appropriate
+TI products for your application, (2) designing, validating and testing your application, and (3) ensuring your application meets applicable
+standards, and any other safety, security, regulatory or other requirements.
+These resources are subject to change without notice. TI grants you permission to use these resources only for development of an
+application that uses the TI products described in the resource. Other reproduction and display of these resources is prohibited. No license
+is granted to any other TI intellectual property right or to any third party intellectual property right. TI disclaims responsibility for, and you fully
+indemnify TI and its representatives against any claims, damages, costs, losses, and liabilities arising out of your use of these resources.
+TI’s products are provided subject to TI’s Terms of Sale, TI’s General Quality Guidelines, or other applicable terms available either on
+ti.com or provided in conjunction with such TI products. TI’s provision of these resources does not expand or otherwise alter TI’s applicable
+warranties or warranty disclaimers for TI products. Unless TI explicitly designates a product as custom or customer-specified, TI products
+are standard, catalog, general purpose devices.
+TI objects to and rejects any additional or different terms you may propose.
+IMPORTANT NOTICE
+
+                                                Copyright © 2026, Texas Instruments Incorporated
+                                                                Last updated 10/2025
+

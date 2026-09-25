@@ -46,8 +46,16 @@ pub const ADC_VREF_MV: u32 = 3300;
 /// Divider ratios: physical = adc_counts * SCALE / 4096 (12-bit ADC)
 /// TODO: derive from Converter.kicad_sch resistor networks.
 pub const VOUT_SENSE_NUM: u32 = 85_140; // mV at full scale (248k/10k divider, 3.3V ref)
-pub const ISENSE_MV_PER_A: u32 = 18; // mV/A at ISMON node (PA3, calibrated)
-pub const ISENSE_OFFSET_MV: u32 = 248; // mV offset at 0A (PA3, calibrated)
+/// ISMON monitor gain at the PA3 node, in mV per amp. The LT8390A datasheet
+/// gives `V_ISMON = 10 · V(ISP−ISN) + 0.25 V`, and the board's ISP/ISN shunt is
+/// R18 = 2 mΩ, so the gain is `10 · 2 mΩ = 20 mV/A`. Bench-tune only against a
+/// known load; the offset is measured at runtime (see `sense::adc_sense`).
+pub const ISENSE_MV_PER_A: u32 = 20;
+/// Datasheet-typical ISMON offset (0.25 V typ, 0.20–0.30 V specified). Used only
+/// as the seed/fallback for the runtime zero-current calibration: that offset
+/// spread is far larger than the 20 mV/A signal at low currents, so a fixed
+/// constant would eat the whole low-current range on a low-offset part.
+pub const ISENSE_OFFSET_MV: u32 = 250;
 pub const VBUS_SENSE_NUM: u32 = 69_600;
 
 /// DAC 12-bit. The DAC reference is VREF+, which this board ties to +3V3 (the
@@ -55,6 +63,33 @@ pub const VBUS_SENSE_NUM: u32 = 69_600;
 /// reference is the 3.3 V rail rather than the 2.5 V VREFBUF setting.
 pub const DAC_MAX_CODE: u16 = 4095;
 pub const DAC_VREF_MV: u32 = 3300;
+
+/// CV feedback network (Converter sheet, U1 = LT8390A). The FB pin is a
+/// current-summing node:
+///
+/// ```text
+///   VOUT ── R19 ──┬── R20 ── GND
+///                 │
+///   CV_Set ─ R36 ─┴── FB
+/// ```
+///
+/// The LT8390A regulates FB to [`CV_FB_REF_MV`] (1.000 V typ), so summing the
+/// currents into FB gives the open-loop (inverted) control law
+///
+/// ```text
+///   V_OUT = CV_FB_REF_MV·(1 + R19/R36 + R19/R20) − V_DAC·(R19/R36)
+/// ```
+///
+/// with `V_DAC = DAC_VREF_MV · code / DAC_MAX_CODE`. These resistor values are
+/// the source of truth for the CV map — `control::dac_cv` derives the
+/// setpoint→code mapping from them analytically. (A previous hand-entered
+/// calibration table did not match this network: it assumed ~13.5 mV/code while
+/// the network gives ~28.8 mV/code, so the real output tracked ~1.9× the
+/// setpoint with an offset.)
+pub const CV_FB_REF_MV: u32 = 1_000; // LT8390A FB regulation (1.00 V typ)
+pub const CV_FB_TOP_OHM: u32 = 357_000; // R19, VOUT → FB
+pub const CV_FB_BOTTOM_OHM: u32 = 10_000; // R20, FB → GND
+pub const CV_SUM_OHM: u32 = 10_000; // R36, CV_Set → FB
 
 /// Max CV DAC code change per supply tick (see `control::dac_cv::CvDac::slew`).
 /// The supply tick is 1 ms, so this is N LSB per ms (~N*1000 LSB/s). Tune down
@@ -103,11 +138,54 @@ pub const AUTO_TRACK_MIN_INTERVAL_MS: u64 = 1_000;
 /// re-request, so the output is briefly disabled to protect the stage.
 pub const AUTO_TRACK_DISABLE_DURING_SWITCH: bool = true;
 
+/// Highest SPR contract voltage. A rail above this can only be obtained by
+/// entering EPR mode; the TPS26750 attempts EPR on its own once a request
+/// window above this is allowed and the loaded sink configuration declares EPR
+/// PDOs. Keep in step with `0x33` / `0x37` of `config_TPS26750_*_fullFlash.c`.
+pub const SPR_MAX_MV: u32 = 20_000;
+/// Fixed EPR rails the sink configuration declares (`0x33` PDOs 8-10). The
+/// source's own EPR PDOs are invisible in `RX_SOURCE_CAPS` until EPR mode has
+/// been entered, so [`crate::pd::auto_track`] injects these as candidates when
+/// the output setpoint cannot be served from SPR alone.
+pub const EPR_RAILS_MV: [u32; 3] = [28_000, 36_000, 48_000];
+/// Current assumed for an injected EPR rail (EPR fixed PDOs carry 5 A).
+pub const EPR_RAIL_CURRENT_MA: u32 = 5_000;
+/// EPR AVS APDO window declared by the sink configuration (`0x33` PDO 11).
+///
+/// Any rail above [`SPR_MAX_MV`] is requested as an **EPR AVS** contract inside
+/// this window rather than as a fixed PDO. A fixed window above 20 V matches no
+/// *visible* SPR PDO before EPR mode entry, and SDAA265 §5.3 then makes the
+/// controller fall back to 5 V without ever entering EPR. Asserting
+/// `EPR AVS Enable Sink Mode` (0x37 bit 128) is what makes the controller
+/// attempt EPR mode entry (TRM Table 4-21). The reference PD240W firmware uses
+/// exactly this path. Keep in step with `0x33`/`0x37` of the config image.
+pub const EPR_AVS_MIN_MV: u32 = 15_000;
+pub const EPR_AVS_MAX_MV: u32 = 48_000;
+
+/// How long to keep the converter output disabled after an EPR request before
+/// loading it. Some sources are still settling VBUS through the 20→28/48 V
+/// transition; enabling the load then can dip VBUS enough to brown the board
+/// out. Two chargers did this at 28 V while a powerbank at the same voltage did
+/// not, so this is a ride-through window, not a fixed voltage limit.
+pub const EPR_SETTLE_MS: u64 = 800;
+/// USB-PD SPR PPS is only defined inside this window; a manual preset that
+/// lands here with no matching fixed PDO is served by a PPS contract.
+pub const PPS_MIN_MV: u32 = 3_300;
+pub const PPS_MAX_MV: u32 = 21_000;
+/// A preset this close to a fixed PDO uses the fixed PDO instead of PPS.
+pub const PPS_FIXED_PREFER_MV: u32 = 1_000;
+
 /// Converter disable: active level (verify on bench vs LT8390 RUN).
 pub const CONVERTER_DISABLE_ACTIVE_HIGH: bool = true;
 
 /// UI timing
 pub const DEBOUNCE_MS: u64 = 25;
+/// Quadrature counts per encoder detent. `Qei::new` configures the timer for
+/// X4 decoding (`Sms::ENCODER_MODE_3`). The fitted encoder produces a detent
+/// every two counts (measured: one detent used to fire two `EncTurn` events, and
+/// dividing by 4 made the knob half-speed). Raw counts are divided by this so
+/// every screen receives one event per detent.
+pub const ENCODER_COUNTS_PER_DETENT: i32 = 2;
 pub const UI_REFRESH_MS: u64 = 80;
 pub const INPUT_POLL_MS: u64 = 5;
 pub const SUPPLY_TICK_MS: u64 = 1;
@@ -115,6 +193,21 @@ pub const ADC_SAMPLE_MS: u64 = 2;
 /// INA228 refresh period. Must be longer than the chip's ~50 ms conversion
 /// cycle (ADC_CONFIG above) or reads return overlapping samples.
 pub const INA228_POLL_MS: u64 = 100;
+
+/// CFG menu → "Output V sweep": 32 points evenly spaced from 10 V to 56 V,
+/// inclusive at both ends (31 intervals, ≈1.48 V/step), each held for 2 s
+/// (~64 s total).
+///
+/// NOTE: `control::dac_cv::CvDac::mv_to_code` derives its map from the FB
+/// network, whose code-0 output is well above 60 V, so every sweep point is
+/// reached without clamping. `VOUT_MAX_MV` is 60 V, so the supply supervisor's
+/// 105 % overvoltage guard never trips on a sweep.
+pub const SWEEP_START_MV: u32 = 10_000;
+pub const SWEEP_END_MV: u32 = 56_000;
+/// Number of points in one sweep (inclusive of both endpoints).
+pub const SWEEP_POINTS: u8 = 32;
+/// Dwell time per sweep point.
+pub const SWEEP_STEP_MS: u64 = 2_000;
 
 /// Service mode: hand off to the ROM bootloader so the board can be reflashed
 /// over UART through the on-board FT234XD (USART3, PC10/PC11).

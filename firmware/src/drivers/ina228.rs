@@ -159,14 +159,24 @@ impl Ina228 {
 
     async fn read_reg16(&self, i2c: &mut I2c<'_, Async, Master>, reg: u8) -> Option<u16> {
         let mut buf = [0u8; 2];
-        i2c.write_read(self.addr, &[reg], &mut buf).await.ok()?;
-        Some(u16::from_be_bytes(buf))
+        match i2c.write_read(self.addr, &[reg], &mut buf).await {
+            Ok(()) => Some(u16::from_be_bytes(buf)),
+            Err(e) => {
+                crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "1 (PD)", e);
+                None
+            }
+        }
     }
 
     async fn read_reg24(&self, i2c: &mut I2c<'_, Async, Master>, reg: u8) -> Option<u32> {
         let mut buf = [0u8; 3];
-        i2c.write_read(self.addr, &[reg], &mut buf).await.ok()?;
-        Some(((buf[0] as u32) << 16) | ((buf[1] as u32) << 8) | buf[2] as u32)
+        match i2c.write_read(self.addr, &[reg], &mut buf).await {
+            Ok(()) => Some(((buf[0] as u32) << 16) | ((buf[1] as u32) << 8) | buf[2] as u32),
+            Err(e) => {
+                crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "1 (PD)", e);
+                None
+            }
+        }
     }
 
     async fn write_reg16(
@@ -176,8 +186,12 @@ impl Ina228 {
         value: u16,
     ) -> bool {
         let bytes = value.to_be_bytes();
-        i2c.write(self.addr, &[reg, bytes[0], bytes[1]])
-            .await
-            .is_ok()
+        match i2c.write(self.addr, &[reg, bytes[0], bytes[1]]).await {
+            Ok(()) => true,
+            Err(e) => {
+                crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "1 (PD)", e);
+                false
+            }
+        }
     }
 }

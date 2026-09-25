@@ -5918,7 +5918,7 @@
 	)
 	(wire
 		(pts
-			(xy 328.93 146.05) (xy 328.93 144.78)
+			(xy 328.93 143.51) (xy 328.93 146.05)
 		)
 		(stroke
 			(width 0)
@@ -7698,7 +7698,7 @@
 	)
 	(wire
 		(pts
-			(xy 328.93 135.89) (xy 328.93 137.16)
+			(xy 328.93 135.89) (xy 328.93 138.43)
 		)
 		(stroke
 			(width 0)
@@ -10157,6 +10157,99 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
 					(reference "#PWR07")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R_Small")
+		(at 328.93 140.97 0)
+		(mirror y)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "07fd32ef-bab4-4972-bfe7-f410fc731cdf")
+		(property "Reference" "R75"
+			(at 327.406 139.954 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "75k"
+			(at 327.914 141.732 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 328.93 140.97 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 328.93 140.97 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor, small symbol"
+			(at 328.93 140.97 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "LCSC" "C25798"
+			(at 327.406 139.954 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "a3d8e54d-1701-4135-9fb7-a887e063a602")
+		)
+		(pin "2"
+			(uuid "9b740c99-4221-4544-80ff-74730fd21463")
+		)
+		(instances
+			(project "nitride-nano"
+				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
+					(reference "R75")
 					(unit 1)
 				)
 			)
@@ -19844,100 +19937,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
 					(reference "Q4")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:R")
-		(at 328.93 140.97 0)
-		(mirror x)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "cbd4117f-2f28-42ff-9964-691d3c3e9b95")
-		(property "Reference" "R75"
-			(at 331.47 142.2401 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "10k"
-			(at 331.47 139.7001 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 327.152 140.97 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 328.93 140.97 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor"
-			(at 328.93 140.97 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C2906861"
-			(at 331.47 142.2401 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "d4b49fec-6a45-40c7-bb65-d9cdf7ed2384")
-		)
-		(pin "1"
-			(uuid "a9aaf053-a1ea-45b1-9488-f461b4459185")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
-					(reference "R75")
 					(unit 1)
 				)
 			)

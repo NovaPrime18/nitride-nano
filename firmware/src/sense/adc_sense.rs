@@ -112,12 +112,71 @@ impl Default for TelemetryFilter {
     }
 }
 
-/// Stateless sampler for the five analog channels (Vout, Isense, Vbus, two NTCs).
-pub struct AdcSense;
+/// Number of raw PA3 samples averaged when learning the ISMON zero-current
+/// level. Each sample is ~15 µs of ADC time, so 64 of them average out the
+/// ±1-count dither without a noticeable boot delay.
+const ISENSE_ZERO_SAMPLES: u32 = 64;
+
+/// Sampler for the five analog channels (Vout, Isense, Vbus, two NTCs).
+pub struct AdcSense {
+    /// Raw PA3 count measured with the output stage parked (no load current).
+    ///
+    /// The LT8390A drives ISMON to its offset when no current flows, but that
+    /// offset is only specified to 0.20–0.30 V while the current signal is
+    /// 20 mV/A. Subtracting a fixed constant therefore swamps the low-current
+    /// range, so the zero is measured at boot and subtracted in raw counts
+    /// (which also cancels the ADC's own offset). Seeded with the
+    /// datasheet-typical offset so pre-calibration samples stay sane.
+    i_zero_raw: u32,
+    /// Most recent raw PA3 count, kept for bring-up diagnostics. Together with
+    /// [`Self::zero_raw`] this shows how far the ISMON node moves with load,
+    /// independently of the scaling constants.
+    last_i_raw: u32,
+}
 
 impl AdcSense {
     pub fn new() -> Self {
-        Self
+        Self {
+            i_zero_raw: board::ISENSE_OFFSET_MV * 4096 / board::ADC_VREF_MV,
+            last_i_raw: 0,
+        }
+    }
+
+    /// Raw ISMON count learned at zero current (the runtime calibration).
+    pub fn zero_raw(&self) -> u32 {
+        self.i_zero_raw
+    }
+
+    /// Most recent raw ISMON count.
+    pub fn last_i_raw(&self) -> u32 {
+        self.last_i_raw
+    }
+
+    /// Learn the ISMON zero-current level from PA3.
+    ///
+    /// Call only while the output stage is disabled and no load current flows:
+    /// the LT8390A then drives ISMON to its offset. Returns the averaged raw
+    /// count that will be subtracted from every later sample (also stored).
+    pub fn calibrate_zero(
+        &mut self,
+        adc1: &mut Adc<'_, embassy_stm32::peripherals::ADC1>,
+        isense: &mut Peri<'_, embassy_stm32::peripherals::PA3>,
+    ) -> u32 {
+        let mut sum: u64 = 0;
+        for _ in 0..ISENSE_ZERO_SAMPLES {
+            sum += adc1.blocking_read(isense) as u64;
+        }
+        let zero = (sum / ISENSE_ZERO_SAMPLES as u64) as u32;
+
+        // Plausibility window: the specified offset spread is 200–300 mV, so a
+        // count outside a generous 150–350 mV band means ISMON is unpowered or
+        // shorted (or the rail is not ready yet). Keep the seed in that case.
+        let lo = 150 * 4096 / board::ADC_VREF_MV;
+        let hi = 350 * 4096 / board::ADC_VREF_MV;
+        if zero >= lo && zero <= hi {
+            self.i_zero_raw = zero;
+        }
+        self.i_zero_raw
     }
 
     /// Blocking-read all channels once and return raw (unfiltered) telemetry.
@@ -137,6 +196,7 @@ impl AdcSense {
     ) -> Telemetry {
         let vout_raw = adc1.blocking_read(vout) as u32;
         let i_raw = adc1.blocking_read(isense) as u32;
+        self.last_i_raw = i_raw;
         let vbus_raw = adc2.blocking_read(vbus) as u32;
         let t_conv_raw = adc1.blocking_read(temp_conv) as u32;
         let t_in_raw = adc5.blocking_read(temp_in) as u32;
@@ -144,9 +204,12 @@ impl AdcSense {
         let vout_mv = scale(vout_raw, board::VOUT_SENSE_NUM);
         let vbus_mv = scale(vbus_raw, board::VBUS_SENSE_NUM);
         let iout_ma = if board::ISENSE_MV_PER_A > 0 {
-            let i_mv = (i_raw as u64 * board::ADC_VREF_MV as u64) / 4096;
-            let i_corr = i_mv.saturating_sub(board::ISENSE_OFFSET_MV as u64);
-            ((i_corr * 1000) / board::ISENSE_MV_PER_A as u64) as u32
+            // ISMON = 10·V(ISP−ISN) + offset. Subtract the measured zero-current
+            // count (cancelling both the part's offset and the ADC's own offset)
+            // before scaling by the datasheet gain. One count is ~0.806 mV, so
+            // keeping the arithmetic in counts preserves the full resolution.
+            let d = i_raw.saturating_sub(self.i_zero_raw) as u64;
+            ((d * board::ADC_VREF_MV as u64 * 1000) / (4096 * board::ISENSE_MV_PER_A as u64)) as u32
         } else {
             0
         };

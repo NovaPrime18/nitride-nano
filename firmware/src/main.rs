@@ -1,7 +1,7 @@
 //! nitride-nano — USB-PD bench power supply firmware (STM32G474, Embassy).
 //!
 //! Structure: this entry point owns all peripherals and runs the cooperative
-//! main loop (input → ADC → supply tick → PD poll → EEPROM step). A single
+//! main loop (input → ADC → sweep/supply tick → PD poll → EEPROM step). A single
 //! Embassy task (`ui_task`) renders the OLED. Shared state flows through the
 //! `APP_STATE` mutex and the two I2C bus mutexes in [`nitride_firmware::runtime`];
 //! the lock order (APP_STATE before either bus, never both buses) documented
@@ -37,6 +37,7 @@ use panic_probe as _;
 
 use nitride_firmware::board;
 use nitride_firmware::control::supply::SupplyController;
+use nitride_firmware::control::sweep::SweepController;
 use nitride_firmware::drivers::tps26750::Tps26750;
 use nitride_firmware::eeprom_workflow::EepromWorkflow;
 use nitride_firmware::hal::bootloader;
@@ -161,6 +162,9 @@ async fn main(spawner: Spawner) {
 
     let qei = Qei::new(p.TIM4, QeiPin::new(p.PB6), QeiPin::new(p.PA12));
     let mut enc_last: u16 = qei.count();
+    // Carries the leftover quadrature counts between polls so a detent split
+    // across two 5 ms windows still produces exactly one `EncTurn` event.
+    let mut enc_accum: i32 = 0;
     let mut pd_irq = ExtiInput::new(p.PB13, p.EXTI13, Pull::Up);
 
     // I2C configs are per-bus because the two buses need opposite timeout
@@ -243,6 +247,7 @@ async fn main(spawner: Spawner) {
     let app_state = APP_STATE.init(Mutex::new(app));
 
     let mut supply = SupplyController::new();
+    let mut sweep = SweepController::new();
     let mut sense = AdcSense::new();
     let mut input = InputHandler::new();
     let mut tele_filter = TelemetryFilter::new();
@@ -252,16 +257,26 @@ async fn main(spawner: Spawner) {
     let mut eeprom_workflow = EepromWorkflow::new();
 
     {
-        let mut app = app_state.lock().await;
         let mut i2c = pd_bus.lock().await;
-        if tps.init(&mut i2c).await {
-            app.pd_cap_count = tps
-                .get_source_capabilities(&mut i2c, &mut app.pd_caps)
-                .await;
-        }
         let _ = ina.init(&mut i2c).await;
+        // The TPS26750 loads its application firmware from EEPROM and is not
+        // guaranteed to answer this early, so it is not probed here: PdManager
+        // owns a presence watchdog that re-probes it until it responds.
     }
-    defmt::info!("boot: pd/ina init done");
+    defmt::info!("boot: ina init done");
+
+    // Learn the ISMON zero-current level while the output stage is parked: the
+    // DACs and converter-disable above guarantee no load current, so PA3 sits at
+    // the LT8390A's ISMON offset. That offset (0.20–0.30 V specified) is far
+    // larger than the 20 mV/A current signal at low currents, so it must be
+    // measured per board rather than assumed. Let the rail settle first.
+    Timer::after(Duration::from_millis(50)).await;
+    let isense_zero = sense.calibrate_zero(&mut adc1, &mut pin_isense);
+    defmt::info!(
+        "boot: isense zero = {} counts ({} mV)",
+        isense_zero,
+        isense_zero * board::ADC_VREF_MV / 4096
+    );
 
     spawner.spawn(ui_task(app_state, ui_bus)).unwrap();
     if let Some(uart) = service_uart {
@@ -272,6 +287,8 @@ async fn main(spawner: Spawner) {
     let mut t_supply = Instant::now();
     let mut t_input = Instant::now();
     let mut t_pd = Instant::now();
+    // Bring-up ISMON diagnostic cadence (see the `isense:` log below).
+    let mut t_isense_log = Instant::now();
     // PD poll period. Backed off to a slow retry while the bus is not answering.
     let mut pd_period = Duration::from_millis(board::INA228_POLL_MS);
 
@@ -297,9 +314,13 @@ async fn main(spawner: Spawner) {
         if now.duration_since(t_input) >= Duration::from_millis(board::INPUT_POLL_MS) {
             t_input = now;
             let c = qei.count();
-            let delta = (c.wrapping_sub(enc_last)) as i16;
+            enc_accum += (c.wrapping_sub(enc_last) as i16) as i32;
             enc_last = c;
-            input.poll(&btn1, &btn2, &btn3, &enc_btn, delta);
+            // Convert raw quadrature counts to detents. The remainder is kept so
+            // a detent straddling two polls is not lost or double-counted.
+            let detents = (enc_accum / board::ENCODER_COUNTS_PER_DETENT) as i16;
+            enc_accum -= detents as i32 * board::ENCODER_COUNTS_PER_DETENT;
+            input.poll(&btn1, &btn2, &btn3, &enc_btn, detents);
             if let Some(ev) = input.last_event {
                 let mut app = app_state.lock().await;
                 let previous_screen = app.ui.screen;
@@ -345,11 +366,31 @@ async fn main(spawner: Spawner) {
                 filtered.vin_mv = prev_vin;
             }
             app.telemetry = filtered;
+
+            // Bring-up ISMON diagnostic: the raw PA3 count is independent of the
+            // scaling constants, so comparing it at 0 A vs a known load shows at
+            // a glance whether the LT8390A's monitor is moving at all.
+            // LT8390A + R18 (2 mΩ) should give ~25 counts/A (20 mV/A).
+            if now.duration_since(t_isense_log) >= Duration::from_secs(1) {
+                t_isense_log = now;
+                defmt::info!(
+                    "isense: raw={} zero={} vout={} mV iout={} mA vin={} mV iin={} mA",
+                    sense.last_i_raw(),
+                    sense.zero_raw(),
+                    app.telemetry.vout_mv,
+                    app.telemetry.iout_ma,
+                    app.telemetry.vin_mv,
+                    app.telemetry.iin_ma
+                );
+            }
         }
 
         if now.duration_since(t_supply) >= Duration::from_millis(board::SUPPLY_TICK_MS) {
             t_supply = now;
             let mut app = app_state.lock().await;
+            // Sweep first: it may move the setpoint/phase this very tick, and the
+            // supply tick below pushes the resulting setpoint to the CV DAC.
+            sweep.tick(&mut app);
             supply.tick(&mut app, &mut dac_cv, &mut dac_cc, &mut conv_en);
         }
 

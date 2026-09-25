@@ -26,8 +26,13 @@ pub struct InputHandler {
     // TODO(dead-code): stored but never read — the encoder delta is delivered to
     // consumers inside the `InputEvent::EncTurn` payload instead.
     // pub encoder_delta: i16,
-    debounce: [Instant; 4],
-    held: [bool; 4],
+    /// Time the current press was first observed. A button only fires once the
+    /// press has been continuously present for `DEBOUNCE_MS`.
+    press_at: [Instant; 4],
+    /// Previous sample's pressed state, for press-edge detection.
+    pressed_prev: [bool; 4],
+    /// An event has already fired for the current press.
+    fired: [bool; 4],
 }
 
 impl InputHandler {
@@ -35,8 +40,9 @@ impl InputHandler {
         Self {
             last_event: None,
             // encoder_delta: 0,
-            debounce: [Instant::now(); 4],
-            held: [false; 4],
+            press_at: [Instant::now(); 4],
+            pressed_prev: [false; 4],
+            fired: [false; 4],
         }
     }
 
@@ -52,6 +58,13 @@ impl InputHandler {
     ) {
         if enc_delta != 0 {
             self.last_event = Some(InputEvent::EncTurn(enc_delta));
+            // Do NOT sample the buttons in the same tick: a rotation must never
+            // be delivered as a button press. On the PD screen `EncBtn` confirms
+            // and requests the highlighted preset, so a turn that also read the
+            // encoder switch as closed would renegotiate instead of scroll (and
+            // scrolling past 48 V wraps the highlight to 12 V). A genuine press
+            // is simply picked up on the next 5 ms poll.
+            return;
         }
         self.check_button(0, btn1.is_low(), InputEvent::Btn1);
         self.check_button(1, btn2.is_low(), InputEvent::Btn2);
@@ -59,23 +72,27 @@ impl InputHandler {
         self.check_button(3, enc_btn.is_low(), InputEvent::EncBtn);
     }
 
-    /// Edge-detect with debounce: an event fires once per press, only after the
-    /// line has been released (and settled) for at least `DEBOUNCE_MS`.
+    /// Edge-detect with a **stable-press** debounce: an event fires once per
+    /// press, and only after the line has been continuously asserted for
+    /// `DEBOUNCE_MS`. Timing from the last release (the previous behaviour) fires
+    /// on the very first sample, so a one-poll glitch counts as a real press.
     fn check_button(&mut self, idx: usize, pressed: bool, ev: InputEvent) {
         let now = Instant::now();
-        if pressed && !self.held[idx] {
-            if now.duration_since(self.debounce[idx]) >= Duration::from_millis(board::DEBOUNCE_MS) {
+        if pressed {
+            if !self.pressed_prev[idx] {
+                self.press_at[idx] = now;
+                self.pressed_prev[idx] = true;
+            }
+            if !self.fired[idx]
+                && now.duration_since(self.press_at[idx])
+                    >= Duration::from_millis(board::DEBOUNCE_MS)
+            {
                 self.last_event = Some(ev);
-                self.held[idx] = true;
-                self.debounce[idx] = now;
+                self.fired[idx] = true;
             }
-        } else if !pressed {
-            if self.held[idx] {
-                // Restart the debounce window on release so a switch that
-                // bounce-retriggers within DEBOUNCE_MS can't double-fire.
-                self.debounce[idx] = now;
-            }
-            self.held[idx] = false;
+        } else {
+            self.pressed_prev[idx] = false;
+            self.fired[idx] = false;
         }
     }
 

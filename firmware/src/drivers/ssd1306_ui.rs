@@ -22,6 +22,17 @@
 //! spans from the board's configured minimum to its maximum for that
 //! measurement channel.
 //!
+//! Two other fullscreen layouts share the panel:
+//! - the CFG (Settings) list — header + up to [`CFG_VISIBLE_ROWS`] option rows,
+//!   the selected row filled with inverted text and a right-edge scrollbar when
+//!   the list overflows; and
+//! - the PD contract grid and EEPROM progress screens (below).
+//!
+//! The CFG "Output V sweep" has no screen of its own: while it is armed,
+//! running, or done, the power screen's bottom line is replaced by a sweep
+//! status line (`>SWEEP` plus the confirm prompt / point progress / `DONE`),
+//! which also displaces the `NO PD`/`Iin` field.
+//!
 //! NOTE: uses `draw_line(x0, y0, x1, y1)` for horizontal and vertical rules.
 
 use embassy_stm32::i2c::{I2c, Master};
@@ -32,6 +43,7 @@ use crate::board::{
     IOUT_MAX_MA,
     POWER_MAX_MW,
     SSD1306_ADDR,
+    SWEEP_POINTS,
     VBUS_SENSE_NUM, // Vin full-scale (mV at ADC ceiling)
     VOUT_MAX_MV,
     VOUT_MIN_MV,
@@ -40,7 +52,7 @@ use crate::drivers::ssd1306::Ssd1306;
 use crate::pd::auto_track::nearest_preset_index;
 use crate::state::{
     AppState, MenuScreen, PdAutoError, PdMode, RailRegion, StepMode, SupplyMode,
-    PD_PRESET_VOLTAGES_MV,
+    SweepPhase, CFG_ITEMS, CFG_VISIBLE_ROWS, PD_PRESET_VOLTAGES_MV,
 };
 
 // ── Layout constants ──────────────────────────────────────────────────────────
@@ -250,6 +262,14 @@ impl Ssd1306Ui {
 
     /// Bottom row: active screen name on the left, setpoint on the right when editing.
     fn draw_status_bar(&mut self, app: &AppState) {
+        // A CFG sweep owns the whole bottom line while armed/running/done. It
+        // replaces the screen tag and the right-hand input field (including the
+        // `NO PD` warning) in one shot.
+        if app.sweep.phase != SweepPhase::Off {
+            self.draw_sweep_status(app);
+            return;
+        }
+
         let auto = app.pd_control.mode == PdMode::Auto;
         let tag = match app.ui.screen {
             MenuScreen::Main => {
@@ -316,6 +336,45 @@ impl Ssd1306Ui {
         self.display.draw_str(x + s.len() as u8 * FONT_W, ROW_STATUS, "A");
     }
 
+    /// Bottom line while the CFG "Output V sweep" is armed, running, or done.
+    ///
+    /// Clears the entire row first so the previous `MAIN`/`AUTO` tag and the
+    /// `NO PD`/`INA!`/`Iin` field cannot ghost through underneath it.
+    fn draw_sweep_status(&mut self, app: &AppState) {
+        self.display.fill_rect(0, ROW_STATUS, DISPLAY_W, 8);
+        self.display.draw_str(0, ROW_STATUS, ">SWEEP");
+
+        match app.sweep.phase {
+            SweepPhase::Armed => {
+                draw_str_right(&mut self.display, ROW_STATUS, "ENC TO START");
+            }
+            SweepPhase::Running => {
+                let mut idx_buf = [0u8; 4];
+                let idx = fmt_u8(&mut idx_buf, app.sweep.index + 1);
+                let mut pct_buf = [0u8; 4];
+                let pct = fmt_percent(
+                    &mut pct_buf,
+                    (((app.sweep.index as u16) + 1) * 100 / SWEEP_POINTS as u16) as u8,
+                );
+
+                // Right-justify "n N%" as one unit so the numbers do not jitter.
+                let x0 = DISPLAY_W
+                    .saturating_sub((idx.len() + 1 + pct.len() + 1) as u8 * FONT_W);
+                self.display.draw_str(x0, ROW_STATUS, idx);
+                let x = x0 + idx.len() as u8 * FONT_W;
+                self.display.draw_str(x, ROW_STATUS, " ");
+                let x = x + FONT_W;
+                self.display.draw_str(x, ROW_STATUS, pct);
+                self.display
+                    .draw_str(x + pct.len() as u8 * FONT_W, ROW_STATUS, "%");
+            }
+            SweepPhase::Done => {
+                draw_str_right(&mut self.display, ROW_STATUS, "DONE");
+            }
+            SweepPhase::Off => {}
+        }
+    }
+
     /// EEPROM flashing progress screen (title, message, percent bar).
     pub async fn draw_eeprom_screen(
         &mut self,
@@ -342,6 +401,81 @@ impl Ssd1306Ui {
 
         // clear() marks everything dirty → flush_partial sends all pages (equivalent to full flush).
         self.display.flush_partial(i2c).await
+    }
+
+    /// Fullscreen CFG (Settings) list: header, then the scrollable option rows
+    /// with the highlighted entry filled and inverted.
+    pub async fn draw_cfg_screen(
+        &mut self,
+        i2c: &mut I2c<'_, Async, Master>,
+        app: &AppState,
+    ) -> Result<(), ()> {
+        // Full redraw — different layout from the power screen.
+        self.display.clear();
+        self.draw_temp_header_for_screen(app, "CFG");
+        self.draw_cfg_list(app);
+        self.display.flush_partial(i2c).await
+    }
+
+    // ── CFG screen private helpers ──────────────────────────────────────────
+
+    /// CFG list rows. Four 11-px rows fit between the header divider (row 16)
+    /// and the panel bottom; the viewport scrolls once the list grows past
+    /// [`CFG_VISIBLE_ROWS`].
+    fn draw_cfg_list(&mut self, app: &AppState) {
+        const ROW0: u8 = 20;
+        const PITCH: u8 = 11;
+
+        let total = CFG_ITEMS.len() as u8;
+        let scroll = app.ui.cfg_scroll.min(total.saturating_sub(1));
+        let show_scrollbar = total > CFG_VISIBLE_ROWS;
+        // Keep the right margin clear for the scrollbar when one is shown.
+        let row_w = if show_scrollbar {
+            DISPLAY_W - 4
+        } else {
+            DISPLAY_W
+        };
+
+        for row in 0..CFG_VISIBLE_ROWS {
+            let idx = scroll.saturating_add(row);
+            if idx >= total {
+                break;
+            }
+            let y = ROW0 + row * PITCH;
+            let label = CFG_ITEMS[idx as usize].label();
+
+            if idx == app.ui.cfg_index {
+                // Filled row + inverted glyphs, matching the PD grid's selection.
+                self.display.fill_rect(0, y - 1, row_w, 10);
+                self.display.draw_str_inverted(2, y, label);
+            } else {
+                self.display.draw_str(2, y, label);
+            }
+        }
+
+        if show_scrollbar {
+            self.draw_scrollbar(total, scroll);
+        }
+    }
+
+    /// Thin proportional scrollbar on the right edge, drawn only when the list
+    /// overflows the viewport.
+    fn draw_scrollbar(&mut self, total: u8, scroll: u8) {
+        const COL: u8 = 126;
+        const TOP: u8 = 18;
+        const BOT: u8 = 62;
+
+        self.display.draw_line(COL, TOP, COL, BOT);
+
+        let track_h = (BOT - TOP + 1) as u16;
+        let thumb_h = (track_h * CFG_VISIBLE_ROWS as u16 / total as u16).max(2);
+        let max_scroll = total.saturating_sub(CFG_VISIBLE_ROWS).max(1) as u16;
+        let max_off = track_h.saturating_sub(thumb_h);
+        let off = (max_off * scroll as u16 / max_scroll) as u8;
+        let thumb_top = TOP + off;
+        let thumb_bot = (thumb_top + thumb_h as u8 - 1).min(BOT);
+        self.display
+            .draw_line(COL + 1, thumb_top, COL + 1, thumb_bot);
     }
 
     /// Fullscreen PD contract selection screen with 2×3 grid.
@@ -479,13 +613,21 @@ impl Ssd1306Ui {
         };
         self.display.draw_str(region_x, 57, region);
 
-        if ctrl.mode == PdMode::Auto {
-            let policy = match ctrl.policy {
-                crate::state::AutoPolicy::Efficiency => "EFF",
-                crate::state::AutoPolicy::Power => "PWR",
-            };
-            self.display
-                .draw_str(DISPLAY_W - 3 * FONT_W, 57, policy);
+        match ctrl.mode {
+            PdMode::Auto => {
+                let policy = match ctrl.policy {
+                    crate::state::AutoPolicy::Efficiency => "EFF",
+                    crate::state::AutoPolicy::Power => "PWR",
+                };
+                self.display
+                    .draw_str(DISPLAY_W - 3 * FONT_W, 57, policy);
+            }
+            // BTN2 in Manual requests the highest rail the source offers.
+            PdMode::Manual if ctrl.max_request => {
+                self.display
+                    .draw_str(DISPLAY_W - 3 * FONT_W, 57, "MAX");
+            }
+            PdMode::Manual => {}
         }
     }
 
@@ -673,6 +815,12 @@ fn draw_percent_bar(d: &mut Ssd1306, y: u8, percent: u8) {
     }
 }
 
+/// Draw a short string flush with the right edge of a row.
+fn draw_str_right(d: &mut Ssd1306, y: u8, s: &str) {
+    let x = DISPLAY_W.saturating_sub(s.len() as u8 * FONT_W);
+    d.draw_str(x, y, s);
+}
+
 /// Draw a setpoint reading right-aligned on the status bar.
 ///
 /// Example: `"SET  5.000 V"` flush with the right edge.
@@ -771,6 +919,25 @@ fn fmt_int_volts(buf: &mut [u8; 6], mv: u32) -> &str {
     buf[i] = b'V';
     i += 1;
     core::str::from_utf8(&buf[..i]).unwrap_or("?V")
+}
+
+/// Format an unsigned byte with no padding (0–255).
+fn fmt_u8(buf: &mut [u8; 4], value: u8) -> &str {
+    let i = if value >= 100 {
+        buf[0] = b'0' + value / 100;
+        buf[1] = b'0' + (value / 10) % 10;
+        buf[2] = b'0' + value % 10;
+        3
+    } else if value >= 10 {
+        buf[0] = b'0' + value / 10;
+        buf[1] = b'0' + value % 10;
+        2
+    } else {
+        buf[0] = b'0' + value;
+        1
+    };
+
+    core::str::from_utf8(&buf[..i]).unwrap_or("?")
 }
 
 /// Format a clamped 0–100 percentage without a '%' suffix.

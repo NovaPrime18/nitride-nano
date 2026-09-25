@@ -79,6 +79,9 @@ pub async fn ui_task(app_state: &'static AppStateMutex, i2c_bus: &'static I2cBus
             MenuScreen::PdContract => {
                 ui.draw_pd_contract_screen(&mut i2c, &app).await.ok();
             }
+            MenuScreen::Settings => {
+                ui.draw_cfg_screen(&mut i2c, &app).await.ok();
+            }
             _ => {
                 ui.draw_power_screen(&mut i2c, &app).await.ok();
             }

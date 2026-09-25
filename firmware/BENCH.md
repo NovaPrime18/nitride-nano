@@ -15,7 +15,7 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 - [ ] Measure VREF+ (~3.3 V: the board ties it to +3V3 and the firmware leaves VREFBUF high-Z)
 - [ ] Sweep PA4 DAC code 0→4095; log PA0 vs DMM on feedback sense node
 - [ ] Sweep PA6 DAC; verify monotonic CC node voltage
-- [ ] Record inverted CV cal table (code 0 → max V, full-scale → 0 V) → update `control/dac_cv.rs` `CAL` array
+- [ ] Verify the CV map against the divider network: the code-0 output is `CV_FB_REF_MV·(1 + R19/R36 + R19/R20)` and the slope is `(R19/R36)·DAC_VREF_MV/DAC_MAX_CODE` per code (`control/dac_cv.rs`, `board::CV_FB_*`). Confirm R19/R20/R36 on the assembled board match ~357k/10k/10k; if not, update those constants.
 
 ## 3. ADC scaling
 
@@ -33,6 +33,9 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 - [ ] INA228 identity probe in the boot log: `mfg=0x5449, dev=0x228`
 - [ ] INA228 Vin/Iin agree with a DMM + known load within ~2 %; current sign positive into the converter; no clipping near 20 A
 - [ ] `INA!` appears on the main screen only when the INA228 is unplugged/NACKing
+- [ ] Power-cycle with the cable **already attached**: the `PdManager` watchdog should probe until the TPS26750 answers (`TPS26750 present`) and reload caps even without a plug interrupt
+- [ ] Boot with the TPS26750 held off: boot completes, `TPS26750 lost` appears after two failed probes, and it recovers (`TPS26750 present`) once the controller answers — no reset needed
+- [ ] I2C failures are logged as `I2C 1 (PD) error #n: <kind>` / `I2C 3 (UI) error #n: <kind>`. A one-off `nack` on an absent device is normal; a *stream* of `timeout`/`bus` means the bus is wedged and needs the (not-yet-implemented) peripheral-recovery path
 
 ## 5. UI (converter disabled)
 
@@ -45,8 +48,11 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 - [ ] Confirm PA11 polarity vs LT8390 RUN/SHDN
 - [ ] Input: current-limited 12 V (or USB PD 5 V contract only)
 - [ ] Enable at **low** Vset (e.g. 5 V) and Iset (e.g. 0.5 A)
-- [ ] Verify CV mode tracks setpoint within spec (open-loop — re-sweep DAC to calibrate `CAL` if offset/gain is off)
+- [ ] Verify CV mode tracks setpoint within spec (open-loop — if there is a residual offset/gain error, check the R19/R20/R36 values and `board::CV_FB_*` against the assembled board)
 - [ ] Verify CC mode limits current
+- [ ] CFG (BTN3 from PD): fullscreen list scrolls; EncBtn/BTN1 activates, BTN3 backs out
+- [ ] CFG → Output V sweep: returns to Main asking `ENC TO START`; confirm runs 32 points 10→56 V at ~2 s/point and parks the output at `DONE`; any button aborts and parks
+- [ ] During a sweep the bottom line replaces `MAIN` and `NO PD`, and the Auto-tracking rail does not renegotiate
 
 ## 7. Closed-loop & limits
 

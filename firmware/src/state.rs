@@ -107,6 +107,10 @@ pub struct PdControl {
     /// Set by the UI when the user changes the mode/preset/policy; the PD
     /// manager consumes it and renegotiates once.
     pub renegotiate_request: bool,
+    /// One-shot "MAX" request: ignore the preset and ask for the highest rail the
+    /// source offers (highest EPR PDO when EPR is available, else the highest SPR
+    /// fixed PDO). Set by BTN2 in Manual mode; cleared once the manager plans it.
+    pub max_request: bool,
 }
 
 impl Default for PdControl {
@@ -118,6 +122,7 @@ impl Default for PdControl {
             region: RailRegion::Unavailable,
             error: PdAutoError::NoCable,
             renegotiate_request: false,
+            max_request: false,
         }
     }
 }
@@ -139,6 +144,79 @@ pub enum MenuScreen {
 pub enum StepMode {
     Fine,
     Coarse,
+}
+
+/// One entry in the fullscreen CFG (Settings) list.
+///
+/// Adding an option is a four-step change: a new variant here, its label in
+/// [`CfgItem::label`], an activation arm in `ui::menu::cfg_activate`, and the
+/// element appended to [`CFG_ITEMS`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CfgItem {
+    EepromWrite,
+    OutputSweep,
+    PdContract,
+}
+
+impl CfgItem {
+    /// Display label for the CFG list row. Must stay within the 128 px panel at
+    /// the list's x offset (21 characters max) — keep it short.
+    pub fn label(self) -> &'static str {
+        match self {
+            CfgItem::EepromWrite => "EEPROM WRITE",
+            CfgItem::OutputSweep => "OUTPUT V SWEEP",
+            CfgItem::PdContract => "PD CONTRACT",
+        }
+    }
+}
+
+/// Fullscreen CFG list contents, in display order.
+pub const CFG_ITEMS: [CfgItem; 3] = [
+    CfgItem::EepromWrite,
+    CfgItem::OutputSweep,
+    CfgItem::PdContract,
+];
+
+/// Number of CFG rows that fit on screen at once; the list scrolls when
+/// [`CFG_ITEMS`] grows past this.
+pub const CFG_VISIBLE_ROWS: u8 = 4;
+
+/// Lifecycle of the CFG "Output V sweep" option.
+///
+/// `Armed` is entered by selecting the option in the CFG list (which returns to
+/// the Main screen); the encoder button confirms and starts the sweep. `Done`
+/// is the parked end state, dismissed by any button press.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SweepPhase {
+    Off,
+    Armed,
+    Running,
+    Done,
+}
+
+/// User-visible sweep state, mirrored from `control::sweep::SweepController`.
+///
+/// The controller owns the `Instant`-based step timing; only the phase, the
+/// 0-based point index, and the one-shot start request live here so the UI task
+/// can render progress from a plain `AppState` clone.
+#[derive(Clone, Copy, Debug)]
+pub struct SweepState {
+    pub phase: SweepPhase,
+    /// 0-based index of the point currently commanded (`Running`/`Done`).
+    pub index: u8,
+    /// Set by the UI when the encoder button confirms an armed sweep; consumed
+    /// by the controller on the next supply tick.
+    pub start_request: bool,
+}
+
+impl Default for SweepState {
+    fn default() -> Self {
+        Self {
+            phase: SweepPhase::Off,
+            index: 0,
+            start_request: false,
+        }
+    }
 }
 
 /// Filtered analog telemetry snapshot shared with the UI and control loop.
@@ -215,6 +293,11 @@ pub struct UiState {
     pub editing: bool,
     pub pd_profile_index: u8,
     pub encoder_step_mode: StepMode,
+    /// Selected row in the fullscreen CFG list.
+    pub cfg_index: u8,
+    /// First CFG row currently visible (viewport top); keeps the highlight in
+    /// view as the list scrolls.
+    pub cfg_scroll: u8,
 }
 
 impl Default for UiState {
@@ -224,6 +307,8 @@ impl Default for UiState {
             editing: false,
             pd_profile_index: 0,
             encoder_step_mode: StepMode::Fine,
+            cfg_index: 0,
+            cfg_scroll: 0,
         }
     }
 }
@@ -266,6 +351,9 @@ pub struct AppState {
     // directly from the main loop into `ui::input::InputHandler::poll` instead.
     // pub encoder_delta: i16,
     pub eeprom_ui: EepromUiSnapshot,
+    /// CFG "Output V sweep" lifecycle/progress, rendered on the Main screen's
+    /// bottom line while not [`SweepPhase::Off`].
+    pub sweep: SweepState,
 }
 
 impl Default for AppState {
@@ -279,6 +367,7 @@ impl Default for AppState {
             pd_cap_count: 0,
             pd_control: PdControl::default(),
             eeprom_ui: EepromUiSnapshot::default(),
+            sweep: SweepState::default(),
         }
     }
 }

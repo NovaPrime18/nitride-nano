@@ -1,0 +1,1823 @@
+                                                                                                                                                                     TPD4S480
+                                                                                                                              SLVSH00 – NOVEMBER 2024
+
+TPD4S480 USB Type-C® 48V EPR Port Protector: Short-to-VBUS Overvoltage and IEC
+                              ESD Protection
+1 Features                                                             These non-ideal equipment and mechanical events
+                                                                       make it necessary for the CC and SBU pins to be
+•   4-channels of short-to-VBUS overvoltage protection
+                                                                       48V tolerant, even though the pins only operate at 5V
+    (CC1, CC2, SBU1, SBU2): 63VDC tolerant
+                                                                       or lower. The TPD4S480 enables the CC and SBU
+•   4-channels of IEC 61000-4-2 ESD protection
+                                                                       pins to be 48V tolerant without interfering with normal
+    (CC1, CC2, SBU1, SBU2)
+                                                                       operation by providing over-voltage protection on the
+•   CC1 and CC2 overvoltage protection FETs for
+                                                                       CC and SBU pins. The device places high voltage
+    passing VCONN power
+                                                                       FETs in series on the SBU and CC lines. When
+•   ±65V surge protection on CC pins
+                                                                       a voltage above the OVP threshold is detected on
+•   +65V/-35V surge protection on SBU pins
+                                                                       these lines, the high voltage switches are opened up,
+•   Integrated VBUS divider circuit with enable for
+                                                                       isolating the rest of the system from the high voltage
+    dividing down EPR level VBUS
+                                                                       condition present on the connector.
+•   Integrated FET driver for control of external EPR
+    blocking FET                                                       The integrated VBUS divider circuit and FET driver,
+•   CC dead battery resistors integrated for handling                  allow PD controllers not rated for EPR operation to
+    dead battery use case in mobile devices                            safely operate in EPR voltage ranges. When enabled
+•   3mm × 3mm QFN package                                              by GPIO or automatically when VBUS exceeds 24V,
+                                                                       the TPD4S480 disables the optional external blocking
+2 Applications                                                         FET and enables the voltage divider. This action
+•   Desktop PC/motherboard                                             protects 20V rated PD controllers and allows the use
+•   Standard notebook PC                                               of existing VBUS sense circuits.
+•   Chromebook and WOA                                                 Finally, most systems require IEC 61000-4-2 system
+•   Docking station                                                    level ESD protection for external pins. The TPD4S480
+•   Port/cable adapters and dongles                                    integrates IEC 61000-4-2 ESD protection for the CC1,
+•   Smartphones                                                        CC2, SBU1, and SBU2 pins, eliminating the need
+3 Description                                                          to place high voltage TVS diodes externally on the
+                                                                       connector.
+The TPD4S480 is a single-chip USB Type-C port
+protection device that provides 48V Short-to-VBUS                                        Package Information (1)
+overvoltage and IEC ESD protection.                                          PART NUMBER                        PACKAGE                      BODY SIZE (NOM)
+                                                                       TPD4S480                       RUK (WQFN, 20)                       3mm × 3mm
+Since the release of the USB Type-C connector,
+many products and accessories for USB Type-C have                      (1)    For all available packages, see the orderable addendum at
+been released that do not meet the USB Type-C                                 the end of the data sheet.
+specification. One example of this is USB Type-C
+Power Delivery adapters that only place high voltage
+                                                                                                                                                         VBUS
+                                                                                                        VBUS
+
+
+                                                                                                                                         EPR_BLK_G
+
+
+on the VBUS line. Another concern for USB Type-C is                                                                 VBUS_LV
+
+                                                                                                                                                VBUS
+
+
+that mechanical twisting and sliding of the connector
+                                                                                                                      VPWR
+                                                                                                      LDO_3V3
+
+                                                                                                                    EPR_EN
+                                                                                                         GPIO
+
+
+could short pins due to the close proximity they have
+                                                                                                                                                                TYPE-C RECEPTICLE
+                                                                                                                      FLT
+                                                                                                         GPIO
+
+
+
+in this small connector. This can cause 48V VBUS to                                        PD
+                                                                                         Controller
+                                                                                                         CC1
+                                                                                                                       CC1                      C_CC1
+
+
+
+
+be shorted to the CC and SBU pins. Also due to the                                                       CC2
+                                                                                                                       CC2                      C_CC2
+
+
+
+
+proximity of the pins in the Type-C connector, there                                                    SBU1
+                                                                                                                      SBU1                      C_SBU1
+
+
+
+is a heightened concern that debris and moisture will                                                   SBU2
+                                                                                                                      SBU2                      C_SBU2
+
+
+
+
+cause the 48V VBUS pin to be shorted to the CC and
+SBU pins.
+                                                                                                                              TPD4S480
+
+
+
+
+                                                                                 CC and SBU Overvoltage Protection
+
+
+
+
+     An IMPORTANT NOTICE at the end of this data sheet addresses availability, warranty, changes, use in safety-critical applications,
+     intellectual property matters and other important disclaimers. PRODUCTION DATA.
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                                                                          www.ti.com
+
+
+                                                                        Table of Contents
+1 Features............................................................................1     6.4 Device Functional Modes..........................................14
+2 Applications..................................................................... 1     7 Application and Implementation.................................. 15
+3 Description.......................................................................1       7.1 Application Information............................................. 15
+4 Pin Configuration and Functions...................................3                       7.2 Typical Application.................................................... 15
+5 Specifications.................................................................. 5        7.3 Power Supply Recommendations.............................19
+  5.1 Absolute Maximum Ratings........................................ 5                    7.4 Layout....................................................................... 19
+  5.2 ESD Ratings—IEC Specification................................ 5                     8 Device and Documentation Support............................24
+  5.3 Recommended Operating Conditions.........................5                            8.1 Documentation Support............................................ 24
+  5.4 Thermal Information....................................................6              8.2 Receiving Notification of Documentation Updates....24
+  5.5 Electrical Characteristics.............................................6              8.3 Support Resources................................................... 24
+  5.6 Timing Requirements.................................................. 8               8.4 Trademarks............................................................... 24
+  5.7 Typical Characteristics................................................ 9             8.5 Electrostatic Discharge Caution................................24
+6 Detailed Description...................................................... 11             8.6 Glossary....................................................................24
+  6.1 Overview................................................................... 11      9 Revision History............................................................ 24
+  6.2 Functional Block Diagram......................................... 11                10 Mechanical, Packaging, and Orderable
+  6.3 Feature Description...................................................11              Information.................................................................... 24
+
+
+
+
+2       Submit Document Feedback                                                                                         Copyright © 2024 Texas Instruments Incorporated
+
+                                                                     Product Folder Links: TPD4S480
+                                                                                                                                                        TPD4S480
+www.ti.com                                                                                                                                  SLVSH00 – NOVEMBER 2024
+
+
+4 Pin Configuration and Functions
+
+
+
+                                                                        VBUS_LV             EPR_BLK_G   EPR_EN
+                                                               VBUS                 GND
+
+
+
+
+                                                               20       19          18      17          16
+
+                                          C_SBU1         1                                                       15          SBU1
+
+                                          C_SBU2         2                                                       14          SBU2
+
+                                            VBIAS        3                        Thermal                        13          GND
+                                                                                   Pad
+                                           C_CC1         4                                                       12          CC1
+
+                                           C_CC2         5                                                       11          CC2
+
+                                                               6        7           8       9           10
+
+
+
+
+                                                               RPD_G2   RPD_G1
+                                                                                    GND     FLT
+                                                                                                        VPWR          Not to scale
+
+
+
+
+                                                   Figure 4-1. RUK Package 20-Pin QFN
+
+                                                         Table 4-1. Pin Functions
+                 PIN
+                                          TYPE(1)                                                                     DESCRIPTION
+      NO.               NAME
+ 12                      CC1                 I/O      System side of the CC1 OVP FET. Connect to either CC pin of the CC/PD controller.
+ 11                      CC2                 I/O      System side of the CC2 OVP FET. Connect to either CC pin of the CC/PD controller.
+                                                      Connector side of the CC1 OVP FET. Connect to either CC pin of the USB Type-C
+ 4                     C_CC1                 I/O
+                                                      connector.
+                                                      Connector side of the CC2 OVP FET. Connect to either CC pin of the USB Type-C
+ 5                     C_CC2                 I/O
+                                                      connector.
+                                                      Connector side of the SBU1 OVP FET. Connect to either SBU pin of the USB Type-C
+ 1                     C_SBU1                I/O      connector. Alternatively, connect to either USB2.0 pin of the USB Type-C connector to
+                                                      protect the USB2.0 pins instead of the SBU pins.
+                                                      Connector side of the SBU2 OVP FET. Connect to either SBU pin of the USB Type-C
+ 2                     C_SBU2                I/O      connector. Alternatively, connect to either USB2.0 pin of the USB Type-C connector to
+                                                      protect the USB2.0 pins instead of the SBU pins.
+                                                      System side of the SBU1 OVP FET. Connect to either SBU pin of the SBU MUX.
+ 15                     SBU1                 I/O      Alternatively, connect to either USB2.0 pin of the USB2.0 Phy when protecting the
+                                                      USB2.0 pins instead of protecting the SBU pins.
+                                                      System side of the SBU2 OVP FET. Connect to either SBU pin of the SBU MUX.
+ 14                     SBU2                 I/O      Alternatively, connect to either USB2.0 pin of the USB2.0 Phy when protecting the
+                                                      USB2.0 pins instead of protecting the SBU pins.
+                                                      Short to C_CC1 if dead battery resistors are needed. If dead battery resistors are not
+ 7                     RPD_G1                I/O
+                                                      needed, short pin to GND.
+                                                      Short to C_CC2 if dead battery resistors are needed. If dead battery resistors are not
+ 6                     RPD_G2                I/O
+                                                      needed, short pin to GND.
+ 9                       FLT                 O        Open drain for fault reporting.
+ 8, 13, 18               GND                GND       Ground
+
+Copyright © 2024 Texas Instruments Incorporated                                                                                      Submit Document Feedback    3
+                                                         Product Folder Links: TPD4S480
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                                               www.ti.com
+
+                                                 Table 4-1. Pin Functions (continued)
+                  PIN
+                                         TYPE(1)                                          DESCRIPTION
+         NO.             NAME
+    3                    VBIAS              P        Pin for ESD support capacitor. Place a 0.1-µF capacitor on this pin to ground.
+    10                   VPWR               P        2.7V to 4.5V power supply.
+    20                   VBUS                I       Input for EPR VBUS divider. Tie to USB-C receptacle VBUS pins.
+                                                     Output of EPR VBUS divider. When EPR_EN is asserted, VBUS_LV is divided down
+    19                  VBUS_LV             O
+                                                     voltage from VBUS. When EPR_EN is de-asserted VBUS_LV is equal to VBUS.
+                                                     EPR mode enable input. When asserted EPR_BLK_G is disabled and VBUS_LV is
+    16                  EPR_EN               I
+                                                     divided VBUS.
+                                                     Gate driver output to optional VBUS blocking FET. FET is enabled when in SPR mode
+    17               EPR_BLK_G              O
+                                                     and disabled in EPR mode.
+    -                Thermal Pad           GND       Internally connected to GND. Used as a heatsink. Connect to the PCB GND plane
+
+(1)      I = input, O = output, I/O = input and output, GND = ground, P = power
+
+
+
+
+4        Submit Document Feedback                                                                   Copyright © 2024 Texas Instruments Incorporated
+
+                                                        Product Folder Links: TPD4S480
+                                                                                                                                                     TPD4S480
+www.ti.com                                                                                                                    SLVSH00 – NOVEMBER 2024
+
+
+5 Specifications
+5.1 Absolute Maximum Ratings
+over operating free-air temperature range (unless otherwise noted)(1)
+                                                                                                                             MIN              MAX      UNIT
+ VI                 Input voltage                           EPR_EN                                                           -0.3              6.0      V
+                                                            VPWR                                                             -0.3               5       V
+ VI                 Input voltage
+                                                            RPD_G1, RPD_G2, VBUS                                             -0.3              63       V
+ VI                 Input voltage                           VBUS (VPWR = 0V)                                                 -0.3              24       V
+ VI                 Input voltage                           VBUS (VPWR > 2.7V)                                               -0.3              63       V
+                                                            FLT                                                              -0.3               6       V
+ VO                 Output voltage
+                                                            VBIAS                                                            -0.3              63       V
+ VO                 Output voltage                          VBUS_LV                                                          -0.3              24       V
+ VO                 Output voltage                          EPR_BLK_G                                                        -0.3              30       V
+                                                            CC1, CC2, SBU1, SBU2                                             -0.3               6       V
+ VIO                I/O voltage
+                                                            C_CC1, C_CC2, C_SBU1, C_SBU2                                     -0.3              63       V
+ trise              Input voltage rise time (VI > 36V)      CC1, CC2, SBU1, SBU2                                             400                        ns
+ TJ                 Operating junction temperature                                                                           -40              125       °C
+ Tstg               Storage temperature                                                                                      -65              150       °C
+
+(1)       Operation outside the Absolute Maximum Ratings may cause permanent device damage. Absolute Maximum Ratings do not imply
+          functional operation of the device at these or any other conditions beyond those listed under Recommended Operating Conditions.
+          If used outside the Recommended Operating Conditions but within the Absolute Maximum Ratings, the device may not be fully
+          functional, and this may affect device reliability, functionality, performance, and shorten the device lifetime.
+
+5.2 ESD Ratings—IEC Specification
+                                                                                                                                    VALUE             UNIT
+ V(ESD)        Electrostatic discharge            IEC 61000-4-2, C_CC1, C_CC2                      Contact discharge                ±8000              V
+ V(ESD)        Electrostatic discharge            IEC 61000-4-2, C_CC1, C_CC2                      Air-gap discharge                ±15000             V
+ V(ESD)        Electrostatic discharge            IEC 61000-4-2, C_SBU1, C_SBU2                    Contact discharge                ±8000              V
+ V(ESD)        Electrostatic discharge            IEC 61000-4-2, C_SBU1, C_SBU2                    Air-gap discharge                ±15000             V
+                                                  IEC 61000-4-5, C_CC1, C_CC2                                                        ±65               V
+ V(Surge)      Lightning and Surge
+                                                  IEC 61000-4-5, C_SBU1, C_SBU2                                                     +65/-35            V
+
+
+
+5.3 Recommended Operating Conditions
+                                                                                                                       MIN    NOM             MAX      UNIT
+                                                                     VPWR                                              2.7      3.3            4.5         V
+                                                                     RPD_G1, RPD_G2                                      0                     5.5         V
+ VI            Input voltage
+                                                                     EPR_EN                                              0                  VPWR           V
+                                                                     VBUS                                                0                      51         V
+ VO            Output voltage                                        FLT Pull-up resistor power rail                   2.7                     5.5         V
+                                                                     CC1, CC2, C_CC1, C_CC2                              0                     5.5         V
+ VIO           I/O voltage
+                                                                     SBU1, SBU2, C_SBU1, C_SBU2                          0                     4.3         V
+                                                                     Current flowing into CC1/2 and flowing out
+ IVCONN        VCONN Current                                                                                                                   600      mA
+                                                                     of C_CC1/2, TJ ≤ 105 ℃
+                                                                     Current flowing into CC1/2 and flowing out
+ IVCONN        VCONN Current                                                                                                                  1.25         A
+                                                                     of C_CC1/2, TJ ≤ 85 ℃
+ TJ            Operating Junction Temperature                                                                          -40                     125      ℃
+
+
+
+
+Copyright © 2024 Texas Instruments Incorporated                                                                        Submit Document Feedback                5
+                                                             Product Folder Links: TPD4S480
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                                                             www.ti.com
+
+                                                                                                                       MIN        NOM         MAX      UNIT
+                                                                        FLT Pull-up resistance                          1.7                    300      kΩ
+    External                                                            VBIAS capacitance (2)                          0.04            0.1    0.14      µF
+    Compone      External Components(1)
+    nts(1)                                                              VPWR Capacitance                                0.3             1               µF
+                                                                        VBUS_LV Capacitance                                            0.1              µF
+
+(1)        For recommended values for capacitors and resistors, the typical values assume a component placed on the board near the pin.
+           Minimum and maximum values listed are inclusive of manufacturing tolerances, voltage derating, board capacitance, and temperature
+           variation. The effective value presented should be within the minimum and maximums listed in the table.
+(2)        The VBIAS pin requires a minimum 63-VDC rated capacitor. A 100-VDC rated capacitor is recommended to reduce capacitance
+           derating.
+           See the VBIAS Capacitor Selection section for more information on selecting the VBIAS capacitor.
+
+5.4 Thermal Information
+                                                                                                                              TPD4S480
+                                                  THERMAL METRIC(1)                                                             QFN                  UNIT
+                                                                                                                              20 PINS
+    RθJA              Junction-to-ambient thermal resistance                                                                    44.7                 °C/W
+    RθJC(top)         Junction-to-case (top) thermal resistance                                                                 41.8                 °C/W
+    RθJB              Junction-to-board thermal resistance                                                                      17.7                 °C/W
+    ψJT               Junction-to-top characterization parameter                                                                0.7                  °C/W
+    ψJB               Junction-to-board characterization parameter                                                              17.7                 °C/W
+    RθJC(bot)         Junction-to-case (bottom) thermal resistance                                                              7.9                  °C/W
+
+(1)        For more information about traditional and new thermal metrics, see the Semiconductor and IC Package Thermal Metrics application
+           report.
+
+5.5 Electrical Characteristics
+over operating junction temperature range (unless otherwise noted)
+                           PARAMETER                                        TEST CONDITIONS                     MIN             TYP          MAX      UNIT
+    CC OVP Switches
+    RON                  On Resistance of CC OVP FETs              CCx = 5.5V, TJ ≤ 85 ℃                                        272          420       mΩ
+                                                                   Capacitance from CCx or C_CCx to
+    CON_CC               Equivalent on Capacitance                 GND when device is powered. Measure           40              74          120       pF
+                                                                   at VC_CCx/VCCx = 0V to 1.2V, f = 400kHz.
+                         Dead Battery Pull-Down Resistors (only
+    RD_DB                                                          VC_CCx = 2.6V                                 4.1             5.1          6.1      kΩ
+                         present when device is unpowered)
+                         Threshold voltage of the pull-down FET
+    VTH_DB                                                         IC_CCx = 80μA                                 0.5             0.9          1.2       V
+                         in series with RD during dead battery
+                                                                   Place 5.5V on C_CCx. Step up C_CCx
+                                                                   until FLT pin is asserted. Put 100mA
+    VOVPCC               OVP Threshold on CC Pins                                                                5.6             5.9          6.2       V
+                                                                   load through the CC FET and see the
+                                                                   FET shuts off.
+                                                                   Place 6.5 V on C_CCx. Step down the
+                                                                   voltage on C_CCx until the FLT pin is
+    VOVPCC_HYS           Hysteresis on CC OVP                      deasserted. Measure difference                                50                    mV
+                                                                   between rising and falling OVP
+                                                                   threshold for C_CCx.
+                                                                   Measure the -3 dB bandwidth from
+                                                                   C_CCx to CCx. Single ended
+    BWON                 On Bandwidth Single Ended (-3dB)                                                                       125                   MHz
+                                                                   measurement, 50-Ω system. Vcm =
+                                                                   0.1V to 1.2 V.
+                                                                Hot-Plug C_CCx with a 1 meter USB
+    VSTBUS_CC            Short-to-VBUS tolerance on the CC pins Type C Cable, place a 30-Ω load on                                            51        V
+                                                                CCx
+                                                                   Hot-Plug C_CCx with a 1 meter USB
+                         Short-to-VBUS System-Side Clamping        Type C Cable. Hot-Plug voltage
+    VSTBUS_CC_CLAMP                                                                                                               7                     V
+                         Voltage on the CC pins (CCx)              C_CCx = 51 V. VPWR = 3.3 V. Place
+                                                                   a 30-Ω load on CCx.
+    SBU OVP Switches
+    RON                  On Resistance of SBU OVP FETs             SBUx = 3.6 V. –40°C ≤ TJ ≤ +85°C                               4           6.8       Ω
+
+
+6          Submit Document Feedback                                                                           Copyright © 2024 Texas Instruments Incorporated
+
+                                                                  Product Folder Links: TPD4S480
+                                                                                                                                       TPD4S480
+www.ti.com                                                                                                             SLVSH00 – NOVEMBER 2024
+
+5.5 Electrical Characteristics (continued)
+over operating junction temperature range (unless otherwise noted)
+                       PARAMETER                                     TEST CONDITIONS                     MIN         TYP        MAX      UNIT
+                                                            Capacitance from SBUx or C_SBUx to
+ CON_SBU             Equivalent on Capacitance              GND when device is powered. Measure                        6                 pF
+                                                            at VC_SBUx/VSBUx = 0.3V to 4.0V.
+                                                            Place 3.6V on C_SBUx. Step up
+ VOVPSBU             OVP Threshold on SBU Pins                                                            4.0         4.2       4.41      V
+                                                            C_SBUx until FLT pin is asserted.
+                                                            Place 5 V on C_CCx. Step down the
+                                                            voltage on C_CCx until the FLT pin is
+ VOVPSBU_HYS         Hysteresis on SBU OVP                  deasserted. Measure difference                            50                 mV
+                                                            between rising and falling OVP
+                                                            threshold for C_SBUx.
+                                                            Measure the -3 dB bandwidth from
+                                                            C_SBUx to SBUx. Single ended
+ BWON                On Bandwidth Single Ended (-3dB)                                                     600        760                 MHz
+                                                            measurement, 50Ω system. Vcm = 0.1V
+                                                            to 3.6V.
+                                                            Measure crosstalk at f = 1 MHz from
+                                                            SBU1 to C_SBU2 or SBU2 to C_SBU1.
+ XTALK               Crosstalk                                                                                        -70                dB
+                                                            Vcm1 = 3.6 V, Vcm2 = 0.3 V. Terminate
+                                                            open sides to 50Ω.
+                                                            Hot-Plug C_SBUx with a 1 meter USB
+                     Short-to-VBUS tolerance on the SBU     Type C Cable. Put a 100-nF capacitor
+ VSTBUS_SBU                                                                                                                       51      V
+                     pins                                   in series with a 40-Ω resistor to GND
+                                                            on SBUx.
+                                                            Hot-Plug C_SBUx with a 1 meter
+                                                            USB Type C Cable. Hot-Plug voltage
+                     Short-to-VBUS System-Side Clamping
+ VSTBUS_SBU_CLAMP                                           C_SBUx = 51V. VPWR = 3.3 V. Put a                          7                  V
+                     Voltage on the SBU pins (SBUx)
+                                                            150-nF capacitor in series with a 40-Ω
+                                                            resistor to GND on SBUx.
+ EPR Adapter
+                     VBUS_LV to VBUS divider ratio, SPR     VBUS_LV/VBUS, EPR_EN = 0, VBUS =
+ VBUS_DIV_SPR                                                                                                          1                 V/V
+                     Mode                                   4.5 - 21V, I_VBUS_LV = 0-20mA
+                     VBUS_LV to VBUS divider ratio, EPR     VBUS_LV/VBUS, EPR_EN = 1, VBUS =
+ VBUS_DIV_EPR                                                                                                        0.42                V/V
+                     Mode                                   26.6-50.4, I_VBUS_LV = 0-20mA
+ IVBUSLV             Current from VBUS_LV                                                                                         20     mA
+                                                          I_VBUS_LV=20mA, VBUS=4.5V,
+ VFWD_VBUSLV         VBUS to VBUS_LV forward voltage drop                                                            456         700     mV
+                                                          EPR_EN=0
+                                                            I_VBUS_LV=20mA, VBUS=26V,
+ VFWD_VBUSLV         VBUS to VBUS_LV forward voltage drop                                                            823         940     mV
+                                                            EPR_EN=1
+ VEPR_THRESH_R       Rising VBUS EPR enable threshold                                                    22.7                     24      V
+ VEPR_THRESH_F       Falling VBUS EPR enable threshold                                                   22.4                   23.4      V
+ VEPR_BLK_G          Gate Drive voltage for EPR_BLK_G       0 ≤ VBUS ≤ 22 V                                 5                     12      V
+                                                            0 ≤ VEPR_BLKG-VVBUS ≤ 5 V, 0 V ≤
+ IEPR_BLK_G          Gate Driver Sourcing Current                                                                      4                 µA
+                                                            VVBUS ≤ 22 V, measure IEPR_BLK_G
+ VEPR_EN_V+          EPR_EN rising threshold                                                                                0.7*VPWR      V
+ VEPR_EN_V-          EPR_EN falling threshold                                                        0.3*VPWR                             V
+ Power Supply and Leakage Currents
+                                                            Place 1 V on VPWR and raise voltage
+ VPWR_UVLO           VPWR Under Voltage Lockout                                                           2.1         2.3        2.6      V
+                                                            until SBU or CC FETs turn-on.
+                                                            Place 3 V on VPWR and lower voltage
+                                                            until SBU or CC FETs turnoff; measure
+ VPWR_UVLO_HYS       VPWR UVLO Hysteresis                                                                  70        100         130     mV
+                                                            difference between rising and falling
+                                                            UVLO to calculate hysteresis.
+                                                            VPWR = 3.3 V (typical), VPWR = 4.5 V
+ IVPWR               VPWR supply current                                                                             112         160     µA
+                                                            (maximum). –40°C ≤ TJ ≤ +85°C.
+                                                            VPWR = 3.3 V, VC_CCx = 3.6 V, CCx pins
+                     Leakage current for C_CCx pins when
+ IC_CC_LEAK                                                 are floating, measure leakage current                                  5     µA
+                     device is powered
+                                                            into C_CCx pins.
+
+
+
+
+Copyright © 2024 Texas Instruments Incorporated                                                                 Submit Document Feedback        7
+                                                           Product Folder Links: TPD4S480
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                                                          www.ti.com
+
+5.5 Electrical Characteristics (continued)
+over operating junction temperature range (unless otherwise noted)
+                           PARAMETER                                         TEST CONDITIONS                    MIN          TYP         MAX       UNIT
+                                                                    VPWR = 3.3 V, VC_SBUx = 3.6 V, SBUx
+                                                                    pins are floating, measure leakage
+                         Leakage current for C_SBUx pins when       current into C_SBUx pins. Result should
+    IC_SBU_LEAK                                                                                                                            3.2      µA
+                         device is powered                          be same if SBUx side is biased and
+                                                                    C_SBUx is left floating.-40°C ≤ TJ ≤
+                                                                    +85°C
+                                                                    VPWR = 0 V or 3.3 V, VC_CCx = 51
+                         Leakage current for C_CCx pins when
+    IC_CC_LEAK_OVP                                                  V, CCx pins are set to 0 V, measure                                  1200       µA
+                         device is in OVP
+                                                                    leakage current into C_CCx pins.
+                                                                    VPWR = 0 V or 3.3 V, VC_SBUx = 51
+                         Leakage current for C_SBUx pins when
+    IC_SBU_LEAK_OVP                                                 V, SBUx pins are set to 0 V, measure                                  720       µA
+                         device is in OVP
+                                                                    leakage current into C_SBUx pins.
+                                                                    VPWR = 0 V or 3.3 V, VC_CCx = 51
+                         Leakage current for CC pins when
+    ICC_LEAK_OVP                                                    V, CCx pins are set to 0 V, measure                                    30       µA
+                         device is in OVP
+                                                                    leakage current out of CCx pins.
+                                                                    VPWR = 0 V, VC_SBUx = 51 V, SBUx
+                         Leakage current for SBU pins when
+    ISBU_LEAK_OVP                                                   pins are set to 0 V, measure leakage          -1                         1      µA
+                         device is in OVP
+                                                                    current into SBUx pins.
+    /FLT Pin
+    VOL                  Low-level output voltage                   IOL = 3mA. Measure voltage at FLT pin.                                 0.4      V
+    Over Temperature Protection
+                         The rising over-temperature protection
+    TSD_RISING                                                                                                  150          175                    °C
+                         shutdown threshold
+                         The falling over-temperature protection
+    TSD_FALLING                                                                                                 130          140                    °C
+                         shutdown threshold
+                         The over-temperature protection
+    TSD_HYST                                                                                                                  35                    °C
+                         shutdown threshold hysteresis
+
+
+
+5.6 Timing Requirements
+                                                                                                                 MIN        NOM          MAX       UNIT
+    Power-On and Off Timings
+    tON_FET                   Time from Crossing Rising VPWR UVLO until CC and SBU OVP FETs are on.                           1.3          3.5      ms
+                              Time from Crossing Rising VPWR UVLO until CC and SBU OVP FETs are on
+    tON_FET_DB                                                                                                                5.7          9.5      ms
+                              and the dead battery resistors are off.
+    dVPWR_OFF/dt              Minimum slew rate for CC and FETs turn off during a power off.                     -0.5                              V/µs
+    Over Voltage Protection
+                              OVP response time on the CCx pins. Time from OVP asserted until OVP FETs
+    tOVP_RESPONSE_CC                                                                                                           70                   ns
+                              turn off.
+                              OVP response time on the SBUx pins. Time from OVP asserted until OVP
+    tOVP_RESPONSE_SBU                                                                                                          80                   ns
+                              FETs turn off.
+                              OVP recovery time on the CCx pins. Once an OVP has occurred, the minimum
+    tOVP_RECOVERY_CC          time duration until the CC FETs turn back on. OVP must be removed for CC                        0.9          2.3      ms
+                              FETs to turn back on.
+                              OVP recovery time on the CCx pins. Once an OVP has occurred, the minimum
+    tOVP_RECOVERY_CC_DB       time duration until the CC FETs turn back on and the dead battery resistors                       5                   ms
+                              turn off. OVP must be removed for CC FETs to turn back on.
+                              OVP recovery time on the SBUx pins. Once an OVP has occurred, the
+    tOVP_RECOVERY_SBU         minimum time duration until the SBU FETs turn back on. OVP must be                             0.62                   ms
+                              removed for SBU FETs to turn back on.
+                              Time from OVP Asserted to /FLT assertion. FLT assertion is 10% of the
+    tOVP_FLT_ASSERTION        maximum value. Set C_CCx or C_SBUx above the maximum OVP threshold.                              20                   µs
+                              Start the time where it passes the typical OVP threshold value.
+    tOVP_FLT_DEASSERTION      Time from CC FET turn on after an OVP to FLT deassertion.                                         5                   ms
+
+
+
+
+8         Submit Document Feedback                                                                            Copyright © 2024 Texas Instruments Incorporated
+
+                                                                   Product Folder Links: TPD4S480
+                                                                                                                                                                                                 TPD4S480
+www.ti.com                                                                                                                                                                       SLVSH00 – NOVEMBER 2024
+
+
+5.7 Typical Characteristics
+                            0                                                                                                         60                                                              60
+                                                                                                                                                   /FLT
+                  -0.5
+                                                                                                                                      50           SBU1                                               50
+                        -1
+                                                                                                                                                   C_SBU1
+                  -1.5                                                                                                                40                                                              40
+                                                                                                                                                   I_SHORT
+
+
+
+
+    S21 BW (dB)
+                        -2
+                                                                                                                                      30                                                              30
+
+                                                                                                                        Time (s)                                                                           Time (s)
+                  -2.5
+                                                                                                                                      20                                                              20
+                        -3
+
+                  -3.5                                                                                                                10                                                              10
+                        -4
+                                                                                                                                          0                                                           0
+                  -4.5
+
+                        -5                                                                                                            -10                                                           -10
+                        1E+05                 1E+06          1E+07         1E+08            1E+09                                      -1E-05     -5E-06       0         5E-06      1E-05      1.5E-05
+                                                         Frequency (Hz)                                                                                         Voltage (V)
+                                              Figure 5-1. SBU Bandwidth                                                                           Figure 5-2. SBU Short-to-VBUS 48V
+                    300                                                                                                               250
+                                                                                      C_SBU                                                                                                       C_SBU
+                    250                                                                                                               200
+                                                                                      SBU                                                                                                         SBU
+                    200                                                                                                               150
+                    150                                                                                                               100
+                    100
+                                                                                                                                          50
+
+
+    Voltage (V)
+                                                                                                                        Voltage (V)
+                         50
+                                                                                                                                              0
+                                 0
+                                                                                                                                          -50
+                      -50
+                                                                                                                                      -100
+                  -100
+                                                                                                                                      -150
+                  -150
+                                                                                                                                      -200
+                  -200
+                                                                                                                                      -250
+                  -250
+                    -4E-07                    0        4E-07      8E-07    1.2E-06     1.6E-06
+                                                                                                                                      -300
+                                                               Time (s)                                                                 -4E-07        0       4E-07      8E-07       1.2E-06    1.6E-06
+                  Figure 5-3. SBU IEC 61000-4-2 4kV Response Waveform                                                                                                 Time (s)
+                                                                                                                               Figure 5-4. SBU IEC 61000-4-2 –4kV Response Waveform
+
+                                     60                                               60                                   100
+                                                                                                                                                                                                      C_CC
+                                     50                                               50                                         80                                                                   CC
+
+                                                                                                                                 60
+                                     40                                               40
+                                                                          /FLT                                                   40
+
+
+                   Voltage (V)                                                              Current (A)   Voltage (V)
+                                     30                                   CC          30
+                                                                          C_CC                                                   20
+                                     20                                               20
+                                                                          I_SHORT                                                     0
+
+                                     10                                               10
+                                                                                                                              -20
+
+                                     0                                                0                                       -40
+
+                                 -10                                                  -10                                     -60
+                                          0           4E-06      8E-06     1.2E-05                                             -4E-07             0        4E-07     8E-07       1.2E-06    1.6E-06        2E-06
+                                                          Time (s)                                                                                                  Time (s)
+                                          Figure 5-5. CC Short-to-VBUS 48V                                                            Figure 5-6. CC IEC 61000-4-2 8kV Response Waveform
+
+
+
+
+Copyright © 2024 Texas Instruments Incorporated                                                                                                                       Submit Document Feedback                        9
+                                                                                   Product Folder Links: TPD4S480
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                                                                                                    www.ti.com
+
+5.7 Typical Characteristics (continued)
+                     60                                                                                                   55
+                                                                                          C_CC                                              VBUS_LV
+                                                                                                                          50
+                     40                                                                   CC                                                VBUS
+                                                                                                                          45
+                     20                                                                                                   40
+                                                                                                                          35
+                     0
+
+
+     Voltage (V)                                                                                            Voltage (V)
+                                                                                                                          30
+                    -20                                                                                                   25
+                                                                                                                          20
+                    -40
+                                                                                                                          15
+                    -60                                                                                                   10
+
+                    -80                                                                                                   5
+                                                                                                                          0
+                   -100
+                     -4E-07   0     4E-07    8E-07                 1.2E-06      1.6E-06        2E-06                      -5
+                                                                                                                            -0.8     -0.4       0         0.4     0.8    1.2   1.6   2     2.4   2.8
+                                            Time (s)
+                                                                                                                                                                   Time (s)
+                   Figure 5-7. CC IEC 61000-4-2 –8kV Response Waveform                                                             Figure 5-8. VBUS Sweep with EPR_EN low
+
+                                                              55
+                                                              50                VBUS_LV
+
+                                                              45                VBUS
+
+                                                              40
+                                                              35
+
+
+
+                                                Voltage (V)
+                                                              30
+                                                              25
+                                                              20
+                                                              15
+                                                              10
+                                                              5
+                                                              0
+                                                              -5
+                                                                -0.8     -0.4       0          0.4     0.8    1.2              1.6          2       2.4     2.8
+                                                                                                        Time (s)
+                                                                       Figure 5-9. VBUS Sweep with EPR_EN high
+
+
+
+
+10                 Submit Document Feedback                                                                                                               Copyright © 2024 Texas Instruments Incorporated
+
+                                                                                 Product Folder Links: TPD4S480
+                                                                                                                                    TPD4S480
+www.ti.com                                                                                                              SLVSH00 – NOVEMBER 2024
+
+
+6 Detailed Description
+6.1 Overview
+The TPD4S480 is a single chip USB Type-C port protector that provides 48V Short-to-VBUS overvoltage and
+ESD protection. Due to the small pin pitch of the USB Type-C connector and non-compliant USB Type-C cables
+and accessories, the VBUS pins can get shorted to the CC and SBU pins inside the USB Type-C connector.
+Because of this short-to-VBUS event, the CC and SBU pins need to be 48V tolerant, to support protection on
+the full USB PD-EPR voltage range. The TPD4S480 integrates four channels of 48V Short-to-VBUS overvoltage
+protection for the CC1, CC2, SBU1, and SBU2 pins of the USB Type-C connector.
+Additionally, IEC 61000-4-2 system level ESD protection is required to protect a USB Type-C port from
+ESD strikes generated by end product users. The TPD4S480 integrates four channels of IEC61000-4-2 ESD
+protection for the CC1, CC2, SBU1, and SBU2 pins of the USB Type-C connector. This means ESD protection
+is provided for all of the low-speed pins on the USB Type-C connector in a single chip by the TPD4S480.
+Additionally, high-voltage ESD protection that is 55V DC tolerant is required for the CC and SBU lines to
+simultaneously support ESD and Short-to-VBUS protection. The TPD4S480 integrates a high-voltage ESD diode
+designed to work in conjunction with the overvoltage protection FETs inside the device.
+6.2 Functional Block Diagram
+                                                 VBUS_LV                                 EPR_BLK_G
+
+
+
+                                                                                                                  EPR_EN
+                                       EPR VBUS                               Control Logic and
+                           VBUS         Divider
+                                                        Over-voltage                                              VPWR
+                                                         Protection            Charge Pumps
+                                                                                                                  FLT
+
+
+
+
+                        C_SBU1                                                                                   SBU1
+
+                                         ESD                                                         System
+                                        Clamps                                                       Clamps
+
+                        C_SBU2                                                                                    SBU2
+
+                          VBIAS
+
+                         C_CC1                                                                                    CC1
+
+                                         ESD                                                         System
+                                        Clamps                                                       Clamps
+
+
+                         C_CC2                                                                                    CC2
+                                                     VPWR
+
+                                                              RD
+                                                                       VPWR
+
+                        RPD_G1                                                   RD
+
+                        RPD_G2
+
+
+
+6.3 Feature Description
+6.3.1 4-Channels of Short-to-VBUS Overvoltage Protection (CC1, CC2, SBU1, SBU2 Pins or CC1, CC2, DP,
+DM Pins): 63-VDC Tolerant
+The TPD4S480 provides 4-channels of Short-to-VBUS Overvoltage Protection for the CC1, CC2, SBU1, and
+SBU2 pins (or the CC1, CC2, DP, and DM pins) of the USB Type-C connector. The TPD4S480 is able to
+handle 63VDC on its C_CC1, C_CC2, C_SBU1, and C_SBU2 pins. This level of protection is necessary because
+according to the USB PD specification, with VBUS set for 48-V operation, the VBUS voltage is allowed to legally
+swing up to 50.4V and 50.9V on voltage transitions from a different USB PD VBUS voltage. The TPD4S480 builds
+in tolerance up to 63VBUS to provide margin above this 50.9V specification to be able to support inductive ringing
+that may occur during a short event.
+
+Copyright © 2024 Texas Instruments Incorporated                                                               Submit Document Feedback       11
+                                                            Product Folder Links: TPD4S480
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                          www.ti.com
+
+
+When a short-to-VBUS event occurs, ringing happens due to the RLC elements in the hot-plug event. With very
+low resistance in this RLC circuit, ringing up to twice the settling voltage can appear on the connector. Ringing of
+more than twice the DC level can be generated if any capacitor on the line derates in capacitance value during
+the short-to-VBUS event. This behavior means that more than 90V could be seen on a USB Type-C pin during a
+Short-to-VBUS event. The TPD4S480 has built in circuit protection to handle this ringing. The diode clamps used
+for IEC ESD protection also clamp the ringing voltage during the short-to-VBUS event to limit the peak ringing
+to approximately 53V. Additionally, the overvoltage protection FETs integrated inside the TPD4S480 are 63V
+tolerant, therefore being capable of supporting the high-voltage ringing waveform that is experienced during the
+short-to-VBUS event. The well designed combination of voltage clamps and 63V tolerant OVP FETs insures the
+TPD4S480 can handle Short-to-VBUS hot-plug events with hot-plug voltages as high as 51VDC.
+The TPD4S480 has an extremely fast turnoff time of 70ns typical. Furthermore, additional voltage clamps are
+placed after the OVP FET on the system side (CC1, CC2, SBU1, SBU2) pins of the TPD4S480, to further limit
+the voltage and current that are exposed to the USB Type-C CC/PD controller during the 70ns interval while the
+OVP FET is turning off. The combination of connector side voltage clamps, OVP FETs with extremely fast turnoff
+time, and system side voltage clamps all work together to insure the level of stress seen on a CC1, CC2, SBU1,
+or SBU2 pin during a short-to-VBUS event is less than or equal to an HBM event.
+The SBU OVP FETs are designed with to be able to optionally protect the DP, DM (USB2.0) pins in lieu of the
+SBU pins. Some systems designers also prefer to protect the DP, DM pins from Short-to-VBUS events due to
+the potential for moisture/water in the connector to short the VBUS pins to DP, DM pins. This can be especially
+applicable in cases where the end equipment with a USB Type-C connector is trying to be made water-proof.
+If desiring to protect the DP, DM pins on the USB Type-C connector from a Short-to-VBUS event, connect the
+C_SBUx pins to the DP, DM pins on the USB Type-C connector, and the SBUx pins to the USB2.0 pins of the
+system device being protected from the Short-to-VBUS event.
+6.3.2 CC1, CC2 Overvoltage Protection FETs 600-mA Capable for Passing VCONN Power
+The CC pins on the USB Type-C connector serve many functions; one of the functions is to be a provider of
+power to active cables. Active cables are required when desiring to pass greater than 3 A of current on the VBUS
+line or when the USB Type-C port uses the super-speed lines (TX1+, TX2–, RX1+, RX1–, TX2+, TX2–, RX2+,
+RX2–). When CC is configured to provide power, it is called VCONN. VCONN is a DC voltage source in the
+range of 3V to 5.5V. If supporting VCONN, a VCONN provider must be able to provide 1.5 W of power to a
+cable; this translates into a current range of 273mA to 500mA (depending on the VCONN voltage level).
+When a USB Type-C port is configured for VCONN and using the TPD4S480, this VCONN current flows through
+the OVP FETs of the TPD4S480. Therefore, the TPD4S480 has been designed to handle these currents and
+have an RON low enough to provide a specification compliant VCONN voltage to the active cable.
+6.3.3 CC Dead Battery Resistors Integrated for Handling the Dead Battery Use Case in Mobile Devices
+An important feature of USB Type-C and USB PD is the ability for this connector to serve as the sole power
+source to mobile devices. With support up to 240W, the USB Type-C connector supporting USB PD can be used
+to power a whole new range of mobile devices not previously possible with legacy USB connectors.
+When the USB Type-C connector is the sole power supply for a battery powered device, the device must be
+able to charge from the USB Type-C connector even when its battery is dead. In order for a USB Type-C power
+adapter to supply power on VBUS, RD pulldown resistors must be exposed on the CC pins. These RD resistors
+are typically included inside a USB Type-C CC/PD controller. However, when the TPD4S480 is used to protect
+the USB Type-C port, the OVP FETs inside the device isolate these RD resistors in the CC/PD controller when
+the mobile device has no power. When the TPD4S480 has no power, the OVP FETs are turned off to provide
+overvoltage protection in a dead battery condition. Therefore, the TPD4S480 integrates high-voltage, dead
+battery RD pull-down resistors to allow dead battery charging simultaneously with high-voltage OVP protection.
+If dead battery support is required, short the RPD_G1 pin to the C_CC1 pin, and short the RPD_G2 pin to the
+C_CC2 pin. This short connects the dead battery resistors to the connector CC pins. When the TPD4S480 is
+unpowered, and the RP pull-up resistor is connected from a power adapter, this RP pull-up resistor activates
+the RD resistor inside the TPD4S480, and enables VBUS to be applied from the power adapter even in a dead
+
+
+12    Submit Document Feedback                                                  Copyright © 2024 Texas Instruments Incorporated
+
+                                            Product Folder Links: TPD4S480
+                                                                                                            TPD4S480
+www.ti.com                                                                                     SLVSH00 – NOVEMBER 2024
+
+
+battery condition. Once power is restored back to the system and back to the TPD4S480 on its VPWR pin, the
+TPD4S480 turns ON its OVP FETs in 3.5ms and then turns OFF its dead battery RD. The TPD4S480 first turns
+ON its CC OVP FETs fully, and then removes its dead battery RDs to make sure the PD controller RD is fully
+exposed before removing the RD of the TPD4S480.
+If desiring to power the CC/PD controller during dead battery mode and if the CC/PD Controller is configured
+as a DRP, it is critical that the TPD4S480 be powered before or at the same time that the CC/PD controller is
+powered. It is also critical that when unpowered, the CC/PD controller also expose its dead battery resistors.
+When the TPD4S480 gets powered, it exposes the CC pins of the CC/PD controller within 3.5ms, and then
+removes its own RD dead battery resistors. Once the TPD4S480 turns on, the RD pull-down resistors of the
+CC/PD controller must be present immediately, in order to maintain a connection. If the power adapter does
+not see RD present, it can disconnect VBUS. This event removes power from the device with its battery still not
+sufficiently charged, which consequently removes power from the CC/PD controller and the TPD4S480. Then
+the RD resistors of the TPD4S480 are exposed again, and connects the VBUS of the power adapter to start the
+cycle over.
+If the CC/PD Controller is configured for DRP and has started to DRP toggle before the TPD4S480 turns on, this
+DRP toggle is unable to maintain a connection with a power adapter. If the CC/PD controller is configured for
+DRP, the dead battery resistors of the PD controller need to be exposed as well, and that the resistors remain
+exposed until the TPD4S480 turns on. This behavior is typically accomplished by powering the TPD4S480 at the
+same time as the CC/PD controller when powering the CC/PD controller in dead battery operation.
+If dead battery charging is not required in your application, connect the RPD_G1 and RPD_G2 pins to ground.
+6.3.4 EPR Adapter
+The TPD4S480 integrates additional circuitry that may be used to adapt a PD controller with pin tolerances
+below EPR levels for use in EPR applications. The EPR adapter consists of two components, the VBUS divider
+and the EPR blocking FET gate driver. The EPR adapter features are enabled by asserting the EPR_EN pin or
+when the VBUS pin exceeds EPR_THRESH_R.
+
+                                                                                                        To PD
+
+
+
+
+                                                            Gate
+                                                            Drive
+
+
+            VBUS                                                                    +
+
+                                                                    EPR_THRESH      –
+
+
+
+                                                  VBUS
+                                                  Divider
+
+
+                                                                                                      EPR_EN
+
+
+
+
+                         VBUS_LV
+
+
+
+
+                                                   Figure 6-1. EPR Adapter
+
+6.3.4.1 VBUS Divider
+The VBUS divider provides a divided down output of VBUS so that an attached PD controller can safely sense
+EPR voltages. Table 6-1 summarizes the operating states of the VBUS divider.
+
+
+Copyright © 2024 Texas Instruments Incorporated                                         Submit Document Feedback   13
+                                                   Product Folder Links: TPD4S480
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                                              www.ti.com
+
+                                                   Table 6-1. VBUS Divider States
+ EPR_EN                               VBUS                               VBUS_LV Ratio (VBUS_LV /            Description
+                                                                         VBUS)
+ 0                                    < EPR_THRES_R                      1                                   SPR Operation
+ 1                                    X                                  0.42                                EPR Operation
+ X                                    > EPR_THRESH_R                     0.42
+
+
+6.3.4.2 EPR Blocking FET Gate Driver
+An NFET gate driver is integrated for controlling an external blocking FET. When in EPR mode the gate driver
+is disabled, isolating any non-EPR tolerant circuitry from VBUS. When in SPR mode the gate driver is enabled
+connecting low voltage components to VBUS.
+                                                   Table 6-2. VBUS Divider States
+ EPR_EN                               VBUS                               Gate Driver State                   Description
+ 0                                    < EPR_THRES_R                      Enabled                             SPR Operation
+ 1                                    X                                  Disabled                            EPR Operation
+ X                                    > EPR_THRESH_R                     Disabled
+
+
+6.4 Device Functional Modes
+Table 6-3 describes all of the functional modes for the TPD4S480. The "X" in the below table are "don't care"
+conditions, meaning any value can be present within the absolute maximum ratings of the data sheet and
+maintain that functional mode.
+                                                    Table 6-3. Device Mode Table
+      Device Mode Table                            Inputs                                                  Outputs
+                                          C_CC                                                                SBU                    EPR_BLK
+            MODE               VPWR            C_SBUx       RPD_Gx        TJ         FLT       CC FETs                 VBUS_LV
+                                            x                                                                 FETs                   _G
+                Unpowered,
+                 no dead       <UVL
+                                           X        X       Grounded         X      High-Z        OFF         OFF      VBUS          Disabled
+                  battery       O
+                  support
+
+  Normal    Unpowered,
+                               <UVL                         Shorted to
+ Operating dead battery         O
+                                           X        X
+                                                             C_CCx
+                                                                             X      High-Z        OFF         OFF      VBUS          Disabled
+ Conditions   support
+            Powered on,        >UVL                         X, forced
+                                          <OVP   <OVP                    <TSD       High-Z        ON           ON      VBUS          Enabled
+             SPR mode           O                             OFF
+               Powered on,     >UVL       <OVP   <OVP       X, forced    <TSD       High-Z        ON           ON      Divided       Disabled
+                EPR mode        O                             OFF                                                      VBUS
+                  Thermal      >UVL                         X, forced            Low (Fault                            Maintains     Maintains
+                                           X        X                    >TSD                     OFF         OFF
+                 shutdown       O                             OFF                Asserted)                             EPR state     EPR state
+                 CC over
+                               >UVL                         X, forced            Low (Fault                            Maintains     Maintains
+   Fault          voltage                 >OVP      X                    <TSD                     OFF         OFF
+                                O                             OFF                Asserted)                             EPR state     EPR state
+ Conditions      condition
+                 SBU over
+                               >UVL                         X, forced            Low (Fault                            Maintains     Maintains
+                  voltage                  X     >OVP                    <TSD                     OFF         OFF
+                                O                             OFF                Asserted)                             EPR state     EPR state
+                 condition
+                 IEC ESD                                     RD ON if
+                                                                                                                       Maintains     Maintains
+                 generated     >UVL                         RPD_Gx is            Low (Fault
+                                           X        X                  <TSD                       OFF         OFF      current       current
+                over voltage    O                           shorted to           Asserted)
+                                                                                                                       EPR state     EPR state
+                condition(1)                                 C_CCx
+
+(1)    This row describes the state of the device while still in OVP after the IEC ESD strike which put the device into OVP is over, and the
+       voltages on the C_CCx and C_SBUx pins have returned to their normal voltage levels.
+
+
+
+
+14     Submit Document Feedback                                                                     Copyright © 2024 Texas Instruments Incorporated
+
+                                                        Product Folder Links: TPD4S480
+                                                                                                                                                 TPD4S480
+www.ti.com                                                                                                                          SLVSH00 – NOVEMBER 2024
+
+
+7 Application and Implementation
+                                                                         Note
+       Information in the following applications sections is not part of the TI component specification,
+       and TI does not warrant its accuracy or completeness. TI’s customers are responsible for
+       determining suitability of components for their purposes, as well as validating and testing their design
+       implementation to confirm system functionality.
+
+7.1 Application Information
+The TPD4S480 provides 4-channels of Short-to-VBUS overvoltage protection for the CC1, CC2, SBU1, and
+SBU2 pins of the USB Type-C connector Care must be taken to insure that the TPD4S480 provides adequate
+system protection as well as insuring that proper system operation is maintained. The following application
+example explains how to properly design the TPD4S480 into a USB Type-C system.
+7.2 Typical Application
+
+                                                                                  Q8
+                                                  VBUS_LV                                                                 VBUS
+                                                                          1,2,3               5,6,
+                                                                 C48                          7,8                   C47
+                                                                 50V                                                100V
+                                                                                  4
+                                                                 0.1uF                                              0.1uF
+
+                                                            GND                                               GND
+                                                                    19            17            20
+                                                         U12
+             LDO_3V3
+
+
+
+                                                                                  EPR_BLK_G
+                                                                                                 VBUS
+                                                                       VBUS_LV
+                                                    10
+                                                           VPWR
+                                                     3
+                                                           VBIAS
+                     C49         C50
+                     25V         100V EPR_EN        16
+                     0.1uF       0.1uF                     EPR_EN
+
+                                                                                                               4                        C_CC1
+                                                                                                      C_CC1
+                                          CC1       12                                                         7
+                                                           CC1                                       RPD_G1
+                GND         GND           CC2       11                                                                0     R45
+                                                           CC2
+                                                                                                               5                        C_CC2
+                                                                                                      C_CC2
+                                                                                                               6
+                                                                                                     RPD_G2
+                                                                                                                             0    R46
+                                          SBU1      15                                                         1                        C_SBU1
+                                                           SBU1                                      C_SBU1
+                                          SBU2      14                                                         2                        C_SBU2
+                                                           SBU2                                      C_SBU2
+                            LDO_3V3
+
+                                                                                                               8
+                                  R31                                                                GND
+                                                                                                               13
+                                  10k                                                                GND
+                                                                                                               18
+                                                                                                     GND
+                        FLT                          9                                                         21
+                                                           FLT                                Thermal_Pad
+                                                         TPD4S480RUKR
+
+
+                                                                                                               GND
+
+
+                                             Figure 7-1. TPD4S480 Reference Schematic
+
+7.2.1 Design Requirements
+In this application example we study the protection requirements for a USB Type-C DRP Port, fully equipped
+with USB-PD, and 240W charging. The TPS26750 is used to easily enable a DRP port. Both the CC and SBU
+
+Copyright © 2024 Texas Instruments Incorporated                                                                             Submit Document Feedback    15
+                                                         Product Folder Links: TPD4S480
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                                  www.ti.com
+
+
+pins are susceptible to shorting to the VBUS pin. With 240W charging, VBUS operates at 48V, requiring the CC
+and SBU pins to tolerate 48VDC. With these protection requirements present for the USB Type-C connector, the
+TPD4S480 is used.
+Table 7-1 lists the TPD4S480 design parameters.
+                                              Table 7-1. Design Parameters
+                                 DESIGN PARAMETER                                   EXAMPLE VALUE
+                            VBUS nominal operating voltage                               48V
+                    Short-to-VBUS tolerance for the CC and SBU pins                      63V
+                              VBIAS nominal capacitance                                 0.1µF
+                                 Dead battery charging                                  240W
+                      Maximum ambient temperature requirement                           85°C
+
+
+The recommended MOSFET settings for Q8, as shown in Table 7-2, are as follows:
+                                              Table 7-2. MOSFET Selection
+                                 VDS (V) VGS (V)     Type                RDS (on)
+                                                   N-         < = 10mOhms (3A max Q8 current)
+                                 > = 30V > = 15V
+                                                 channel     < = 20mOhms (1.5A max Q8 current)
+
+
+7.2.1.1 EPR Design Requirements
+The TPD4S480 works in conjunction with the PD controller to provide the following functionality in USB-PD EPR:
+•    Short to VBUS protection for direct shorts to CC1 and CC2 pins of the Type-C connector.
+•    Short to VBUS protection for the liquid detection circuitry that is connected to the SBU1 and SBU2 pins of the
+     Type-C connector, if the liquid detection feature is implemented.
+•    Voltage level translation from up the EPR maximum voltage down to the operation range of the VBUS pins of
+     the PD controller.
+•    Gate drive for a high voltage NMOS transistor to allow the internal 5V power path to be used to source 5V in
+     systems that only require a 5V output.
+
+
+
+
+16    Submit Document Feedback                                                          Copyright © 2024 Texas Instruments Incorporated
+
+                                                 Product Folder Links: TPD4S480
+                                                                                                                         TPD4S480
+www.ti.com                                                                                                 SLVSH00 – NOVEMBER 2024
+
+
+7.2.2 Detailed Design Procedure
+7.2.2.1 VBIAS Capacitor Selection
+As noted in the Section 5.3 table, a minimum of 63VBUS rated capacitor is required for the VBIAS pin, and a
+100VBUS capacitor is recommended. The VBIAS capacitor is in parallel with the central diode clamp integrated
+inside the TPD4S480. A forward biased hiding diode connects the VBIAS pin to the C_CCx and C_SBUx pins.
+Therefore, when a Short-to-VBUS event occurs at 48V, 48VBUS minus a forward biased diode drop is exposed
+to the VBIAS pin. Additionally, during the short-to-VBUS event, ringing can occur almost double the settling
+voltage of 48V, allowing a potential 96V to be exposed to the C_CCx and C_SBUx pins. However, the internal
+diode clamps limit the voltage exposed to the C_CCx and C_SBUx pins to around 63V. Therefore, at least 63V
+capacitor is required to insure the VBIAS capacitor does not get destroyed during Short-to-VBUS events.
+A 100V, X7R capacitor is recommended to further improve the derating performance of the capacitors. When the
+voltage across a real capacitor is increased, the capacitance value derates. The more the capacitor derates, the
+larger the ringing in the short-to-VBUS RLC circuit. The 100V X7R capacitors have great derating performance,
+allowing for the best short-to-VBUS performance of the TPD4S480.
+7.2.2.2 Dead Battery Operation
+For this application, we want to support 240W dead battery operation; when the device is out of battery, we still
+want to charge the laptop at 48V and 5A. This means that the USB PD Controller must receive power in dead
+battery mode. The TPS26750 has a built in LDO to supply the TPS26750 power from VBUS in a dead battery
+condition.
+The OVP FETs of the TPD4S480 remain OFF when unpowered to provide protection in dead battery or
+unpowered situations. However, when the OVP FETs are OFF, this isolates the TPS26750s dead battery
+resistors from the USB Type-C ports CC pins. A USB Type-C power adapter must see the RD pull-down dead
+battery resistors on the CC pins to provide power on VBUS. Since the dead battery resistors of the TPS26750 are
+isolated from the USB Type-C connector CC pins, the built-in, dead battery resistors of the TPD4S480 must be
+connected. Short the RPD_G1 pin to the C_CC1 pin, and short the RPD_G2 pin to the C_CC2 pin.
+Once the power adapter sees the dead battery resistors of the TPD4S480, 5V is applied on the VBUS pin. This
+provides power to the TPS26750, turning the PD controller on, and allowing the battery to begin to charge.
+However, this application requires 240W charging in dead battery mode, so VBUS at 48V and 5A is required.
+USB PD negotiation is required to accomplish this, so the TPS26750 needs to be able to communicate on the
+CC pins. The TPD4S480 needs to be turned on in dead battery mode as well so the PD controller can be
+exposed to the CC lines. To turn on the device, the TPD4S480 is powered by the internal LDO of the TPS26750,
+the LDO_3V3 pin. When the TPS26750 receives power on VBUS, the TPD4S480 is turned on simultaneously.
+The dead battery resistors of the PD controller also need to be present so the PD controller properly boots up in
+dead battery operation with the correct voltages on the CC pins.
+Once this process has occurred, the TPS26750 can start negotiating with the power adapter through USB PD for
+higher power levels, allowing 240W operation in dead battery mode.
+For more information on the TPD4S480 dead battery operation, see the CC Dead Battery Resistors Integrated
+for Handling the Dead Battery Use Case in Mobile Devices section of the data sheet.
+7.2.2.3 CC Line Capacitance
+USB PD has a specification for the total amount of capacitance that is required for proper USB PD BMC
+operation on the CC lines.
+                                              Table 7-3. USB PD cReceiver Specification
+      NAME                        DESCRIPTION                        MIN       MAX      UNIT               COMMENT
+                                                                                               The DFP or UFP system shall have
+    cReceiver                CC receiver capacitance                 200         600    pF     capacitance within this range when
+                                                                                               not transmitting on the line
+
+
+
+
+Copyright © 2024 Texas Instruments Incorporated                                                    Submit Document Feedback         17
+                                                       Product Folder Links: TPD4S480
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                         www.ti.com
+
+
+The capacitance on the CC lines must stay in between 200pF and 600pF when USB PD is being used.
+Therefore, the combination of capacitances added to the system by the TPS26750, the TPD4S480, and any
+external capacitor must fall within these limits.
+7.2.2.4 Additional ESD Protection on CC and SBU Lines
+If additional IEC ESD protection is desired to be placed on either the CC or SBU lines, it is important that
+high-voltage ESD protection diodes be used. The maximum DC voltage that can be seen in USB PD is 50.4V,
+with 50.9V allowed during voltage transitions. Therefore, an ESD protection diode must have a reverse stand off
+voltage higher than 50.9V to prevent the diode from breakdown during a short-to-VBUS event.
+Due to the fact that the Short-to-VBUS event applies a DC voltage to the CC and SBU pins, a deep-snap-back
+diode cannot be used unless its minimum trigger voltage is above 96V. During a Short-to-VBUS event, RLC
+ringing of up to twice the settling voltage can be exposed to CC and SBU, allowing for up to 48V to be exposed.
+Furthermore, if any capacitor derates on the CC or SBU line, greater ringing can occur. Since this ringing is hard
+to bound, it is recommended to not use deep-snap-back diodes. If the deep-snap-back diode triggers during the
+short-to-VBUS hot-plug event, it begins to operate in its conduction region. With a 48V VBUS source present on
+the CC or SBU line, this allows the diode to conduct indefinitely.
+7.2.2.5 FLT Pin Operation
+Once a Short-to-VBUS occurs on the C_CCx or C_SBUx pins, the FLT pin is asserted in 20µs (typical) so the PD
+controller can be notified quickly. If VBUS is being shorted to CC or SBU, it is recommended to respond to the
+event by forcing a detach in the USB PD controller to remove VBUS from the port. Although the USB Type-C port
+using the TPD4S480 is not damaged, as the TPD4S480 provides protection from these events, the other device
+connected through the USB Type-C Cable or any active circuitry in the cable can be damaged. Although shutting
+the VBUS off through a detach does not ensure it stops the other device or cable from being damaged, it can
+mitigate any high current paths from causing further damage after the initial damage takes place. Additionally,
+even if the active cable or other device does have proper protection, the short-to-VBUS event may corrupt a
+configuration in an active cable or in the other PD controller, so it is best to detach and reconfigure the port.
+7.2.2.6 How to Connect Unused Pins
+If either the RPD_Gx pins are unused in a design, they must be connected to GND.
+7.2.3 EPR Application Curves
+Figure 7-2 shows the VBUS and VBUS_LV pins during a 5V to 48V voltage transition.
+
+
+
+
+18    Submit Document Feedback                                                 Copyright © 2024 Texas Instruments Incorporated
+
+                                           Product Folder Links: TPD4S480
+                                                                                                             TPD4S480
+www.ti.com                                                                                       SLVSH00 – NOVEMBER 2024
+
+
+
+
+                                                                            20V
+
+
+                5V
+                                                                                   EPR Mode (VBUS Scaled)
+                                                                                    48V
+
+
+
+
+                                                                          20V
+
+                5V
+
+
+
+
+                                                                5
+
+                                Figure 7-2. 48V EPR Contract Negotiation VBUS and VBUS LV
+
+7.3 Power Supply Recommendations
+The VPWR pin provides power to all the circuitry in the TPD4S480. It is recommended a 1-µF decoupling
+capacitor is placed as close as possible to the VPWR pin. If USB PD is desired to be operated in dead battery
+conditions, it is critical that the TPD4S480 share the same power supply as the PD controller in dead battery
+boot-up (such as sharing the same dead battery LDO). See the CC Dead Battery Resistors Integrated for
+Handling the Dead Battery Use Case in Mobile Devices section for more details.
+7.4 Layout
+7.4.1 Layout Guidelines
+Proper routing and placement is important to maintain the signal integrity the USB2.0, SBU, CC line signals. The
+following guidelines apply to the TPD4S480 device:
+• Place the bypass capacitors as close as possible to the VPWR pin, and ESD protection capacitor as close as
+    possible to the VBIAS pin. Capacitors must be attached to a solid ground. This minimizes voltage disturbances
+    during transient events such as short-to-VBUS and ESD strikes.
+• The USB2.0 and SBU lines must be routed as straight as possible and any sharp bends must be minimized.
+Standard ESD recommendations apply to the C_CC1, C_CC2, C_SBU1, and C_SBU2 as well:
+• The optimum placement for the device is as close to the connector as possible:
+
+
+
+Copyright © 2024 Texas Instruments Incorporated                                           Submit Document Feedback   19
+                                                  Product Folder Links: TPD4S480
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                        www.ti.com
+
+
+     – EMI during an ESD event can couple from the trace being struck to other nearby unprotected traces,
+        resulting in early system failures.
+     – The PCB designer must minimize the possibility of EMI coupling by keeping any unprotected traces away
+        from the protected traces which are between the TPD4S480 device and the connector.
+•    Route the protected traces as straight as possible.
+•    Eliminate any sharp corners on the protected traces between the TVS and the connector by using rounded
+     corners with the largest radii possible.
+     – Electric fields tend to build up on corners, increasing EMI coupling.
+7.4.2 Layout Example
+
+
+
+
+                                 Figure 7-3. TPS26750 PCB Layout - Top Composite
+
+
+
+
+                             Figure 7-4. TPS26750 PCB Layout - Bottom Composite
+
+
+
+
+20    Submit Document Feedback                                                Copyright © 2024 Texas Instruments Incorporated
+
+                                             Product Folder Links: TPD4S480
+                                                                                                             TPD4S480
+www.ti.com                                                                                       SLVSH00 – NOVEMBER 2024
+
+
+
+
+                                          Figure 7-5. TPS26750 PCB Layout - Top Layer 1
+
+
+
+
+                                         Figure 7-6. TPS26750 PCB Layout - GND Layer 2
+
+
+
+
+Copyright © 2024 Texas Instruments Incorporated                                           Submit Document Feedback   21
+                                                    Product Folder Links: TPD4S480
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                        www.ti.com
+
+
+
+
+                                 Figure 7-7. TPS26750 PCB Layout - Signal Layer 3
+
+
+
+
+                                 Figure 7-8. TPS26750 PCB Layout - Signal Layer 4
+
+
+
+
+22    Submit Document Feedback                                                Copyright © 2024 Texas Instruments Incorporated
+
+                                             Product Folder Links: TPD4S480
+                                                                                                              TPD4S480
+www.ti.com                                                                                        SLVSH00 – NOVEMBER 2024
+
+
+
+
+                                         Figure 7-9. TPS26750 PCB Layout - GND Layer 5
+
+
+
+
+                                       Figure 7-10. TPS26750 PCB Layout - Bottom Layer 6
+
+
+
+
+Copyright © 2024 Texas Instruments Incorporated                                            Submit Document Feedback   23
+                                                    Product Folder Links: TPD4S480
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                                       www.ti.com
+
+8 Device and Documentation Support
+8.1 Documentation Support
+8.1.1 Related Documentation
+For related documentation see the following:
+TPS26750 USB Type-C® and USB PD Controller With Integrated Power Switches Optimized for Power
+Applications
+8.2 Receiving Notification of Documentation Updates
+To receive notification of documentation updates, navigate to the device product folder on ti.com. Click on
+Notifications to register and receive a weekly digest of any product information that has changed. For change
+details, review the revision history included in any revised document.
+8.3 Support Resources
+TI E2E™ support forums are an engineer's go-to source for fast, verified answers and design help — straight
+from the experts. Search existing answers or ask your own question to get the quick design help you need.
+Linked content is provided "AS IS" by the respective contributors. They do not constitute TI specifications and do
+not necessarily reflect TI's views; see TI's Terms of Use.
+8.4 Trademarks
+TI E2E™ is a trademark of Texas Instruments.
+All trademarks are the property of their respective owners.
+8.5 Electrostatic Discharge Caution
+                This integrated circuit can be damaged by ESD. Texas Instruments recommends that all integrated circuits be handled
+                with appropriate precautions. Failure to observe proper handling and installation procedures can cause damage.
+                ESD damage can range from subtle performance degradation to complete device failure. Precision integrated circuits may
+                be more susceptible to damage because very small parametric changes could cause the device not to meet its published
+                specifications.
+
+
+8.6 Glossary
+ TI Glossary        This glossary lists and explains terms, acronyms, and definitions.
+
+9 Revision History
+NOTE: Page numbers for previous revisions may differ from page numbers in the current version.
+             DATE                           REVISION                                             NOTES
+        November 2024                            *                                            Initial Release
+
+
+
+10 Mechanical, Packaging, and Orderable Information
+The following pages include mechanical, packaging, and orderable information. This information is the most
+current data available for the designated devices. This data is subject to change without notice and revision of
+this document. For browser-based versions of this data sheet, refer to the left-hand navigation.
+
+
+
+
+24    Submit Document Feedback                                                               Copyright © 2024 Texas Instruments Incorporated
+
+                                                     Product Folder Links: TPD4S480
+                                                                                                                                                                         TPD4S480
+www.ti.com                                                                                                                                                 SLVSH00 – NOVEMBER 2024
+
+
+
+
+                                                                                                                                 PACKAGE OUTLINE
+                 RUK0020B                                                         SCALE 4.000
+                                                                                                                            WQFN - 0.8 mm max height
+                                                                                                                                 PLASTIC QUAD FLATPACK - NO LEAD
+
+
+
+
+                                                                      3.1                                    B
+                                           A
+                                                                      2.9
+
+
+
+                                                                                                                                                          0.5
+                                                                                                                                                          0.3
+
+
+                         PIN 1 INDEX AREA
+
+                                                                                                             3.1                     0.25
+                                                                                                             2.9                     0.15
+
+                                                                                                                                                 DETAIL
+                                                                                                                                        OPTIONAL TERMINAL
+                                                                                                                                             TYPICAL
+
+
+
+
+                                                                                                                                                DIMENSION A
+                                                                                                                                            OPTION 01     (0.1)
+                                                                                                                                            OPTION 02     (0.2)
+
+                                0.8 MAX                                                                              C
+
+                                                                                                                          SEATING PLANE
+                                    0.05
+                                    0.00                                                                                  0.08 C
+
+
+
+                                                                  1.7 0.05                                                            (DIM A) TYP
+                                                                                                                                   OPT 02 SHOWN
+                                                       6                                        10
+                                                                                                             EXPOSED
+                                                                                                             THERMAL PAD
+                                16X 0.4
+                                               5
+                                                                                                      11
+
+
+
+                                     4X                          21                                          SYMM
+                                     1.6
+
+
+
+
+                                               1
+                       SEE TERMINAL                                                                   15
+                                                                                                                         0.25
+                             DETAIL                                                                                20X
+                                                                                                                         0.15
+                                                                                                                          0.1    C A        B
+                                                           20                     16
+                                    PIN 1 ID                      SYMM                                                    0.05
+                                 (OPTIONAL)                                       0.5
+                                                                            20X
+                                                                                  0.3
+                                                                                                                                                     4222676/A 02/2016
+
+                NOTES:
+
+                1. All linear dimensions are in millimeters. Any dimensions in parenthesis are for reference only. Dimensioning and tolerancing
+                   per ASME Y14.5M.
+                2. This drawing is subject to change without notice.
+                3. The package thermal pad must be soldered to the printed circuit board for thermal and mechanical performance.
+
+
+
+
+                                                                                                www.ti.com
+
+
+
+
+Copyright © 2024 Texas Instruments Incorporated                                                                                                   Submit Document Feedback     25
+                                                                Product Folder Links: TPD4S480
+TPD4S480
+SLVSH00 – NOVEMBER 2024                                                                                                                                          www.ti.com
+
+
+
+
+                                                                                                     EXAMPLE BOARD LAYOUT
+             RUK0020B                                                                                         WQFN - 0.8 mm max height
+                                                                                                                      PLASTIC QUAD FLATPACK - NO LEAD
+
+
+
+
+                                                                                ( 1.7)
+                                                                                   SYMM
+
+                                                                      20                      16
+
+
+                                          20X (0.6)
+
+                                                      1
+                                                                                                                 15
+
+                                      20X (0.2)
+                                                                                                                      (0.6)
+                                                                              21                                      TYP       SYMM
+
+                                          16X (0.4)                                                                                  (2.8)
+
+
+
+                                                      5                                                          11
+                                        (R0.05)
+                                           TYP
+
+                                        ( 0.2) TYP
+                                                VIA
+                                                                      6                         10
+                                                                                   (2.8)
+
+
+                                                                  LAND PATTERN EXAMPLE
+                                                                              SCALE:20X
+
+
+
+
+                                         0.05 MAX                                                   0.05 MIN
+                                     ALL AROUND                                                 ALL AROUND
+
+                                                                                                                                SOLDER MASK
+                                                                 METAL
+                                                                                                                                OPENING
+
+
+                                                                  SOLDER MASK                                                     METAL UNDER
+                                                                  OPENING                                                         SOLDER MASK
+
+                                            NON SOLDER MASK
+                                                                                                           SOLDER MASK
+                                                DEFINED
+                                                                                                             DEFINED
+                                              (PREFERRED)
+
+                                                                       SOLDER MASK DETAILS
+                                                                                                                                             4222676/A 02/2016
+
+             NOTES: (continued)
+
+             4. This package is designed to be soldered to a thermal pad on the board. For more information, see Texas Instruments literature
+                number SLUA271 (www.ti.com/lit/slua271).
+             5. Vias are optional depending on application, refer to device data sheet. If any vias are implemented, refer to their locations shown
+                on this view. It is recommended that vias under paste be filled, plugged or tented.
+
+
+
+
+                                                                                     www.ti.com
+
+
+
+
+26    Submit Document Feedback                                                                                                Copyright © 2024 Texas Instruments Incorporated
+
+                                                                Product Folder Links: TPD4S480
+                                                                                                                                                            TPD4S480
+www.ti.com                                                                                                                                   SLVSH00 – NOVEMBER 2024
+
+
+
+
+                                                                                                 EXAMPLE STENCIL DESIGN
+                 RUK0020B                                                                                 WQFN - 0.8 mm max height
+                                                                                                                 PLASTIC QUAD FLATPACK - NO LEAD
+
+
+
+
+                                                                              SYMM
+
+                                                                                            (0.47) TYP
+                                                    (R0.05) TYP
+                                                                     20                     16
+
+
+                                           20X (0.6)
+
+                                                       1
+                                                                                                           15
+                                                                            21
+                                        20X (0.2)
+                                                                                                                (0.47)
+                                                                                                                 TYP     SYMM
+
+                                          16X (0.4)                                                                             (2.8)
+
+
+
+                                                       5                                                   11
+
+
+                                            METAL
+                                            TYP
+
+                                                                     6                     10
+                                                                     4X ( 0.75)
+
+                                                                              (2.8)
+
+
+                                                                  SOLDER PASTE EXAMPLE
+                                                                  BASED ON 0.1 mm THICK STENCIL
+
+                                                                      EXPOSED PAD 21:
+                                                    78% PRINTED SOLDER COVERAGE BY AREA UNDER PACKAGE
+                                                                         SCALE:20X
+
+
+
+
+                                                                                                                                        4222676/A 02/2016
+
+                 NOTES: (continued)
+
+                 6. Laser cutting apertures with trapezoidal walls and rounded corners may offer better paste release. IPC-7525 may have alternate
+                   design recommendations.
+
+
+
+
+                                                                                  www.ti.com
+
+
+
+
+Copyright © 2024 Texas Instruments Incorporated                                                                                  Submit Document Feedback         27
+                                                                  Product Folder Links: TPD4S480
+                                                                                                                                                                      PACKAGE OPTION ADDENDUM
+
+       www.ti.com                                                                                                                                                                                                   21-Sep-2026
+
+
+
+
+PACKAGING INFORMATION
+
+       Orderable part number          Status     Material type      Package | Pins      Package qty | Carrier        RoHS             Lead finish/              MSL rating/               Op temp (°C)          Part marking
+                                        (1)            (2)                                                             (3)            Ball material             Peak reflow                                           (6)
+                                                                                                                                            (4)                      (5)
+
+          TPD4S480RUKR                Active      Production       WQFN (RUK) | 20       5000 | LARGE T&R             Yes                NIPDAU           Level-2-260C-1 YEAR              -40 to 125               4S480
+         TPD4S480RUKR.A               Active      Production       WQFN (RUK) | 20       5000 | LARGE T&R             Yes                NIPDAU           Level-2-260C-1 YEAR See TPD4S480RUKR                      4S480
+
+(1)
+      Status: For more details on status, see our product life cycle.
+
+(2)
+   Material type: When designated, preproduction parts are prototypes/experimental devices, and are not yet approved or released for full production. Testing and final process, including without limitation quality assurance,
+reliability performance testing, and/or process qualification, may not yet be complete, and this item is subject to further changes or possible discontinuation. If available for ordering, purchases will be subject to an additional
+waiver at checkout, and are intended for early internal evaluation purposes only. These items are sold without warranties of any kind.
+
+(3)
+      RoHS values: Yes, No, RoHS Exempt. See the TI RoHS Statement for additional information and value definition.
+
+(4)
+   Lead finish/Ball material: Parts may have multiple material finish options. Finish options are separated by a vertical ruled line. Lead finish/Ball material values may wrap to two lines if the finish value exceeds the maximum
+column width.
+
+(5)
+  MSL rating/Peak reflow: The moisture sensitivity level ratings and peak solder (reflow) temperatures. In the event that a part has multiple moisture sensitivity ratings, only the lowest level per JEDEC standards is shown.
+Refer to the shipping label for the actual reflow temperature that will be used to mount the part to the printed circuit board.
+
+(6)
+      Part marking: There may be an additional marking, which relates to the logo, the lot trace code information, or the environmental category of the part.
+
+Multiple part markings will be inside parentheses. Only one part marking contained in parentheses and separated by a "~" will appear on a part. If a line is indented then it is a continuation of the previous line and the two
+combined represent the entire part marking for that device.
+
+Important Information and Disclaimer:The information provided on this page represents TI's knowledge and belief as of the date that it is provided. TI bases its knowledge and belief on information provided by third parties, and
+makes no representation or warranty as to the accuracy of such information. Efforts are underway to better integrate information from third parties. TI has taken and continues to take reasonable steps to provide representative
+and accurate information but may not have conducted destructive testing or chemical analysis on incoming materials and chemicals. TI and TI suppliers consider certain information to be proprietary, and thus CAS numbers
+and other limited information may not be available for release.
+
+In no event shall TI's liability arising out of such information exceed the total purchase price of the TI part(s) at issue in this document sold by TI to Customer on an annual basis.
+
+OTHER QUALIFIED VERSIONS OF TPD4S480 :
+
+• Automotive : TPD4S480-Q1
+
+
+
+                                                                                                          Addendum-Page 1
+                                                                                                                          PACKAGE OPTION ADDENDUM
+
+   www.ti.com                                                                                                                               21-Sep-2026
+
+
+
+
+NOTE: Qualified Version Definitions:
+
+       • Automotive - Q100 devices qualified for high-reliability automotive applications targeting zero defects
+
+
+
+
+                                                                                                        Addendum-Page 2
+                                                                              PACKAGE MATERIALS INFORMATION
+
+www.ti.com                                                                                                                                      3-Sep-2026
+
+
+
+TAPE AND REEL INFORMATION
+
+       REEL DIMENSIONS                                                                     TAPE DIMENSIONS
+                                                                                      K0       P1
+
+
+
+                                                                                                                     B0 W
+                                       Reel
+                                     Diameter
+                                                                                   Cavity           A0
+                                                               A0   Dimension designed to accommodate the component width
+                                                               B0   Dimension designed to accommodate the component length
+                                                               K0   Dimension designed to accommodate the component thickness
+                                                               W    Overall width of the carrier tape
+                                                               P1   Pitch between successive cavity centers
+
+
+                                      Reel Width (W1)
+                              QUADRANT ASSIGNMENTS FOR PIN 1 ORIENTATION IN TAPE
+
+                                                                                                    Sprocket Holes
+
+
+                                                Q1        Q2          Q1    Q2
+
+                                                Q3        Q4          Q3    Q4                  User Direction of Feed
+
+
+
+                                                           Pocket Quadrants
+
+
+*All dimensions are nominal
+             Device           Package Package Pins             SPQ       Reel   Reel   A0                  B0         K0     P1     W     Pin1
+                               Type Drawing                            Diameter Width (mm)                (mm)       (mm)   (mm)   (mm) Quadrant
+                                                                         (mm) W1 (mm)
+     TPD4S480RUKR             WQFN     RUK           20        5000        330.0        12.4        3.3    3.3       1.1    8.0    12.0    Q2
+     TPD4S480RUKR             WQFN     RUK           20        5000        330.0        12.4        3.3    3.3       1.1    8.0    12.0    Q2
+
+
+
+
+                                                                     Pack Materials-Page 1
+                                                                PACKAGE MATERIALS INFORMATION
+
+www.ti.com                                                                                                              3-Sep-2026
+
+
+
+ TAPE AND REEL BOX DIMENSIONS
+
+
+
+
+                                                               Width (mm)
+                                                                              H
+
+
+
+
+                      W                                   L
+
+
+
+
+*All dimensions are nominal
+             Device           Package Type   Package Drawing   Pins         SPQ    Length (mm)   Width (mm)   Height (mm)
+     TPD4S480RUKR                WQFN             RUK           20          5000      346.0        346.0         33.0
+     TPD4S480RUKR                WQFN             RUK           20          5000      360.0        360.0         36.0
+
+
+
+
+                                                        Pack Materials-Page 2
+                                         IMPORTANT NOTICE AND DISCLAIMER
+TI PROVIDES TECHNICAL AND RELIABILITY DATA (INCLUDING DATASHEETS), DESIGN RESOURCES (INCLUDING REFERENCE
+DESIGNS), APPLICATION OR OTHER DESIGN ADVICE, WEB TOOLS, SAFETY INFORMATION, AND OTHER RESOURCES “AS IS”
+AND WITH ALL FAULTS, AND DISCLAIMS ALL WARRANTIES, EXPRESS AND IMPLIED, INCLUDING WITHOUT LIMITATION ANY
+IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT OF THIRD
+PARTY INTELLECTUAL PROPERTY RIGHTS.
+These resources are intended for skilled developers designing with TI products. You are solely responsible for (1) selecting the appropriate
+TI products for your application, (2) designing, validating and testing your application, and (3) ensuring your application meets applicable
+standards, and any other safety, security, regulatory or other requirements.
+These resources are subject to change without notice. TI grants you permission to use these resources only for development of an
+application that uses the TI products described in the resource. Other reproduction and display of these resources is prohibited. No license
+is granted to any other TI intellectual property right or to any third party intellectual property right. TI disclaims responsibility for, and you fully
+indemnify TI and its representatives against any claims, damages, costs, losses, and liabilities arising out of your use of these resources.
+TI’s products are provided subject to TI’s Terms of Sale, TI’s General Quality Guidelines, or other applicable terms available either on
+ti.com or provided in conjunction with such TI products. TI’s provision of these resources does not expand or otherwise alter TI’s applicable
+warranties or warranty disclaimers for TI products. Unless TI explicitly designates a product as custom or customer-specified, TI products
+are standard, catalog, general purpose devices.
+TI objects to and rejects any additional or different terms you may propose.
+IMPORTANT NOTICE
+
+                                                Copyright © 2026, Texas Instruments Incorporated
+                                                                Last updated 10/2025
+

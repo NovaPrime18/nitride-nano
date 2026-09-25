@@ -52,7 +52,13 @@ impl Ssd1306 {
     }
 
     async fn cmd(&self, i2c: &mut I2c<'_, Async, Master>, c: u8) -> Result<(), ()> {
-        i2c.write(self.addr, &[CMD, c]).await.map_err(|_| ())
+        match i2c.write(self.addr, &[CMD, c]).await {
+            Ok(()) => Ok(()),
+            Err(e) => {
+                crate::drivers::note_i2c_error(&crate::drivers::I2C_UI_BUS_ERRORS, "3 (UI)", e);
+                Err(())
+            }
+        }
     }
 
     /// Zero the framebuffer and mark every page as dirty so the next flush
@@ -215,9 +221,14 @@ impl Ssd1306 {
                     let mut buf = [0u8; 17];
                     buf[0] = DATA;
                     buf[1..=chunk.len()].copy_from_slice(chunk);
-                    i2c.write(self.addr, &buf[..chunk.len() + 1])
-                        .await
-                        .map_err(|_| ())?;
+                    if let Err(e) = i2c.write(self.addr, &buf[..chunk.len() + 1]).await {
+                        crate::drivers::note_i2c_error(
+                            &crate::drivers::I2C_UI_BUS_ERRORS,
+                            "3 (UI)",
+                            e,
+                        );
+                        return Err(());
+                    }
                 }
             } else {
                 page += 1;
