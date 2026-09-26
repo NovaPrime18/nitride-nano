@@ -58,14 +58,16 @@ pub struct AutoChoice {
     /// carries the source's own AVS APDO window, or is cleared to `None` when the
     /// source has no AVS APDO.
     pub avs: Option<ApdoWindow>,
-    /// True for an above-SPR rail. The request must keep EPR mode enabled: a
-    /// fixed EPR PDO has to be requested with `avs_en` still asserted, because
-    /// writing 0x37 with it clear drops the controller back to SPR and the EPR
-    /// PDO disappears (field-verified).
+    /// True for an above-SPR rail. The manager requests it either as an EPR AVS
+    /// contract (when `avs` is `Some`) or as a fixed EPR PDO via a narrow host
+    /// window. Either way EPR mode must already have been entered — the `ESrC`
+    /// probe in `PdManager::poll` does that, and a fixed >20 V window on its own
+    /// falls back to 5 V (SDAA265 §5.3).
     pub epr: bool,
     /// True for a "MAX" request: ask for the highest rail the source offers
-    /// rather than a specific rail. Above-SPR this uses the controller-computed
-    /// selection over a wide window, so it lands on the highest-power EPR PDO.
+    /// rather than a specific rail. Above-SPR this hands voltage selection back
+    /// to the controller's own autonegotiation, which reproduces the power-up
+    /// (EEPROM) result instead of writing a host window.
     pub maximize: bool,
 }
 
@@ -424,7 +426,10 @@ pub fn choose_highest(caps: &[SourceCapability], allow_epr: bool) -> Option<Auto
             index: i as u8,
             region: classify(cap, cap.voltage_mv),
             pps: None,
-            avs: None,
+            // Same AVS request shape as a manual above-SPR preset: MAX must not
+            // take a different branch from the path that is field-proven to
+            // reach 48 V.
+            avs: avs_window(cap.voltage_mv),
             epr: cap.voltage_mv > board::SPR_MAX_MV,
             maximize: true,
         }

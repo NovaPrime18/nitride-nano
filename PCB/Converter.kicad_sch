@@ -11249,7 +11249,6 @@
 	(symbol
 		(lib_id "Device:R_Small")
 		(at 314.96 149.86 0)
-		(mirror y)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -11259,7 +11258,7 @@
 		(dnp no)
 		(uuid "07fd32ef-bab4-4972-bfe7-f410fc731cdf")
 		(property "Reference" "R75"
-			(at 313.436 148.844 0)
+			(at 316.484 148.844 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -11270,7 +11269,7 @@
 			)
 		)
 		(property "Value" "75k"
-			(at 313.944 150.622 0)
+			(at 315.976 150.622 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -11314,7 +11313,7 @@
 			)
 		)
 		(property "LCSC" "C25798"
-			(at 313.436 148.844 0)
+			(at 316.484 148.844 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)

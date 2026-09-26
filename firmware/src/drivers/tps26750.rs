@@ -101,7 +101,8 @@ const SPR_PDO_START_OFFSET: u8 = 1;
 const EPR_PDO_START_OFFSET: u8 = 29;
 const PDO_BYTES: u8 = 4;
 const PPS_REQUEST_STEP_MV: u32 = 20;
-const AVS_REQUEST_STEP_MV: u32 = 25;
+/// AVS voltage step (PD spec: programmable AVS requests are aligned to 25 mV).
+pub const AVS_REQUEST_STEP_MV: u32 = 25;
 
 /// One parsed source PDO from the PD source, normalised to millivolt/milliamp.
 ///
@@ -402,160 +403,69 @@ impl Tps26750 {
         let min_v = voltage_mv - voltage_mv / 20;
         let max_v = voltage_mv + voltage_mv / 20;
         self.modify_sink_register(
-            i2c, min_v, max_v, max_current_ma, 0, 0, false, 0, 0, false, false, false,
+            i2c, min_v, max_v, max_current_ma, 0, 0, false, 0, 0, false, false, true,
         )
         .await
     }
 
-    /// Hand voltage selection back to the controller for a "MAX" request:
-    /// controller-computed range (`AutoComputeSinkMaxVoltage` /
-    /// `AutoComputeSinkMinVoltage` = 1), EPR AVS enabled, PPS off, PPS-edge
-    /// trigger.
+    /// Target a **specific fixed EPR PDO** with a host window whose upper bound
+    /// is `voltage_mv + 5 %` and `NoCapabilityMismatch` left **set**.
     ///
-    /// This is the application-config state the controller boots with, and the
-    /// **only** request that has reached the highest EPR rail on every source
-    /// tested (48 V on a 240 W charger, 28 V on the Anker). A host window, with
-    /// or without EPR AVS, settled at 20 V on the 240 W.
-    pub async fn request_max_rail(&self, i2c: &mut I2c<'_, Async, Master>, max_current_ma: u32) -> bool {
-        self.modify_sink_register(
-            i2c,
-            5_000,
-            51_000,
-            max_current_ma,
-            0,
-            0,
-            false, // PPS off (it outranks EPR)
-            48_000,
-            max_current_ma,
-            true, // EPR AVS enable
-            true, // auto-compute range -> controller picks the highest PDO
-            true, // re-evaluate by PPS-bit edge, NOT GSrC (GSrC exits EPR)
-        )
-        .await
-    }
-
-    /// Force the controller into EPR by requiring **≥140 W** over a **wide** host
-    /// voltage window (`[5 V, 51 V]`).
+    /// Only used for sources with no EPR AVS APDO (see
+    /// [`Self::request_avs_profile`], which is the path for AVS-capable
+    /// sources). The caller triggers re-negotiation with `GSrC`.
     ///
-    /// This is the "MAX"/highest-rail request: with the wide window the
-    /// controller ranks every EPR PDO the source offers and picks the
-    /// highest-power one (28 V on a 140 W source, 48 V on a 240 W source).
+    /// This replaces the old ≥140 W "EPR force" window. That request cleared
+    /// `AutoComputeSinkMaxVoltage` *and* `EPR AVS Enable Sink Mode`, which TI
+    /// documents (SDAA265 §4.1/§5.2) as the controller never accepting more than
+    /// the highest SPR PDO — 20 V — and it cleared `NoCapabilityMismatch`, which
+    /// made every SPR contract a mismatch contract.
     ///
-    /// The floor is 5 V, **not** 15 V: field-verified the controller only
-    /// escalates to an EPR PDO when the window still contains an SPR PDO to
-    /// consider. A window that excludes the whole SPR set (e.g. `[26.6, 29.4] V`)
-    /// makes it fall back to 5 V instead. The 140 W requirement is what then
-    /// rules out every SPR choice.
-    pub async fn request_fixed_epr_profile(
-        &self,
-        i2c: &mut I2c<'_, Async, Master>,
-        max_current_ma: u32,
-    ) -> bool {
-        self.write_epr_force(i2c, 5_000, 51_000, max_current_ma).await
-    }
-
-    /// Force the controller into EPR and target a **specific fixed EPR PDO**.
-    ///
-    /// Same ≥140 W requirement and SPR-inclusive floor as
-    /// [`Self::request_fixed_epr_profile`], but the window's upper bound is
-    /// narrowed to `voltage_mv +5 %` so EPR PDOs above the target are excluded
-    /// and the target wins the power ranking.
-    pub async fn request_epr_rail_fixed(
+    /// The window floor is 5 V, **not** `target ±5 %`: field-verified that a
+    /// window which excludes the whole SPR set (e.g. `[26.6, 29.4] V`) makes the
+    /// controller fall back to 5 V instead of escalating. With an SPR PDO inside
+    /// the window the controller ranks by power, so 28 V/5 A still beats
+    /// 20 V/5 A and the target wins. EPR mode entry itself is driven by the
+    /// `ESrC` probe in [`crate::pd::manager::PdManager::poll`]; a fixed >20 V
+    /// window alone does not enter EPR.
+    pub async fn request_fixed_epr_rail(
         &self,
         i2c: &mut I2c<'_, Async, Master>,
         voltage_mv: u32,
         max_current_ma: u32,
     ) -> bool {
         let max_v = voltage_mv + voltage_mv / 20;
-        self.write_epr_force(i2c, 5_000, max_v, max_current_ma).await
+        self.modify_sink_register(
+            i2c,
+            5_000,
+            max_v,
+            max_current_ma,
+            0,
+            0,
+            false, // PPS off (it outranks EPR)
+            0,
+            0,
+            false, // fixed EPR PDO, not AVS
+            false, // host window; NoCapabilityMismatch stays set
+            false, // no PPS edge: an EPR request re-evaluates with ESrC
+        )
+        .await
     }
 
-    /// Shared body: manual window, `ANSinkCapMismatchPower = 140 W`,
-    /// `NoCapabilityMismatch` clear, PPS/AVS off, re-evaluated by a
-    /// `PPSEnableSinkMode` edge.
+    /// Hand voltage selection back to the controller so its **own**
+    /// autonegotiation reproduces the power-up (EEPROM) behaviour.
     ///
-    /// SDAA265 §4.1: no SPR PDO meets 140 W, so the controller must use EPR. The
-    /// edge trigger is essential — `GSrC` re-fetches the SPR source caps and
-    /// restarts SPR negotiation, dropping EPR (field-verified).
-    async fn write_epr_force(
-        &self,
-        i2c: &mut I2c<'_, Async, Master>,
-        min_v: u32,
-        max_v: u32,
-        max_current_ma: u32,
-    ) -> bool {
-        let mut buf = [0u8; 24];
-        if !self
-            .read_register(i2c, TPS_REG_AUTONEGOTIATE_SINK, &mut buf)
-            .await
-        {
-            return false;
-        }
-        // Manual range (auto-compute off) so the window is honoured, auto-disable
-        // off, and NoCapabilityMismatch cleared so the 140 W requirement bites.
-        buf[0] &= !((1 << 6) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 3));
-
-        buf[2] &= 0x3F;
-        buf[3] = 0;
-
-        // ANMaxVoltage bits 41:32 and ANMinVoltage bits 51:42, 50 mV/LSB. Byte 6
-        // low nibble is the min-voltage high bits; its high nibble is the
-        // mismatch-power low bits.
-        let max_v_val = (max_v / 50) as u16;
-        buf[4] = (max_v_val & 0xFF) as u8;
-        buf[5] = (buf[5] & 0xFC) | (((max_v_val >> 8) & 0x03) as u8);
-        let min_v_val = (min_v / 50) as u16;
-        buf[5] = (buf[5] & 0x03) | (((min_v_val & 0x3F) << 2) as u8);
-        buf[6] = (buf[6] & 0xF0) | (((min_v_val >> 6) & 0x0F) as u8);
-
-        let max_i_val = (max_current_ma / 10) as u16;
-        buf[1] = (buf[1] & 0x0F) | (((max_i_val & 0x0F) << 4) as u8);
-        buf[2] = (buf[2] & 0xC0) | (((max_i_val >> 4) & 0x3F) as u8);
-
-        // ANSinkCapMismatchPower = 140 W / 250 mW = 560 (bits 61:52).
-        let mismatch_w: u16 = 560;
-        buf[6] = (buf[6] & 0x0F) | (((mismatch_w & 0x0F) << 4) as u8);
-        buf[7] = (buf[7] & 0xC0) | (((mismatch_w >> 4) & 0x3F) as u8);
-
-        buf[8] &= !0x01; // PPS off (it outranks EPR)
-        buf[16] &= !0x01; // fixed EPR PDO, not AVS
-
-        if !self
-            .write_register(i2c, TPS_REG_AUTONEGOTIATE_SINK, &buf)
-            .await
-        {
-            return false;
-        }
-        // Re-evaluate with a PPS-enable edge; GSrC would restart SPR negotiation
-        // and drop EPR.
-        let mut toggle = buf;
-        toggle[8] ^= 0x01;
-        if !self
-            .write_register(i2c, TPS_REG_AUTONEGOTIATE_SINK, &toggle)
-            .await
-        {
-            return false;
-        }
-        Timer::after(Duration::from_millis(2)).await;
-        self.write_register(i2c, TPS_REG_AUTONEGOTIATE_SINK, &buf)
-            .await
-    }
-
-    /// Restore `AUTO_NEGOTIATE_SINK` to the state the application config intends:
-    /// controller-computed voltage range, PPS enabled, and — critically —
-    /// `EPR AVS Enable Sink Mode` set.
+    /// This is what a "MAX" request now issues. It deliberately writes **no**
+    /// host voltage window: clearing `AutoComputeSinkMaxVoltage` (bit 5) or
+    /// `EPR AVS Enable Sink Mode` (bit 128) is what makes the controller stop at
+    /// the highest SPR PDO — 20 V — even on an EPR-capable source (SDAA265 §4.1
+    /// and §5.2). PPS is left **off** because a PPS APDO outranks EPR and caps
+    /// at 21 V (TRM §6.3). With the EEPROM policy restored and `GSrC` issued, the
+    /// controller re-negotiates and picks the highest-power PDO the source
+    /// offers, exactly as it did at power-up (TRM §2.3).
     ///
-    /// Two reasons this is needed:
-    ///
-    /// * the register keeps a host-written window across an MCU reset, so a
-    ///   previous run's low-voltage window would otherwise persist;
-    /// * `modify_sink_register` clears `EPR AVS Enable Sink Mode` on every plain
-    ///   fixed/PPS request, and that bit is what makes the controller attempt
-    ///   EPR mode entry at all. A captured working EPR sink keeps it set.
-    ///
-    /// After this the controller negotiates by itself (highest-power rail,
-    /// entering EPR as needed); the firmware only writes a specific window when
-    /// the user confirms a preset.
+    /// Only reached on sources with no EPR AVS APDO; AVS-capable sources go
+    /// through [`Self::request_avs_profile`].
     pub async fn restore_autonegotiate(
         &self,
         i2c: &mut I2c<'_, Async, Master>,
@@ -566,14 +476,14 @@ impl Tps26750 {
             5_000,
             51_000,
             max_current_ma,
-            20_000,
-            3_000,
-            true, // PPS enable, 20 V / 3 A
+            0,
+            0,
+            false, // PPS off (it outranks EPR and caps at 21 V)
             48_000,
             5_000,
-            true, // EPR AVS enable, 48 V / 5 A
-            true, // auto-compute voltage range
-            false,
+            true, // EPR AVS enable: what makes the controller enter EPR
+            true, // auto-compute the range -> the controller picks the PDO
+            false, // no PPS edge: an EPR request re-evaluates with ESrC
         )
         .await
     }
@@ -598,22 +508,35 @@ impl Tps26750 {
         .await
     }
 
+    /// Request an **EPR AVS** contract at `voltage_mv`.
+    ///
+    /// This keeps `AutoComputeSinkMaxVoltage` **set** (via `auto_epr`). That is
+    /// the difference that matters on AVS-capable sources: the EEPROM policy
+    /// (`b0 = 0x3e`, `avs_en = 1`, AVS output = 48 V) negotiates a 48 V EPR AVS
+    /// contract, while every host window with auto-compute cleared settles at the
+    /// highest SPR PDO (20 V) — SDAA265 §4.1/§5.2. The AVS output-voltage field
+    /// is the requested rail; the controller still computes the legal range, so
+    /// on a source that honours AVS this can resolve to the highest AVS rail
+    /// rather than the exact target.
     pub async fn request_avs_profile(
         &self,
         i2c: &mut I2c<'_, Async, Master>,
         voltage_mv: u32,
         current_ma: u32,
-        pdo_min_mv: u32,
-        _pdo_max_mv: u32,
     ) -> bool {
-        let std_max = if voltage_mv >= pdo_min_mv + AVS_REQUEST_STEP_MV {
-            voltage_mv - AVS_REQUEST_STEP_MV
-        } else {
-            pdo_min_mv
-        };
         self.modify_sink_register(
-            i2c, pdo_min_mv, std_max, current_ma, 0, 0, false, voltage_mv, current_ma, true, false,
-            true,
+            i2c,
+            5_000,
+            51_000,
+            current_ma,
+            0,
+            0,
+            false, // PPS off (it outranks EPR)
+            voltage_mv,
+            current_ma,
+            true, // EPR AVS enable
+            true, // auto-compute range: required for EPR entry/selection
+            false, // no PPS edge: an EPR request re-evaluates with ESrC
         )
         .await
     }
@@ -741,14 +664,18 @@ impl Tps26750 {
         {
             return false;
         }
-        // Re-evaluate the register by toggling `PPSEnableSinkMode` — an edge on
-        // that bit makes the controller send a new Request without restarting
-        // negotiation from SPR (TRM 6.4). This is how the reference PD240W
-        // triggers *every* request. `GSrC` must NOT be used for an EPR request:
-        // it re-fetches the SPR source caps and re-runs SPR negotiation, which
-        // drops the controller out of EPR and makes a >20 V window fall back to
-        // 5 V (field-verified).
-        if pps_en || edge {
+        // The write alone does not re-negotiate: TRM §2.3 says the controller
+        // prepares its Request from 0x37 + 0x33 and the host issues `GSrC` to
+        // re-negotiate. The caller does that for EPR and PPS requests.
+        //
+        // `edge` additionally re-evaluates with a `PPSEnableSinkMode` toggle —
+        // the reference PD240W firmware's trigger. It is ONLY safe for a plain
+        // fixed request: toggling PPS briefly *enables* it, and PPS outranks EPR,
+        // so on an EPR request it made the controller drop out of EPR and
+        // recompute `AutoNegMaxVoltage` back to 20 V. Field-verified that some
+        // sources (the Anker 737) ignore a fixed request re-evaluated only by
+        // `GSrC`, while the 240 W accepts either.
+        if edge {
             let mut toggle = buf;
             toggle[8] ^= 0x01;
             if !self
@@ -758,9 +685,11 @@ impl Tps26750 {
                 return false;
             }
             Timer::after(Duration::from_millis(2)).await;
+            self.write_register(i2c, TPS_REG_AUTONEGOTIATE_SINK, &buf)
+                .await
+        } else {
+            true
         }
-        self.write_register(i2c, TPS_REG_AUTONEGOTIATE_SINK, &buf)
-            .await
     }
 
     /// Test one bit in the 88-bit INT_EVENT1 bitmap; out-of-range indices are false.

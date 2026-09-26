@@ -944,3 +944,405 @@ PD: controller already in EPR at boot; keeping its rail
 Pressing MAX on the 240 W forces a host window, which that source answers with
 20 V — so on that charger, don't use MAX; use the boot path. Targeted EPR presets
 on AVS-capable sources remain the open limitation.
+
+## 2026-09-26 — the "EPR force" path removed, staged EPR exit added
+
+Root cause confirmed against the reference project's own driver
+(`theohg/tps26750_multiplatform`, submodule of `theohg/PD240W`): it has **no**
+≥140 W "force EPR" host window, and its startup mode is `HIGHEST_VOLTAGE` —
+literally "TPS26750 automatically negotiates highest voltage due to its EEPROM
+config. We don't interfere. Doing so breaks autonomous EPR entry sequences."
+It also has a three-step EPR→SPR exit because a direct high→low request "reboots
+some chargers". nitride-nano had invented the opposite of all three. See
+`analysis/PD_ROOT_CAUSE.md` for the full evidence.
+
+Changes:
+
+* `src/drivers/tps26750.rs`
+  * **Deleted** `write_epr_force`, `request_fixed_epr_profile`,
+    `request_epr_rail_fixed` and `request_max_rail`. The force window cleared
+    `AutoComputeSinkMaxVoltage` **and** `EPR AVS Enable Sink Mode` and cleared
+    `NoCapabilityMismatch` — SDAA265 §4.1/§5.2 says that is exactly why an
+    EPR-capable controller stops at the highest SPR PDO (20 V).
+  * **Added** `request_fixed_epr_rail` — the reference's targeted fixed-EPR
+    request: host window `[5 V, target + 5 %]`, `NoCapabilityMismatch` left set,
+    re-evaluated with the `PPSEnableSinkMode` edge (never `GSrC`).
+  * **`restore_autonegotiate`** now leaves PPS **off** (it was enabling PPS,
+    which outranks EPR and caps at 21 V) and triggers with the PPS edge; this is
+    what "MAX" issues.
+* `src/pd/manager.rs`
+  * MAX (`epr && maximize`) → `restore_autonegotiate`, i.e. hand voltage
+    selection back to the controller's own autonegotiation. If a live EPR rail
+    is already up, MAX now leaves it alone instead of re-writing 0x37.
+  * EPR mode entry no longer arms a re-plan (`negotiate_pending = true` was
+    pulling a live 48 V contract back down to the UI preset), and the live
+    contract is seeded into `requested_rail_mv` at boot so Auto-tracking does
+    not immediately re-request it.
+  * **Staged EPR→SPR exit** (`EprExitStep`, `begin_epr_exit`, `step_epr_exit`):
+    a request that would drop a live >20 V contract to an SPR rail now walks
+    EPR AVS floor (if the source APDO reaches SPR) → 5 V fixed → the original
+    target, each step bounded by `EPR_EXIT_STEP_TIMEOUT_MS` (2 s). The
+    AVS keep-alive and the `EPR unavailable` latch are suppressed during the
+    exit so they cannot fight it.
+* `src/main.rs`: `PdManager::negotiate` now takes `&AppState` (the exit needs
+  the source PDO list to find a reachable AVS APDO).
+
+Builds clean. Bench expectations: on the 240 W, power-cycle the TPS26750 and
+plug in **without touching anything** → the controller's own 48 V should now
+survive boot (no override); on the Anker, MAX should hold 28 V without the
+register being knocked to 20 V; any EPR→SPR confirm should log
+`PD: staged EPR exit … step 1/3 … 2/3 … 3/3` instead of one direct request.
+
+### Field result, and the real EPR-selection rule
+
+First bench run of the above: EPR entry and the staged machinery worked, but a
+**targeted fixed 28 V preset still settled at 20 V**:
+
+```
+41.47  PD confirm: preset=3 choice=28000
+41.50  EPR probe (ESrC) ok=true
+41.58  EPR entered (4 EPR PDOs)    caps include 28/36/48 fixed + 48 V AVS
+41.60  PD request: rail=28000 … avs=false epr=true
+41.62  PD 0x37 now: b0=0x0a avs_en=false maxV=29400
+43.59  PD contract: 20000 mV        ← still 20 V
+44.68  EPR unavailable: 28000 settled at 20000
+```
+
+A host **fixed**-EPR window does not escalate on the 240 W regardless of its
+shape (wide, narrow, or mismatch-forced). The readback proves the write landed,
+so the controller re-ranked and still chose the 20 V SPR PDO.
+
+The winning recipe was in the EEPROM all along. `0x37` from
+`config_240W_TPS26750_F8091159_epr_pps.json` is `3e 40 1f 00 c0 93 01 00 02 …`:
+`b0 = 0x3e` (**auto-compute on**), `avs_en = 1`, **AVS output voltage = 48 V**.
+The controller's own power-up request was an **EPR AVS** RDO (`0xb3cf0064`,
+PDO `f096c0d3`) and the source delivered 47.97 V. Every host request that
+cleared auto-compute — the mechanism SDAA265 §5.2 names — settled at 20 V.
+
+Changes:
+
+* `Tps26750::request_avs_profile` now writes **auto-compute on**, `avs_en`, PPS
+  off, and the AVS output voltage = the requested rail, re-evaluated with the
+  PPS edge. The now-unused APDO-window args were dropped.
+* `PdManager::choose` now **prefers the AVS path whenever the source advertises
+  an EPR AVS APDO**, and falls back to the fixed-EPR host window only for
+  sources with no AVS APDO (e.g. the Anker). This is the inverse of the old
+  preference, which was based on an auto-compute-off AVS test that could only
+  ever reach 20 V.
+* The AVS keep-alive and the staged exit's step-down use the same AVS request.
+
+Trigger note: the TPS26750 TRM 4CC list (`Gaid`, `GSrC`, `ESrC`, `GSkC`,
+`ESkC`, `SSrC`, `GPsh`/`GPsl`, …) has **no `ANeg`** — that is a TPS25751 task.
+The `PPSEnableSinkMode` edge remains the way to re-evaluate 0x37.
+
+Also note the boot line in that run: `TPS config 0x37: b0=0x0a avs_en=false
+pps_en=true maxV=11950` — a **stale host-written window persisted from the
+previous run**, so the controller never ran the EEPROM (auto-compute + AVS)
+negotiation that reaches 48 V. Only a TPS26750 power cycle (unplug source *and*
+board supply) reloads 0x37 from the EEPROM; an MCU reset does not.
+
+Next bench run: power-cycle the TPS26750, then (a) touch nothing → expect 48 V
+held; (b) BTN2/MAX → `PD request: rail=48000 … avs=true` and `b0=0x3e
+avs_en=true`; (c) confirm 28 V → `avs=true` (it may resolve to the highest AVS
+rail rather than exactly 28 V, because the controller computes the range).
+
+### Second field run: the PPS-bit edge was the real culprit
+
+The next run pressed **MAX** with the AVS + auto-compute path:
+
+```
+4.513  PD confirm: preset=0 choice=48000             (BTN2 / MAX)
+4.620  EPR entered (4 EPR PDOs)
+4.638  PD request: rail=48000 … avs=true epr=true max=true
+4.656  PD 0x37 now: b0=0x3e avs_en=true pps_en=false maxV=51000
+6.625  PD contract: 20000 mV                        ← still 20 V
+7.717  EPR unavailable: 48000 settled at 20000
+7.843  PD 0x37 now: b0=0x3e avs_en=true pps_en=false maxV=20000
+```
+
+The write is *exactly* the EEPROM policy (`b0 = 0x3e`, `avs_en = 1`) and it
+still landed at 20 V — but the readback tells the story: the controller rewrote
+`AutoNegMaxVoltage` from 51000 to **20000**, i.e. it recomputed the maximum for
+SPR. **EPR had been lost between the write and the contract.**
+
+Cause: `modify_sink_register` triggered re-evaluation by toggling
+`PPSEnableSinkMode`. Enabling PPS for even 2 ms makes the controller re-evaluate
+with PPS selected, and PPS is **prioritised over EPR and caps at 21 V**
+(TRM §6.3) — so it dropped out of EPR, and auto-compute then reported 20 V. The
+reference firmware's toggle is fine for its SPR/PPS/AVS use, but it is exactly
+wrong for an EPR request.
+
+Fix — the TRM (§2.3) states the mechanism outright: *"the PD Controller will
+always prepare its own Request message based on the settings in
+AUTO_NEGOTIATE_SINK (0x37) and TX_SINK_CAPS (0x33) … the host can change 0x37 …
+then issue the `GSrC` 4CC Task and the PD controller will re-negotiate the PD
+contract based on the updated values."*
+
+* `modify_sink_register` no longer toggles PPS at all; it writes 0x37 once.
+* `PdManager::negotiate` issues `GSrC` after **every** request (the old code
+  explicitly skipped it for EPR).
+* The AVS keep-alive and the staged exit's step-down also issue `GSrC`.
+
+This also removes the need to power-cycle the TPS26750: `GSrC` makes the
+controller re-run the same policy it runs at power-up, so a stale host window in
+0x37 is overwritten and re-evaluated in place — which matters because on this
+board the TPS26750 cannot be power-cycled while the debugger is attached.
+
+### Third field run: `GSrC` drops EPR too — use `ESrC`
+
+With the PPS toggle removed and `GSrC` as the trigger, MAX still landed at 20 V,
+and this time the log says exactly why:
+
+```
+9.300  EPR entered (4 EPR PDOs)     SPR=6 EPR=4
+9.318  PD request: rail=48000 … avs=true max=true
+9.627  PD 0x37 now: b0=0x3e avs_en=true maxV=20000     ← max collapsed
+11.299 PD source caps: SPR=6 EPR=0                     ← EPR GONE
+11.301 EPR exited; SPR PDOs restored
+```
+
+So **`GSrC` also drops EPR**: it issues `Get_Source_Cap`, the source answers with
+its *SPR* capabilities, the controller re-negotiates in SPR and auto-compute
+reports the SPR max (20 V). Neither of the two non-EPR triggers can work for an
+above-SPR request.
+
+`ESrC` is the task that reads the **EPR** capabilities (TRM §5.3.8), so that is
+now the trigger for every EPR request:
+
+* `negotiate` triggers `ESrC` when `ch.epr`, `GSrC` otherwise;
+* the AVS keep-alive and the staged exit's step-down use `ESrC`.
+
+Expected next run: after `rail=48000 … avs=true`, `PD 0x37 now` should keep a
+high `maxV` (48000/51000, not 20000), the caps should stay `EPR=4`, and the
+contract should reach 48000.
+
+### Fourth field run: EPR was being entered with the *stale* register
+
+With `ESrC` as the trigger, EPR stayed entered (`SPR=6 EPR=4`) but `maxV` still
+computed to 20000 and the contract stayed at 20 V. The log shows why:
+
+```
+7.037  EPR probe (ESrC) ok=true          ← entry with the *old* 0x37
+9.019  EPR entered (4 EPR PDOs)
+9.038  PD request: rail=48000 … avs=true
+9.074  PD 0x37 now: b0=0x3e avs_en=true maxV=20000
+```
+
+The request ordering was wrong: `poll()` sent `ESrC` **first** (the "EPR entry
+gate"), held the request back until entry was observed, and only then wrote the
+0x37 policy. So the controller always entered EPR with the stale register
+(`b0=0x0a`, PPS window) and had already computed its SPR range; the later policy
+write could not lift it.
+
+At power-up the order is the opposite: the EEPROM policy is in 0x37 **before**
+the controller enters EPR, so entry and selection happen with the right config.
+
+Fix: removed the `ESrC` gate and the entry wait from `poll()` (and the
+`epr_probe_pending`/`epr_probe_at`/`EPR_ENTRY_TIMEOUT_MS` state). `negotiate`
+now writes the 0x37 policy and *then* issues `ESrC`, so the controller enters
+EPR with the correct policy in place — the power-up order.
+
+### Fifth run: it all works — from a fixed rail. **PPS is the last blocker**
+
+One run was captured that worked **completely**:
+
+```
+0.182  PD: controller already in EPR at boot; keeping its rail
+0.208  PD contract: 48000 mV        PP_EXT=3  vin=48000
+10.82  MAX -> "already on an EPR rail (48000 mV); leaving it"
+20.67  preset 36 V -> PD contract: 36000 mV   vin=35962
+27.79  preset 28 V -> PD contract: 28000 mV   vin=27964   (+ AVS keep-alive)
+36.88  preset 20 V -> PD: staged EPR exit 28000 -> 20000
+       step 1/3 AVS down to 15000 -> contract 15000
+       step 2/3 15000 -> 5 V      -> contract 5000
+       step 3/3 5 V -> target re-queued
+41.17  preset 48 V -> PD contract: 48000 mV   vin=47957   (+ AVS keep-alive)
+```
+
+Every mechanism — boot guard, MAX, targeted AVS rails, the staged exit, and a
+fresh EPR re-entry — behaves. That run happened to start from a **fixed** rail
+(the STM32 was reset mid-negotiation, so it woke with the TPS already at 48 V).
+
+The failing runs all start from a **PPS** contract (the boot preset 0 = 12 V,
+served by PPS on this source). TRM §6.4: changing `PPSEnableSinkMode` while a
+Sink PPS contract is active makes the controller **auto-re-evaluate**. So writing
+the EPR policy (`pps_en = false`, `avs_en = true`) while PPS is live makes the
+controller fall to the best SPR fixed PDO — 20 V — *before* `ESrC` can enter
+EPR. Consistent with every observation: MAX from 12 V PPS always landed at 20 V;
+the same request from a fixed rail reached 48 V.
+
+Fix: before an EPR request, if the last contract we requested was PPS, first move
+to a fixed 5 V contract (`request_fixed_profile(5 V)` + `GSrC`), then re-queue
+the EPR request so the normal path writes the policy and issues `ESrC` with no
+PPS contract live. New state: `pps_requested`, `epr_prep`, `epr_prep_target`,
+`step_epr_prep` (2 s bound). Reset on plug and on losing the controller.
+
+### Sixth run: the PPS release worked, but 5 V is too low a springboard
+
+The prep step fired correctly (`PD: leaving the PPS contract before EPR entry` →
+`PD contract: 5000 mV` → `PD: PPS released; EPR request re-queued`), then the
+re-queued request still landed at 20 V (`maxV` 51000 → 20000 inside 34 ms).
+
+Comparing with the one run that worked, two concrete differences remain:
+
+| | working 48 V (run 5) | failing 48 V (runs 1/5/6) |
+|---|---|---|
+| request branch | `avs=true` (a manual preset) | `avs=false` (`maximize`) |
+| contract it started from | **20 V** fixed | 12 V PPS, or 5 V after prep |
+
+Changes to close both:
+
+* `auto_track::choose_highest` now sets `avs: avs_window(...)`, so MAX takes the
+  **exact same `request_avs_profile` branch** as the preset that reached 48 V.
+* The PPS-release step now targets the **highest fixed SPR PDO** (20 V on this
+  source) instead of 5 V, and waits for that rail — the working run escalated
+  into EPR from the top of the SPR range.
+
+### Seventh run: the 5→20 V springboard worked, 48 V still collapses
+
+The prep now lands 20 V (`PD: PPS released (20000 mV)`) and the re-queued request
+is `avs=true`, yet `maxV` still collapses 51000 → 20000 within 35 ms and the
+contract stays at 20 V. So neither the branch nor the springboard was the cause.
+
+**Boot now asks for the highest rail, not preset 0.** The boot request used to be
+`PD_PRESET_VOLTAGES_MV[0]` = 12 V, and that 12 V PPS window is written into 0x37,
+which persists across MCU resets — so every boot started from and re-asserted
+12 V. New `boot_high` flag makes the first request use `choose_highest`; cleared
+once issued, and an explicit UI confirm still wins. This fixes the 12 V pinning
+(answer to "why does it fall back to 12 V at boot?"); the 20 V ceiling on a
+host-initiated EPR request is still open.
+
+### Eighth run: boot-high works; EPR re-entry is flaky, two fixes
+
+Boot held 48 V (`keeping its rail`), 28 V/36 V/15 V presets worked, and every
+staged EPR→SPR exit ran 1/3→3/3. Remaining failures are all **cold EPR entry**
+(an above-SPR request made while EPR is not already active). Discriminator found
+in the log:
+
+* `36.68` — 36 V preset from 15 V: **works**. Preceded by an EPR exit through the
+  **staged** path (48 V → 15 V → 5 V → 15 V), so `EPR exited` came from the 5 V
+  step.
+* `55.108` — the identical 36 V preset from 15 V: **fails**. Preceded by a
+  **direct** 20 V → 15 V, because the old staged-exit guard only fired for a
+  contract `> SPR_MAX_MV` (20 V is not), so EPR was exited without the 5 V step.
+
+Fixes:
+
+* The staged exit now fires whenever EPR is **entered** (`active_mv > SPR_MAX_MV
+  || self.epr_seen`), so EPR is never left by a direct high→SPR request.
+* Failed EPR entries are **retried** up to `EPR_RETRY_LIMIT` (2) times with a
+  clean 5 V release between attempts (`force_release`, reusing the prep step)
+  before `EPR unavailable` latches for the cable. The attempt counter clears on
+  any live EPR contract, on plug, and when the controller is lost.
+
+### Ninth run: my staged-exit change caused an infinite loop — fixed
+
+```
+11.807  PD: EPR exit step 3/3: 5 V -> target re-queued
+11.902  PD request: rail=12000
+11.904  PD: staged EPR exit 5000 -> 12000   ← again, forever
+11.933  PD: EPR exit step 1/3: AVS down to 15000 ...
+```
+
+`epr_exit_done` was cleared by the contract mirror as soon as the rail reached
+5 V, but `epr_seen` was still **stale-true** (the EPR caps had not been re-read),
+so the re-queued SPR target re-triggered the newly-broadened exit condition
+(`active > SPR_MAX || epr_seen`).
+
+Fix: `epr_exit_done` is now cleared **only** when EPR is observed to exit (the
+`EPR exited; SPR PDOs restored` branch), never on an SPR contract. Each EPR
+episode therefore gets exactly one staged exit, and the next episode re-arms it.
+
+### Tenth run: EPR→SPR works; SPR→EPR is a controller one-way door
+
+With the loop fixed, the full session is clean: boot 48 V, every SPR preset via
+the staged exit, 48 V→12 V→15 V→20 V all correct. The only failure left is going
+back up:
+
+```
+18.966  PD request: rail=28000 … avs=true epr=true
+18.998  PD 0x37 now: b0=0x3e avs_en=true maxV=20000
+20.959  EPR entered (4 EPR PDOs)     ← EPR mode IS re-entered
+21.294  vin=19986                    ← …but the contract never moves
+24.357  PD request: rail=48000 … avs=true
+24.388  PD 0x37 now: b0=0x3e avs_en=true maxV=51000   ← write sticks
+27.458  EPR retry 1/2: 48000 settled at 20000
+32.759  EPR retry 2/2: 48000 settled at 20000
+38.061  EPR unavailable: 48000 settled at 20000
+```
+
+So the controller re-enters EPR mode on a host request but will **not re-select
+an above-20 V contract** after a host-initiated EPR exit. Every above-SPR success
+ever observed was either the autonomous boot negotiation or a change made while
+EPR was already active (the 48→36→28 V steps). Retrying harder cannot help.
+
+Fix: **don't leave EPR when the target is inside the source's EPR AVS APDO.**
+`choose()` now converts an SPR-range preset into an EPR AVS contract when EPR is
+already entered and the source's AVS APDO covers it (15 V and 20 V on the 240 W),
+logging `PD: keeping EPR alive for N mV (AVS inside EPR)`. EPR is therefore only
+exited for rails the AVS floor cannot reach (12 V on this source) — and coming
+back up from those still needs a TPS26750 power cycle.
+
+### Eleventh run: 240 W perfect; the Anker needs the PPS edge back
+
+The 240 W is now fully correct (48 V held, 20 V/15 V via AVS inside EPR and
+back). The Anker 737 regressed: after booting to its 28 V EPR rail, **no SPR
+request takes effect**:
+
+```
+15.681  PD request: rail=15000 … epr=false       (Anker)
+15.705  PD 0x37 now: b0=0x0a maxV=15750 trig_ok=true
+16.093  vin=5199                                  ← never re-negotiated
+```
+
+The register write lands and `GSrC` succeeds, but the source does not move —
+while the identical request works on the 240 W. That is the signature of a source
+that only honours the reference firmware's `PPSEnableSinkMode` **edge** trigger.
+
+Fix: `modify_sink_register` takes an `edge` flag again. `request_fixed_profile`
+passes `true` (PPS-bit toggle + restore, the reference's SPR trigger); every EPR
+request passes `false`, because toggling PPS there is exactly what drops EPR
+(TRM §6.3). PPS requests keep `false` (their fields auto-trigger, TRM §6.4).
+`GSrC` is still issued for non-EPR requests, so the 240 W sees both triggers.
+
+### Final state — working
+
+Verified on the bench with both sources:
+
+* **Anker 737:** boot → 28 V EPR (its highest); 20 V → 15 V → 12 V through the
+  staged exit; 12 V → 28 V straight back into EPR. All rails selectable.
+* **240 W charger:** boot → 48 V EPR held; 20 V/15 V via EPR AVS (EPR stays
+  up, so you can always go back); 12 V exits EPR (below the AVS floor).
+
+The rules that made it work, in one place:
+
+1. **Boot asks for the highest rail**, never preset 0. A 12 V window written to
+   0x37 persists across MCU resets and pins every later boot to 12 V.
+2. **Never overwrite a live EPR contract.** The EEPROM policy
+   (auto-compute + AVS) is what lets the controller pick above 20 V.
+3. **Enter EPR with the policy already in 0x37**, then re-evaluate with `ESrC`.
+   `ESrC` reads the *EPR* caps; `GSrC` reads *SPR* caps and drops EPR.
+4. **The PPS-bit edge only for plain fixed requests** (the Anker needs it);
+   toggling PPS during an EPR request drops EPR.
+5. **Leave EPR through the staged walk-down** (AVS floor → 5 V → target), once
+   per EPR episode.
+6. **Don't leave EPR at all** for rails inside the source's EPR AVS APDO — this
+   controller will re-enter EPR mode from a host request but will not re-select
+   an above-20 V contract after a host-initiated EPR exit.
+
+Known limits: on the 240 W, 12 V leaves EPR and getting back up needs a TPS26750
+power cycle (a rev3 "cyclable TPS" jumper would fix this). The Anker has no EPR
+AVS APDO, so its SPR rails always exit EPR — but it re-enters fine.
+
+
+
+
+
+
+
+
+
+
+
+
+

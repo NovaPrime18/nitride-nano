@@ -168,13 +168,14 @@ pub const EPR_RAILS_MV: [u32; 3] = [28_000, 36_000, 48_000];
 pub const EPR_RAIL_CURRENT_MA: u32 = 5_000;
 /// EPR AVS APDO window declared by the sink configuration (`0x33` PDO 11).
 ///
-/// Any rail above [`SPR_MAX_MV`] is requested as an **EPR AVS** contract inside
-/// this window rather than as a fixed PDO. A fixed window above 20 V matches no
-/// *visible* SPR PDO before EPR mode entry, and SDAA265 §5.3 then makes the
-/// controller fall back to 5 V without ever entering EPR. Asserting
-/// `EPR AVS Enable Sink Mode` (0x37 bit 128) is what makes the controller
-/// attempt EPR mode entry (TRM Table 4-21). The reference PD240W firmware uses
-/// exactly this path. Keep in step with `0x33`/`0x37` of the config image.
+/// Before EPR mode has been entered, an above-SPR rail is requested as an **EPR
+/// AVS** contract inside this window: asserting `EPR AVS Enable Sink Mode`
+/// (0x37 bit 128) is what makes the controller attempt EPR mode entry (TRM
+/// Table 4-21), and SDAA265 §5.3 makes a bare fixed >20 V window fall back to
+/// 5 V. Once EPR is entered and the source advertises its own EPR PDOs, a
+/// specific above-SPR preset is requested as a **fixed** EPR PDO through
+/// `Tps26750::request_fixed_epr_rail` instead (see `PD_ROOT_CAUSE.md`).
+/// Keep in step with `0x33`/`0x37` of the config image.
 pub const EPR_AVS_MIN_MV: u32 = 15_000;
 pub const EPR_AVS_MAX_MV: u32 = 48_000;
 

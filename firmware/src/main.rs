@@ -485,7 +485,7 @@ async fn main(spawner: Spawner) {
                 // rail is renegotiated.
                 supply.tick(&mut app, &mut dac_cv, &mut dac_cc, &mut conv_en);
             }
-            pd_mgr.negotiate(&mut tps, &mut i2c).await;
+            pd_mgr.negotiate(&mut tps, &mut i2c, &app).await;
             ina.poll(&mut i2c, &mut app).await;
 
             // embassy's I2C driver waits for events in a blocking spin loop, so a
