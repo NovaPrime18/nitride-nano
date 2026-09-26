@@ -40,7 +40,12 @@ libm = "0.2"
 ssd1306 = "0.8"  # Added SSD1306 dependency
 
 defmt = "0.3"
-defmt-rtt = "0.4"
+# disable-blocking-mode: with the default blocking RTT the executor freezes
+# ~3-4 s after boot whenever no probe-rs reader drains the buffer (the RTT
+# control block and its "host connected" flag live in `.uninit` and survive
+# resets, so one probe session wedges every later boot). Logs are dropped
+# instead of blocking — RTT still streams when probe-rs is attached.
+defmt-rtt = { version = "0.4", features = ["disable-blocking-mode"] }
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 
 [build-dependencies]

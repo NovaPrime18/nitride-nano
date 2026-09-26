@@ -210,6 +210,42 @@ pub const ADC_SAMPLE_MS: u64 = 2;
 /// cycle (ADC_CONFIG above) or reads return overlapping samples.
 pub const INA228_POLL_MS: u64 = 100;
 
+// ---------------------------------------------------------------------------
+// Status LED (D31 on PA15)
+// ---------------------------------------------------------------------------
+
+/// Status LED wiring: `PA15 → D31 (anode → cathode) → R81 → GND`, so PA15
+/// HIGH lights it — **active high**. PA15 is `TIM2_CH1`; TIM2 is otherwise
+/// unused (TIM4 is the encoder QEI, TIM15 is the Embassy time driver), so the
+/// LED is driven as hardware PWM and can be dimmed precisely.
+pub const LED_PWM_HZ: u32 = 1_000;
+
+/// LED task tick. Only the on/off *envelope* is quantised to this; the
+/// brightness inside an "on" phase is set by the PWM duty, so the heartbeat
+/// stays dim and steady even at this tick rate.
+pub const LED_TICK_MS: u64 = 5;
+
+/// PWM duty for the healthy heartbeat pulses. Low enough to read as "very dim"
+/// next to the full-brightness error codes — tune to taste on the bench.
+pub const LED_HEARTBEAT_DUTY_PCT: u8 = 3;
+
+/// PWM duty for fault/error code flashes (full brightness, hard to miss).
+pub const LED_FAULT_DUTY_PCT: u8 = 100;
+
+/// PWM duty for the in-progress (EEPROM activity) pulse.
+pub const LED_ACTIVITY_DUTY_PCT: u8 = 35;
+
+/// Report "INA228 missing" / "PD controller lost" / "PD no rail" as blink
+/// codes. Set false to limit the LED to latched faults + EEPROM status, which
+/// is what a build without those parts fitted wants.
+pub const LED_SUBSYSTEM_CODES: bool = true;
+
+/// Suppress the INA228 / PD-controller "missing" codes for this long after
+/// boot. Both subsystems are probed asynchronously and are legitimately absent
+/// for the first moments of a power-up, so the LED would otherwise flash a
+/// code on a perfectly healthy boot.
+pub const LED_SUBSYSTEM_GRACE_MS: u64 = 4_000;
+
 /// CFG menu → "Output V sweep": 32 points evenly spaced from 10 V to 56 V,
 /// inclusive at both ends (31 intervals, ≈1.48 V/step), each held for 2 s
 /// (~64 s total).

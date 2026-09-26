@@ -30,35 +30,68 @@ cargo build --release
 cargo run --release   # uses probe-rs runner from .cargo/config.toml
 ```
 
-## Service mode — reflash over UART (no SWD, no BOOT0 strap)
+## Service mode — UART reflash: **known not to work on this silicon/board** (2026-09)
 
-The running firmware can hand control to the ST ROM bootloader, so the board can
-be reflashed over the on-board FT234XD without a probe and **without touching
-BOOT0 or option bytes**. (PB8 doubles as BOOT0 on this package and is pulled to a
-switched rail, so the pin route is unreliable — see [`src/hal/bootloader.rs`](src/hal/bootloader.rs).)
+The running firmware *does* hand control to the ST ROM bootloader — the trigger,
+the `.uninit` handoff marker, the `SYSRESETREQ` and the jump to `0x1FFF0000` all
+work and were each verified on hardware. **The ROM bootloader then returns to the
+application almost immediately instead of staying resident, so no host tool ever
+gets to sync.** Treat UART reflash as unavailable until the design changes; use
+SWD (`cargo run --release`, or `probe-rs download`) to flash.
 
-Two triggers, both ending in the same handoff — park the output, reset, ROM loader:
+### What was verified, and how
 
-1. **UART (zero-touch):** open the programmer on the FT234XD port. Both tools
-   send `0x7F` on connect, which the firmware watches for on USART3, so merely
-   connecting hands the device over (allow one retry while it resets).
-2. **BTN1 held through power-up/reset** — deterministic, and needs no UART.
+- **The FT234XD link works.** A `0x7F` on the port is received on USART3,
+  accepted by the listener, and the output is parked. The "FTDI enumerates but
+  the MCU ignores the port" symptom was a *different* bug (below).
+- **The handoff marker works.** `request_on_next_boot()` stores `0xB00710AD` /
+  `0x4FF8EF52` in `.uninit`; it survives `sys_reset()`; `take_request()` accepts
+  it; and the jump runs with the correct system-memory vectors
+  (`0x20002160` / `0x1FFF5049`), confirmed by a trace in otherwise-unused SRAM.
+- **The G4 ROM bootloader is present and healthy**, but does not stay. Setting
+  the core straight to the ROM entry from a pristine reset
+  (`pc = 0x1FFF5049`, `msp = 0x20002160`, then resume) puts the PC back in the
+  application within ~100 ms, with the app's own boot banner on the UART. No
+  `0x79` ACK is ever produced, at any baud/parity, even while flooding `0x7F`.
+  The boot configuration is `nBOOT0=1`, `nSWBOOT0=0` — i.e. "boot from main
+  flash" — which is what the loader falls back to. This matches the widely
+  reported STM32G4/G0 behaviour that a software jump to the system loader does
+  not keep it resident; it is not a firmware defect and no amount of driver
+  teardown or interrupt-state fiddling changes it.
 
-```bash
-# STM32CubeProgrammer
-STM32_Programmer_CLI -c port=/dev/ttyUSB0 br=115200 -w nitride.bin 0x08000000 -v
+### The bug that *was* real (and is fixed)
 
-# or stm32flash (set -b to match SERVICE_UART_BAUD)
-sudo stm32flash -b 115200 -w /tmp/nitride.bin -v -g 0x08000000 /dev/ttyUSB0
-```
+`defmt-rtt`'s default blocking write froze the single-threaded executor a few
+seconds after boot whenever no `probe-rs` reader was draining RTT: the RTT
+control block lives in `.uninit`, its "host connected" flag survives resets, so
+after any probe session the buffer fills and `blocking_write` spins forever. The
+listener was therefore dead by the time a flasher connected — which is exactly
+why triggering only ever worked in the first seconds after a power cycle. Fixed
+in `Cargo.toml` with `defmt-rtt = { version = "0.4", features =
+["disable-blocking-mode"] }`.
 
-The listener baud must match the tool's connect baud — `board::SERVICE_UART_BAUD`,
-default 115200 — because only the *first* byte is matched here; the ROM loader
-auto-bauds after the handoff.
+### What would make USB-C reflash actually work
 
-> **Safety:** the ROM bootloader runs with the converter unregulated, and a
-> firmware pin cannot hold its state through reset. See the PA11/Q13 fail-safe
-> ECO in [BENCH.md](BENCH.md) before flashing with a load attached.
+1. **Hardware ECO (rev3) — chosen direction.** `BOOT0` must be strapped high at
+   reset. On the G4 BOOT0 *is* PB8, which is also `/MCU/I2C0_SCL` (pulled high by
+   R32), so the pin has to be freed from the I²C bus and given a strap that is low
+   by default and high only while a host is flashing. The full change — I²C
+   re-pin, the FT234XD `~RTS` strap circuit, the `nSWBOOT0` option byte, and the
+   firmware simplification — is written up in
+   [`../PCB/ECO-rev3-boot0.md`](../PCB/ECO-rev3-boot0.md). With it, stock
+   `stm32flash` / `STM32CubeProgrammer` work with no host script.
+2. **Zero-hardware alternative, works on rev2 today.** The G4 can also take
+   BOOT0 from the `nBOOT0` software option bit, so the *firmware* can select the
+   loader and reset — no board change. See §7 of the ECO.
+3. **In-app updater (fallback).** If neither of the above is wanted, the USART3
+   ↔ FT234XD link already works, so the application can implement its own
+   erase/write protocol. Safest shape is A/B across the two flash halves so a
+   failed transfer can never brick the board.
+
+> **Safety:** a firmware pin cannot hold its state through reset, so anything
+> that resets into the ROM loader leaves the converter unregulated. See the
+> PA11/Q13 fail-safe ECO in [BENCH.md](BENCH.md) before flashing with a load
+> attached.
 
 ## Pin map
 
@@ -73,11 +106,46 @@ auto-bauds after the handoff.
 | Bus V | PA7 | ADC2 (input-bus fallback; INA228 is primary) |
 | NTC conv / in | PA1 / PA9 | ADC |
 | Disable | PA11 | GPIO (verify polarity at bring-up) |
+| Status LED | PA15 | D31, **active high** (PA15 → anode → R81 → GND); `TIM2_CH1` hardware PWM |
 | Buttons | PB9 / PB10 / PB11 | Active low |
 | Encoder A/B | PB6 / PA12 | TIM4 QEI |
 | Enc button | PB4 | |
 | PD IRQ | PB13 | EXTI |
-| UART debug / service mode | PC10/PC11 | USART3 → FT234XD. Also the ROM-bootloader reflash port ("Service mode" above) |
+| UART debug / service mode | PC10/PC11 | USART3 → FT234XD. Intended as the ROM-bootloader reflash port — see "Service mode" above, it does **not** work on this board. |
+
+## Status LED (PA15)
+
+`D31` is wired **active high** (`PA15 → anode → R81 → GND`) and driven from
+`TIM2_CH1` as hardware PWM, so it can be dimmed precisely and keeps its
+brightness even while a blocking I2C timeout stalls the executor. A background
+task ([`src/ui/led.rs`](src/ui/led.rs)) plays one of these indications:
+
+* **Heartbeat** — everything fitted is present and no fault is latched: two
+  3 %-duty pulses ("thump-thump") roughly every 2 s. Very dim by design; tune
+  `LED_HEARTBEAT_DUTY_PCT` in [`src/board.rs`](src/board.rs) to taste.
+* **Activity** — an EEPROM write/verify is running: a medium-duty pulse at ~2 Hz.
+
+Otherwise the LED repeats a **blink code**: `N` full-brightness flashes, then a
+long dark pause.
+
+| `N` | Meaning | Trigger |
+|-----|---------|---------|
+| 1 | OVERCURRENT | `Fault::OverCurrent` |
+| 2 | OVERVOLTAGE | `Fault::OverVoltage` |
+| 3 | OVERPOWER | `Fault::OverPower` |
+| 4 | OVERTEMP | `Fault::OverTemp` |
+| 5 | IN OCP | `Fault::InputOverCurrent` |
+| 6 | IN OVP | `Fault::InputOverVoltage` |
+| 7 | INA228 FAULT | input monitor not answering |
+| 8 | PD CTRL LOST | TPS26750 not answering |
+| 9 | PD NO RAIL | source caps known, none can serve the request |
+| 10 | EEPROM FAULT | last flash attempt failed |
+
+A latched protection fault always wins over the other states. Codes 7–9 are held
+back for `LED_SUBSYSTEM_GRACE_MS` after boot (the two chips are probed
+asynchronously) and can be disabled entirely with `LED_SUBSYSTEM_CODES` for a
+build that does not fit the INA228 or TPS26750. Every change is also logged on
+RTT (`LED: OVERCURRENT (code 1)`) so the blink code has a matching message.
 
 ## Auto-tracking PD
 

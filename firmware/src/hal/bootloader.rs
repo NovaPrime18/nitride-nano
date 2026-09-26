@@ -42,14 +42,32 @@ pub fn request_on_next_boot() -> ! {
     cortex_m::peripheral::SCB::sys_reset()
 }
 
+/// Consume a pending request, returning `(was_valid, magic_raw, inverse_raw,
+/// valid_count_since_power_on)` so callers can diagnose a handoff that did not
+/// survive the reset. The counter is itself in `.uninit`, so it survives the
+/// resets whose side effects it counts.
+pub fn take_request_diag() -> (bool, u32, u32, u32) {
+    let magic = REQUEST_MAGIC.swap(0, Ordering::SeqCst);
+    let inverse = REQUEST_INVERSE.swap(0, Ordering::SeqCst);
+    let valid = magic == MAGIC && inverse == !MAGIC;
+    if valid {
+        JUMP_COUNT.fetch_add(1, Ordering::SeqCst);
+    }
+    (valid, magic, inverse, JUMP_COUNT.load(Ordering::SeqCst))
+}
+
+/// Diagnostic: how many times a valid handoff request was consumed since
+/// power-on. Distinguishes "the marker never survived" (0) from "it was
+/// consumed and the jump path then failed" (>0).
+#[link_section = ".uninit"]
+static JUMP_COUNT: AtomicU32 = AtomicU32::new(0);
+
 /// Consume a pending request.
 ///
 /// Call as the first statement in `main`. Returns `true` exactly once per
 /// [`request_on_next_boot`] call, so the handoff cannot loop on a held trigger.
 pub fn take_request() -> bool {
-    let magic = REQUEST_MAGIC.swap(0, Ordering::SeqCst);
-    let inverse = REQUEST_INVERSE.swap(0, Ordering::SeqCst);
-    magic == MAGIC && inverse == !MAGIC
+    take_request_diag().0
 }
 
 /// Branch to the ROM bootloader at [`SYSTEM_MEMORY_BASE`]. Diverges.
@@ -57,12 +75,32 @@ pub fn take_request() -> bool {
 /// After the branch the only way back is a reset or the bootloader's own `Go`
 /// command, so this is only called once the output has been parked.
 pub fn jump_to_system_bootloader() -> ! {
-    // No interrupt may fire once the vector table is about to change.
+    // The ROM bootloader is written to run straight out of reset, so give it
+    // the core state it would have had then. Leaving our own interrupt state
+    // behind is what makes the G4 loader start and then fall straight back into
+    // the application: it masks nothing, expects SysTick off, no NVIC line
+    // enabled or pending, and interrupts unmasked (PRIMASK clear) -- the
+    // opposite of the usual "disable interrupts before jumping" folklore.
     cortex_m::interrupt::disable();
+    // SAFETY: NVIC and SysTick are core peripherals at fixed addresses.
+    unsafe {
+        const NVIC_ICER: *mut u32 = 0xE000_E180 as *mut u32;
+        const NVIC_ICPR: *mut u32 = 0xE000_E280 as *mut u32;
+        const SYST_CSR: *mut u32 = 0xE000_E010 as *mut u32;
+        for i in 0..8 {
+            core::ptr::write_volatile(NVIC_ICER.add(i), 0xFFFF_FFFF);
+            core::ptr::write_volatile(NVIC_ICPR.add(i), 0xFFFF_FFFF);
+        }
+        core::ptr::write_volatile(SYST_CSR, 0);
+    }
+    // Interrupts back on, exactly as after reset, now that nothing can fire.
+    // SAFETY: every NVIC line was just disabled and its pending bit cleared, so
+    // no handler of ours can run between here and the branch below.
+    unsafe { cortex_m::interrupt::enable() };
 
-    // Defensive: point VTOR at the bootloader before handing over. The ROM
-    // reset handler establishes its own state, but this keeps a straggler
-    // exception from landing on our (now stale) vector table.
+    // Point VTOR at the bootloader before handing over. The ROM reset handler
+    // establishes its own state, but this keeps a straggler exception from
+    // landing on our (now stale) vector table.
     const VTOR: *mut u32 = 0xE000_ED08 as *mut u32;
     // SAFETY: VTOR is a core register always mapped at this address.
     unsafe { core::ptr::write_volatile(VTOR, SYSTEM_MEMORY_BASE as u32) };

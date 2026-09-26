@@ -45,6 +45,8 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 - [ ] Buttons navigate menu (Btn3); Btn1/Btn2 adjust setpoints
 - [ ] Encoder fine-adjusts; encoder push toggles enable
 - [ ] PA11 disable: converter stays off when `enabled=false`
+- [ ] Status LED (PA15/D31): very dim double-pulse **heartbeat** while healthy, and no flicker/stuck-on while the I2C buses are busy (the PWM is hardware, so a bus timeout must not change the brightness)
+- [ ] Force an error and confirm the matching blink code from the table in [README.md](README.md#status-led-pa15) — e.g. hold the TPS26750 off past the boot grace and count 8 flashes (PD CTRL LOST); the code clears when the condition does
 
 ## 6. Open-loop converter (low power)
 
@@ -88,10 +90,16 @@ Complete these steps **before** enabling full GaN power. Keep a current-limited 
 
 ## 11. Service mode (UART reflash, no BOOT0 strap, no SWD)
 
+> **Result (2026-09, on hardware): does not work.** The handoff is correct and
+> reaches the ROM loader, but the G4 loader returns to the application within
+> ~100 ms instead of staying resident, so no host tool ever syncs. See the
+> "Service mode" section in [README.md](README.md) for the evidence. The
+> checklist below is kept as the record of what was tested.
+
 - [ ] **Before first use:** with the MCU held in reset, measure `/Converter/Conv-Disable`. Pre-ECO it floats (see the note below) — do this step with the load disconnected.
-- [ ] Hold BTN1 through power-up: the board parks the output and hands off to the ROM bootloader (attach probe-rs and confirm PC is in `0x1FFFxxxx`).
-- [ ] With the app running, `STM32_Programmer_CLI -c port=/dev/ttyUSB0 br=115200` connects; one retry during the handoff is normal.
-- [ ] Flash an image and confirm "run after programming" returns to the application.
+- [x] Hold BTN1 through power-up: the board parks the output and hands off — verified; `take_request()` accepts the marker and the jump runs with the correct `0x1FFF0000` vectors. The ROM loader then bounces back to the app.
+- [x] With the app running, the FT234XD link works: a `0x7F` is received on USART3 and triggers the handoff. (An earlier failure here was the `defmt-rtt` blocking-write freeze, now fixed.)
+- [ ] Flash an image and confirm "run after programming" returns to the application — **blocked**: `stm32flash` / `STM32CubeProgrammer` never sync.
 - [ ] Confirm option bytes, BOOT0 (PB8) and the SWD probe are all untouched by the exchange.
 - [ ] With the FT234XD attached, a long soak must not self-trigger service mode.
 

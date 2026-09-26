@@ -4565,7 +4565,7 @@
 		(dnp no)
 		(uuid "4454fecf-0baf-43f8-b8c2-baff7febd899")
 		(property "Reference" "R56"
-			(at 278.765 132.08 90)
+			(at 281.686 126.746 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects

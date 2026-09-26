@@ -25,10 +25,12 @@ use embassy_executor::Spawner;
 use embassy_stm32::adc::{Adc, Resolution, SampleTime};
 use embassy_stm32::dac::{DacCh1, DacChannel, Value};
 use embassy_stm32::exti::ExtiInput;
-use embassy_stm32::gpio::{Input, Level, Output, Pull, Speed};
+use embassy_stm32::gpio::{Input, Level, Output, OutputType, Pull, Speed};
 use embassy_stm32::i2c::{Config as I2cConfig, I2c};
 use embassy_stm32::rcc::*;
+use embassy_stm32::timer::low_level::CountingMode;
 use embassy_stm32::timer::qei::{Qei, QeiPin};
+use embassy_stm32::timer::simple_pwm::{PwmPin, SimplePwm};
 use embassy_stm32::usart::{Config as UartConfig, Uart};
 use embassy_stm32::{bind_interrupts, peripherals, Config};
 use embassy_sync::mutex::Mutex;
@@ -39,7 +41,7 @@ use nitride_firmware::board;
 use nitride_firmware::control::supply::SupplyController;
 use nitride_firmware::control::sweep::SweepController;
 use nitride_firmware::drivers::tps26750::Tps26750;
-use nitride_firmware::eeprom_workflow::EepromWorkflow;
+use nitride_firmware::eeprom_workflow::{EepromWorkflow, WorkflowState};
 use nitride_firmware::hal::bootloader;
 use nitride_firmware::hal::converter_enable::ConverterEnable;
 use nitride_firmware::pd::manager::PdManager;
@@ -49,6 +51,7 @@ use nitride_firmware::sense::ina_sense::InaSense;
 use nitride_firmware::service::{self, service_uart_task};
 use nitride_firmware::state::{AppState, EepromUiSnapshot, MenuScreen};
 use nitride_firmware::ui::input::InputHandler;
+use nitride_firmware::ui::led::led_task;
 use nitride_firmware::ui::menu::apply_input;
 use nitride_firmware::ui::task::ui_task;
 
@@ -67,6 +70,8 @@ fn sync_eeprom_ui(app: &mut AppState, workflow: &EepromWorkflow) {
         title: workflow.title(),
         message: workflow.message(),
         progress_percent: workflow.progress_percent(),
+        busy: workflow.state == WorkflowState::Flashing,
+        failed: workflow.state == WorkflowState::Error,
     };
 }
 
@@ -76,7 +81,16 @@ async fn main(spawner: Spawner) {
     // RAM and reset. Take it here — before the executor starts or any peripheral
     // is touched — so the ROM bootloader is entered from a pristine machine
     // state. Diverges.
-    if bootloader::take_request() {
+    //
+    // Diagnostics: the raw marker words, a count of valid requests consumed
+    // since power-on, the reset-cause flags read before anything can clear
+    // them, and the ROM bootloader's vector words. Together these split
+    // "marker never written" from "marker consumed then jump failed".
+    let csr_early = unsafe { core::ptr::read_volatile(0x4002_1094 as *const u32) };
+    let (service_pending, marker_magic, marker_inv, jump_count) = bootloader::take_request_diag();
+    let rom_sp = unsafe { core::ptr::read_volatile(0x1FFF_0000 as *const u32) };
+    let rom_pc = unsafe { core::ptr::read_volatile(0x1FFF_0004 as *const u32) };
+    if service_pending {
         defmt::info!("service mode: entering ROM bootloader");
         bootloader::jump_to_system_bootloader();
     }
@@ -167,6 +181,20 @@ async fn main(spawner: Spawner) {
     let mut enc_accum: i32 = 0;
     let mut pd_irq = ExtiInput::new(p.PB13, p.EXTI13, Pull::Up);
 
+    // Status LED: D31 on PA15 (TIM2_CH1). Driven as hardware PWM so the pattern
+    // engine in `ui::led` can dim the healthy heartbeat precisely and keep it
+    // steady even while a blocking I2C timeout stalls the executor.
+    let led_pwm = SimplePwm::new(
+        p.TIM2,
+        Some(PwmPin::new(p.PA15, OutputType::PushPull)),
+        None,
+        None,
+        None,
+        embassy_stm32::time::Hertz::hz(board::LED_PWM_HZ),
+        CountingMode::EdgeAlignedUp,
+    );
+    let led_ch = led_pwm.split().ch1;
+
     // I2C configs are per-bus because the two buses need opposite timeout
     // behaviour.
     //
@@ -216,7 +244,7 @@ async fn main(spawner: Spawner) {
     // high-Z, and a floating RX generates framing/noise bytes that can include
     // the 0x7F sync value — which would park the output and reset into the ROM
     // bootloader on an otherwise normal power-up.
-    let service_uart = if board::SERVICE_UART_AUTODETECT {
+    let mut service_uart = if board::SERVICE_UART_AUTODETECT {
         let mut uart_config = UartConfig::default();
         uart_config.baudrate = board::SERVICE_UART_BAUD;
         uart_config.rx_pull = Pull::Up;
@@ -242,6 +270,44 @@ async fn main(spawner: Spawner) {
         "boot: service uart {}",
         if service_uart.is_some() { "up" } else { "off" }
     );
+
+    // Service-mode bring-up diagnostic: print the marker words, the request
+    // counter, the reset-cause flags (captured at the top of main, before
+    // anything can RMVF-clear them) and the ROM bootloader's vector words over
+    // the FT234XD, where a plain terminal can read them with no probe attached
+    // (and none possible: a live probe freezes every handoff reset with its
+    // reset vector catch). Keep until service mode is bench-verified (§11).
+    if let Some(uart) = service_uart.as_mut() {
+        defmt::info!(
+            "boot diag: csr={=u32:x} magic={=u32:x} inv={=u32:x} cnt={=u32} romsp={=u32:x} rompc={=u32:x}",
+            csr_early,
+            marker_magic,
+            marker_inv,
+            jump_count,
+            rom_sp,
+            rom_pc
+        );
+        let mut msg = [0u8; 128];
+        let mut i = 0;
+        put(&mut msg, &mut i, b"DIAG csr=");
+        puth(&mut msg, &mut i, csr_early);
+        put(&mut msg, &mut i, b" magic=");
+        puth(&mut msg, &mut i, marker_magic);
+        put(&mut msg, &mut i, b" inv=");
+        puth(&mut msg, &mut i, marker_inv);
+        put(&mut msg, &mut i, b" p=");
+        put(&mut msg, &mut i, if service_pending { b"1" } else { b"0" });
+        put(&mut msg, &mut i, b" cnt=");
+        puth(&mut msg, &mut i, jump_count);
+        put(&mut msg, &mut i, b" romsp=");
+        puth(&mut msg, &mut i, rom_sp);
+        put(&mut msg, &mut i, b" rompc=");
+        puth(&mut msg, &mut i, rom_pc);
+        put(&mut msg, &mut i, b"\r\n");
+        if uart.write(&msg[..i]).await.is_err() {
+            defmt::error!("boot diag uart write failed");
+        }
+    }
 
     let app = AppState::default();
     let app_state = APP_STATE.init(Mutex::new(app));
@@ -276,6 +342,7 @@ async fn main(spawner: Spawner) {
         board::ISENSE_MV_PER_A
     );
 
+    spawner.spawn(led_task(app_state, led_ch)).unwrap();
     spawner.spawn(ui_task(app_state, ui_bus)).unwrap();
     if let Some(uart) = service_uart {
         spawner.spawn(service_uart_task(uart)).unwrap();
@@ -296,14 +363,23 @@ async fn main(spawner: Spawner) {
         // Reusing `supply.tick` keeps the inverted-CV and CC-zero behaviour in
         // one place; the APP_STATE lock is dropped before the settle delay.
         if service::SERVICE_REQUEST.swap(false, Ordering::SeqCst) {
-            {
+            let was_enabled = {
                 let mut app = app_state.lock().await;
+                let was_enabled = app.supply.enabled;
                 app.supply.enabled = false;
                 supply.tick(&mut app, &mut dac_cv, &mut dac_cc, &mut conv_en);
-            }
+                was_enabled
+            };
             conv_en.set_enabled(false);
             defmt::info!("service mode: parking output before handoff");
-            Timer::after(Duration::from_millis(board::SERVICE_PARK_SETTLE_MS)).await;
+            // The settle wait only buys something when the converter was actually
+            // driving. Skipping it when the output was already parked cuts the
+            // handoff to reset time (~2 ms), well inside the host tools' retry
+            // window: stm32flash 0.7 resends 0x7F exactly once, 500 ms after the
+            // first byte (TERMIOS_TIMEOUT_MS in serial_posix.c), then gives up.
+            if was_enabled {
+                Timer::after(Duration::from_millis(board::SERVICE_PARK_SETTLE_MS)).await;
+            }
             bootloader::request_on_next_boot();
         }
 
@@ -436,5 +512,24 @@ async fn main(spawner: Spawner) {
         }
 
         Timer::after(Duration::from_micros(100)).await;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Service-UART boot-diagnostic formatting (no core::fmt on this target)
+// ---------------------------------------------------------------------------
+
+fn put(buf: &mut [u8; 128], i: &mut usize, s: &[u8]) {
+    buf[*i..*i + s.len()].copy_from_slice(s);
+    *i += s.len();
+}
+
+fn puth(buf: &mut [u8; 128], i: &mut usize, v: u32) {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    buf[*i..*i + 2].copy_from_slice(b"0x");
+    *i += 2;
+    for shift in (0..32).rev().step_by(4) {
+        buf[*i] = HEX[((v >> shift) & 0xF) as usize];
+        *i += 1;
     }
 }

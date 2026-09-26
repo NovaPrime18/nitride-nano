@@ -325,6 +325,11 @@ pub struct EepromUiSnapshot {
     pub title: &'static str,
     pub message: &'static str,
     pub progress_percent: u8,
+    /// Loader is actively writing/verifying. Drives the status LED's activity
+    /// pulse while the flash screen is open.
+    pub busy: bool,
+    /// The last flash attempt failed. Drives the status LED's EEPROM error code.
+    pub failed: bool,
 }
 
 impl Default for EepromUiSnapshot {
@@ -333,6 +338,8 @@ impl Default for EepromUiSnapshot {
             title: "EEPROM FLASH",
             message: "",
             progress_percent: 0,
+            busy: false,
+            failed: false,
         }
     }
 }
@@ -344,6 +351,10 @@ pub struct AppState {
     pub telemetry: Telemetry,
     pub ui: UiState,
     pub pd: PdState,
+    /// TPS26750 presence, published by [`crate::pd::manager::PdManager`]'s
+    /// watchdog. False until the controller first answers, and again after it is
+    /// declared lost. Read by the status LED (and available to the UI).
+    pub pd_present: bool,
     /// Parsed source capabilities from the PD controller (max 7 SPR + 7 EPR PDOs
     /// would overflow the Rx Source Capabilities register; 13 covers what fits).
     pub pd_caps: [SourceCapability; 13],
@@ -366,6 +377,7 @@ impl Default for AppState {
             telemetry: Telemetry::default(),
             ui: UiState::default(),
             pd: PdState::NoCable,
+            pd_present: false,
             pd_caps: [SourceCapability::EMPTY; 13],
             pd_cap_count: 0,
             pd_control: PdControl::default(),

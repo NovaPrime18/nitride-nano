@@ -278,6 +278,10 @@ impl PdManager {
             }
         }
 
+        // Publish the watchdog's verdict after the probe block above so the
+        // status LED (and the UI) see this poll's result, not the previous one.
+        app.pd_present = self.present;
+
         // 1. Setpoint tracking.
         if app.supply.v_set_mv != self.last_vset_mv || app.supply.i_set_ma != self.last_iset_ma {
             self.last_vset_mv = app.supply.v_set_mv;
