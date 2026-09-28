@@ -270,12 +270,22 @@ pub struct SupplyState {
     pub fault: Fault,
     pub input_power_cap_mw: u32,
     pub input_current_cap_ma: u32,
+    /// Detected operating loop: true while the LT8390A is current-limiting
+    /// (output at/below the setpoint and the measured current at the commanded
+    /// limit). This is set by [`crate::control::supply`] each tick and is *not*
+    /// the same as the user-selected [`SupplyMode`]: the LT8390A transitions
+    /// CV↔CC by itself, so the OLED badge reflects this field.
+    pub cc_active: bool,
 }
 
 impl Default for SupplyState {
     fn default() -> Self {
         Self {
-            mode: SupplyMode::Off,
+            // Boot in CV: the LT8390A regulates voltage until the load asks for
+            // more than the CC ceiling, and the user only has to press BTN1 on
+            // the main screen to switch the selected mode. `Off` is reserved for
+            // the sweep/service paths that deliberately park the stage.
+            mode: SupplyMode::Cv,
             enabled: false,
             v_set_mv: 30_000,
             i_set_ma: 5_000,
@@ -285,6 +295,7 @@ impl Default for SupplyState {
             // until a PD contract narrows it, and restored to this whenever the
             // contract goes away so an XT90 feed gets the full design current.
             input_current_cap_ma: board::IIN_MAX_MA as u32,
+            cc_active: false,
         }
     }
 }

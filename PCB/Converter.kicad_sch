@@ -8320,6 +8320,16 @@
 	)
 	(wire
 		(pts
+			(xy 148.59 193.04) (xy 148.59 199.39)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7bf7d323-82b6-4d80-8ce3-b1b11f3ebc62")
+	)
+	(wire
+		(pts
 			(xy 375.92 104.14) (xy 375.92 107.95)
 		)
 		(stroke
@@ -10050,6 +10060,16 @@
 	)
 	(wire
 		(pts
+			(xy 148.59 199.39) (xy 147.32 199.39)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e969bde7-d5de-45e6-a5db-80ac818d3a41")
+	)
+	(wire
+		(pts
 			(xy 353.06 134.62) (xy 363.22 134.62)
 		)
 		(stroke
@@ -10398,16 +10418,6 @@
 		)
 		(uuid "ebda2f79-83dd-4a34-8246-4880c06b8c6d")
 	)
-	(label "VREF"
-		(at 148.59 193.04 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "f1ad12f1-3ae2-45bc-8dcd-d0247547416f")
-	)
 	(hierarchical_label "Curr_FB"
 		(shape output)
 		(at 72.39 163.83 180)
@@ -10520,6 +10530,17 @@
 			(justify left)
 		)
 		(uuid "9cb89382-3164-4908-afa5-fcf53d1c1b7d")
+	)
+	(hierarchical_label "CNV-EN-LOADEN"
+		(shape input)
+		(at 147.32 199.39 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "f1f14e69-d12a-4b6b-8451-46e109be3e97")
 	)
 	(symbol
 		(lib_id "Thommys-parts2:EPC2367")

@@ -236,10 +236,23 @@ impl Ssd1306Ui {
             }
         }
 
-        let mode = match app.supply.mode {
-            SupplyMode::Cv => "CV",
-            SupplyMode::Cc => "CC",
-            SupplyMode::Off => "--",
+        // Running: the badge shows the *detected* loop, not the user's selection
+        // — the LT8390A switches CV↔CC on its own, so `cc_active` (set by
+        // `control::supply` from the measured output vs the commanded current
+        // limit) is the honest indication. Disabled: show the *selected* mode so
+        // pressing BTN1 to choose CC/CC is visible before the output is turned on.
+        let mode = if app.supply.enabled {
+            if app.supply.cc_active {
+                "CC"
+            } else {
+                "CV"
+            }
+        } else {
+            match app.supply.mode {
+                SupplyMode::Cv => "CV",
+                SupplyMode::Cc => "CC",
+                SupplyMode::Off => "--",
+            }
         };
         self.display.draw_str(COL_MODE, ROW_HEADER, mode);
         self.display.draw_str(

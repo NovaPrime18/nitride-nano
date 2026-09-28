@@ -38,6 +38,8 @@ use embassy_time::{Duration, Instant, Timer};
 use panic_probe as _;
 
 use nitride_firmware::board;
+use nitride_firmware::control::dac_cc::CcDac;
+use nitride_firmware::control::dac_cv::CvDac;
 use nitride_firmware::control::supply::SupplyController;
 use nitride_firmware::control::sweep::SweepController;
 use nitride_firmware::drivers::tps26750::Tps26750;
@@ -342,6 +344,63 @@ async fn main(spawner: Spawner) {
         board::ISENSE_MV_PER_A
     );
 
+    // Converter-enable pin and the two open-loop maps, logged once so a bench
+    // measurement can be checked against the exact numbers the firmware used.
+    // The enable line is worth verifying on the board: the firmware drives PA11,
+    // while the rev2 schematic routes the Q13 gate / EN/UVLO disable to PB1.
+    // If the converter cannot actually be parked, that mismatch is why.
+    defmt::info!(
+        "boot: conv-disable pin PA11 (active_high={}), CV dac PA4, CC dac PA6",
+        board::CONVERTER_DISABLE_ACTIVE_HIGH
+    );
+    defmt::info!(
+        "boot: cv map: code0 -> {} mV, code{} -> {} mV (VREF {} mV, R19 {} R20 {} R36 {})",
+        CvDac::vout_at_code_zero_mv(),
+        board::DAC_MAX_CODE,
+        CvDac::code_to_vout_mv(board::DAC_MAX_CODE),
+        board::DAC_VREF_MV,
+        board::CV_FB_TOP_OHM,
+        board::CV_FB_BOTTOM_OHM,
+        board::CV_SUM_OHM
+    );
+    defmt::info!(
+        "boot: cc ctrl net R48={} R5={} R4={} VREF={} mV; bench CC offset {} mA; set {} mA -> code {} (ctrl {} mV); set {} mA -> code {} (ctrl {} mV); code0 ctrl {} mV (latchoff {})",
+        board::CTRL_SERIES_OHM,
+        board::CTRL_VREF_OHM,
+        board::CTRL_GND_OHM,
+        board::LT8390_VREF_MV,
+        board::CC_CURRENT_OFFSET_MA,
+        board::CC_SET_MIN_MA,
+        CcDac::setpoint_to_code(board::CC_SET_MIN_MA),
+        CcDac::ctrl_mv_for_code(CcDac::setpoint_to_code(board::CC_SET_MIN_MA)),
+        board::CC_SET_MAX_MA,
+        CcDac::setpoint_to_code(board::CC_SET_MAX_MA),
+        CcDac::ctrl_mv_for_code(CcDac::setpoint_to_code(board::CC_SET_MAX_MA)),
+        CcDac::ctrl_mv_for_code(0),
+        board::LT8390_CTRL_LATCHOFF_MV
+    );
+    // The CC window is the part's, not the firmware's: report the settable range
+    // next to what the chip can *sustain* and what it needs to cold-start. The
+    // settable floor is deliberately low (see `board::CC_SET_MIN_MA`) because a
+    // lower setpoint is the only route to a lower actual current.
+    defmt::info!(
+        "boot: cc range settable {}..{} mA; sustain {}..{} mA; datasheet cold-start {} mA (R18={} mOhm, ISMON {} mV/A); ctrl {}..{} mV",
+        board::CC_SET_MIN_MA,
+        board::CC_SET_MAX_MA,
+        board::CC_MIN_MA,
+        board::CC_MAX_MA,
+        board::CC_START_MIN_MA,
+        board::ISENSE_SHUNT_MOHM,
+        board::ISENSE_MV_PER_A,
+        board::LT8390_CTRL_LATCHOFF_MV,
+        board::LT8390_CTRL_SAT_MV
+    );
+    defmt::info!(
+        "boot: iout software trip margin {}%; supply snapshot every {} ms",
+        board::IOUT_TRIP_MARGIN_PCT,
+        board::SUPPLY_LOG_MS
+    );
+
     spawner.spawn(led_task(app_state, led_ch)).unwrap();
     spawner.spawn(ui_task(app_state, ui_bus)).unwrap();
     if let Some(uart) = service_uart {
@@ -451,14 +510,19 @@ async fn main(spawner: Spawner) {
                 let raw = sense.last_i_raw();
                 let zero = sense.zero_raw();
                 defmt::info!(
-                    "isense: raw={} ({} mV) zero={} ({} mV) span={} mV vout={} mV iout={} mA vin={} mV iin={} mA",
+                    "isense: raw={} ({} mV) zero={} ({} mV) span={} mV raw_i={} mA filt_i={} mA vout={} mV vset={} mV iset={} mA vin={} mV iin={} mA",
                     raw,
                     raw * board::ADC_VREF_MV / 4096,
                     zero,
                     zero * board::ADC_VREF_MV / 4096,
                     raw.saturating_sub(zero) * board::ADC_VREF_MV / 4096,
-                    app.telemetry.vout_mv,
+                    raw.saturating_sub(zero) * board::ADC_VREF_MV / 4096
+                        * 1000
+                        / board::ISENSE_MV_PER_A,
                     app.telemetry.iout_ma,
+                    app.telemetry.vout_mv,
+                    app.supply.v_set_mv,
+                    app.supply.i_set_ma,
                     app.telemetry.vin_mv,
                     app.telemetry.iin_ma
                 );

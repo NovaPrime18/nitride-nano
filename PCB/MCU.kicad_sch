@@ -5146,6 +5146,16 @@
 	)
 	(wire
 		(pts
+			(xy 215.9 151.13) (xy 234.95 151.13)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "30a656af-a08d-43d9-b65d-d6c4d6710c19")
+	)
+	(wire
+		(pts
 			(xy 193.04 111.76) (xy 190.5 111.76)
 		)
 		(stroke
@@ -7112,6 +7122,17 @@
 			(justify left)
 		)
 		(uuid "580fb153-8bf7-40c6-b250-8f62eab5e8e4")
+	)
+	(hierarchical_label "Converter-on-LOADEN"
+		(shape output)
+		(at 215.9 151.13 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "709c974f-039c-49d5-9efc-8f622ceeb518")
 	)
 	(hierarchical_label "USB_PD_IRQ"
 		(shape input)

@@ -38,7 +38,13 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
                     app.ui.screen = MenuScreen::CvSetpoint;
                 }
                 InputEvent::Btn1 => {
-                    app.supply.mode = SupplyMode::Cv;
+                    // BTN1 toggles the selected regulation mode; the badge then
+                    // shows CV/CC even while the output is off so the choice is
+                    // visible before enabling.
+                    app.supply.mode = match app.supply.mode {
+                        SupplyMode::Cv => SupplyMode::Cc,
+                        _ => SupplyMode::Cv,
+                    };
                 }
                 InputEvent::Btn2 => {
                     app.supply.mode = SupplyMode::Cc;
@@ -72,6 +78,13 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
                 StepMode::Coarse => 1_000u32, // 1 V per click
             };
             adjust_voltage_dynamic(app, ev, step);
+            if ev == InputEvent::Btn2 {
+                // Output on/off from the setpoint screens, so a setpoint can be
+                // dialled in and applied without walking back to Main. Enabling
+                // is always a deliberate press; boot never enables (see
+                // `SupplyState::default`).
+                app.supply.enabled = !app.supply.enabled;
+            }
             if ev == InputEvent::EncBtn {
                 app.ui.encoder_step_mode = match app.ui.encoder_step_mode {
                     StepMode::Fine => StepMode::Coarse,
@@ -89,6 +102,10 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
                 StepMode::Coarse => 1_000u32, // 1 A per click
             };
             adjust_current_dynamic(app, ev, step);
+            if ev == InputEvent::Btn2 {
+                // See CvSetpoint: output on/off without leaving the screen.
+                app.supply.enabled = !app.supply.enabled;
+            }
             if ev == InputEvent::EncBtn {
                 app.ui.encoder_step_mode = match app.ui.encoder_step_mode {
                     StepMode::Fine => StepMode::Coarse,
@@ -182,14 +199,23 @@ fn adjust_voltage_dynamic(app: &mut AppState, ev: InputEvent, step: u32) {
 }
 
 /// Encoder-turn handler for the I-LIM screen; ignores all other events.
+///
+/// The settable range is bounded by the LT8390A's CC window, not by the ADC:
+/// below [`board::CC_SET_MIN_MA`] the chip cannot limit current (it stops
+/// switching), and [`board::CC_SET_MAX_MA`] is the design maximum.
 fn adjust_current_dynamic(app: &mut AppState, ev: InputEvent, step: u32) {
     match ev {
         InputEvent::EncTurn(d) => {
             if d > 0 {
-                app.supply.i_set_ma = (app.supply.i_set_ma + step).min(board::IOUT_MAX_MA);
+                app.supply.i_set_ma = (app.supply.i_set_ma + step).min(board::CC_SET_MAX_MA);
             } else {
                 app.supply.i_set_ma = app.supply.i_set_ma.saturating_sub(step);
             }
+            app.supply.i_set_ma = app
+                .supply
+                .i_set_ma
+                .max(board::CC_SET_MIN_MA)
+                .min(board::CC_SET_MAX_MA);
         }
         _ => {}
     }

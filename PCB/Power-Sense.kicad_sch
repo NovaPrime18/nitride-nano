@@ -2282,6 +2282,16 @@
 		)
 		(uuid "7220cef2-a51c-468d-847c-8c32d018db25")
 	)
+	(text "Address: 1000000"
+		(exclude_from_sim no)
+		(at 177.292 147.32 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "7e85d1e8-787e-4695-8b0e-b6cc05dde912")
+	)
 	(text "Change to 200k"
 		(exclude_from_sim no)
 		(at 81.026 102.108 0)

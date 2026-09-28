@@ -70,8 +70,11 @@ pub const ISENSE_MV_PER_A: u32 = 20;
 ///
 /// Bench procedure: enable the output with no load, read the `isense:` RTT line
 /// (`raw … mV`), or DMM the ISMON node / R49, and set this to that value. The
-/// value below was fitted from the bench run in `analysis/ismon-calibration/`.
-pub const ISENSE_ZERO_MV: u32 = 244;
+/// value below was fitted from the 2026-09-27 bench run: with the converter
+/// enabled and no load, PA3 read raw 307–308 counts = 247–248 mV on this board,
+/// so the previous 244 mV constant showed ~200–250 mA at true zero and carried
+/// that offset up through the whole range.
+pub const ISENSE_ZERO_MV: u32 = 248;
 pub const VBUS_SENSE_NUM: u32 = 69_600;
 
 /// DAC 12-bit. The DAC reference is VREF+, which this board ties to +3V3 (the
@@ -111,6 +114,163 @@ pub const CV_SUM_OHM: u32 = 10_000; // R36, CV_Set → FB
 /// The supply tick is 1 ms, so this is N LSB per ms (~N*1000 LSB/s). Tune down
 /// for a gentler ramp if output-stage ringing/FET heating persists.
 pub const CV_SLEW_MAX_LSB_PER_TICK: u16 = 4;
+
+/// How often the supply supervisor prints its consolidated `supply:` diagnostic.
+/// One second gives a slow enough scroll to read while still catching a fault or
+/// mode change within a second of the event; edge-triggered events (faults, a
+/// binding power cap, a CV↔CC transition) are logged immediately regardless.
+pub const SUPPLY_LOG_MS: u64 = 1_000;
+
+/// Supply-snapshot period while the output is out of regulation (below
+/// [`VOUT_SAG_PCT`] of the setpoint). A converter saturation/collapse can be
+/// short-lived, so the 1 s cadence misses the interesting part; this tightens it
+/// and a dedicated edge line records the transition either way.
+pub const SUPPLY_LOG_SAG_MS: u64 = 200;
+
+/// An enabled output below this percentage of its setpoint is reported as a CV
+/// regulation failure (the LT8390A is not holding FB at 1 V), as opposed to a
+/// deliberate current limit.
+pub const VOUT_SAG_PCT: u32 = 85;
+
+/// Advisory threshold on the commanded step-down ratio `VIN/VOUT`, in percent.
+///
+/// The 2026-09-27 bench run showed this board cannot hold regulation above
+/// roughly 70 W when run at 48 V in / 12 V out (`VIN/VOUT = 4.0`) — it sags and
+/// "chitters" — while the *same* hardware reached its full 10 A programmed CC
+/// limit at 28 V in (`VIN/VOUT = 2.3`). That is the high-step-down / low-duty
+/// corner (1 MHz from R1 = 147 k, with a 2.2 µH inductor and the LSP/LSN filter
+/// as built). A one-shot `supply:` warning is emitted above this ratio so a
+/// marginal rail is visible in the log instead of looking like a firmware bug.
+/// Prefer the lowest PD rail that is still a clean buck (`control::auto_track`
+/// already does this in Auto mode).
+pub const DEEP_BUCK_WARN_RATIO_PCT: u32 = 300;
+
+/// The measured output current must exceed the commanded limit by this much
+/// before the software over-current fault latches. The ISMON path is only
+/// specified to ±3 %, its offset is part-specific (see `ISENSE_ZERO_MV`), and
+/// the observed bias on the bench was ~0.6 A — which is >5 % of a 3 A limit.
+/// The hardware CC loop is the primary limit; this is a runaway backstop, so a
+/// generous margin is correct. 115 % still sits below the 20 A design cap for
+/// every limit below ~17 A and the absolute `IOUT_MAX_MA` check covers the top.
+pub const IOUT_TRIP_MARGIN_PCT: u32 = 115;
+
+// ---------------------------------------------------------------------------
+// LT8390A output-current-limit input (CTRL pin) network
+// ---------------------------------------------------------------------------
+//
+// The CC DAC does NOT drive the LT8390A CTRL pin directly. On the board,
+//
+//     PA6 / CC_Set ── R48 ──┬── CTRL (U1 pin 10)
+//                           │
+//     LT8390A VREF ── R5 ───┤
+//                           │
+//                          R4
+//                           │
+//                          GND
+//
+// so CTRL is a resistor-summing node:
+//
+//     V_CTRL = k · V_DAC + V_ctrl0
+//     k       = (R4 || R5) / (R48 + (R4 || R5))
+//     V_ctrl0 = VREF · R4 / (R4 + R5)
+//
+// `control::dac_cc` inverts this to turn a requested current limit into a DAC
+// code (and reports the limit a code actually produces), and `control::supply`
+// logs both so a divider mismatch is visible instead of silent.
+//
+// NOTE (rev2 fitted values): R48 = 10 k, R5 = 357 k, R4 = 75 k. R5 was raised
+// from 124 k to 357 k as the "DAC high-Z / MCU held in reset" fail-safe: with
+// the DAC floated, V_CTRL = VREF·R4/(R4+R5) ≈ 0.347 V, i.e. ≈ 4.9 A, instead of
+// ≈ 25 A with 124 k. **If the next board revision changes this divider, update
+// these three constants or every CC limit will be wrong.**
+pub const LT8390_VREF_MV: u32 = 2_000; // LT8390A VREF pin (NOT the 1.0 V FB ref)
+pub const CTRL_SERIES_OHM: u32 = 10_000; // R48, CC_Set → CTRL
+pub const CTRL_VREF_OHM: u32 = 357_000; // R5,  VREF    → CTRL
+pub const CTRL_GND_OHM: u32 = 75_000; // R4,  CTRL    → GND
+
+/// LT8390A CTRL→current-limit transfer, from the datasheet:
+///
+/// ```text
+///   V(ISP−ISN)_threshold = (V_CTRL − 0.25 V) · 0.1     (0.3 V ≤ V_CTRL ≤ 1.15 V)
+///   I_LIMIT              = V(ISP−ISN)_threshold / R18
+/// ```
+///
+/// so with the R18 = 2 mΩ output shunt, `I_LIMIT(mA) = (V_CTRL(mV) − 250) · 50`.
+/// The transfer saturates at `V_CTRL ≥ 1.35 V` (100 mV ⇒ 50 A) and the part
+/// latches switching off below [`LT8390_CTRL_LATCHOFF_MV`] — which is why the
+/// disabled path's CC code of 0 is a genuine shutdown, not just a low limit.
+pub const LT8390_CTRL_OFFSET_MV: u32 = 250;
+/// Sense-threshold volts per volt of CTRL, scaled ×1000 (0.1 V/V).
+pub const LT8390_CTRL_SLOPE_MILLI: u32 = 100;
+/// Output current shunt R18, in milliohms.
+pub const ISENSE_SHUNT_MOHM: u32 = 2;
+/// Below this CTRL voltage the LT8390A stops switching (latch-off, 285–315 mV).
+pub const LT8390_CTRL_LATCHOFF_MV: u32 = 300;
+
+// ---------------------------------------------------------------------------
+// Achievable CC-limit range (the part's CTRL window, not the firmware's choice)
+// ---------------------------------------------------------------------------
+//
+// The datasheet's CTRL → ISP/ISN threshold transfer is three regions:
+//
+//   0.30 V ≤ V_CTRL ≤ 1.15 V   linear,  threshold 5 mV → 90 mV
+//   1.15 V ≤ V_CTRL ≤ 1.35 V   smooth transition 90 mV → 100 mV
+//           V_CTRL ≥ 1.35 V   constant 100 mV full scale
+//           V_CTRL < 0.30 V   stops switching (latch-off)
+//
+// so the part can command a **20:1** current window (5 → 100 mV), and no single
+// shunt value can reach below `CC_MIN_MA`. With the fitted R18 = 2 mΩ that is
+// 2.5 A … 50 A. The low end sits exactly on the latch-off, hence the settable
+// floor below.
+
+/// Sense-threshold window endpoints, in mV across R18.
+pub const LT8390_CTRL_MIN_SENSE_MV: u32 = 5;
+pub const LT8390_CTRL_LINEAR_MAX_SENSE_MV: u32 = 90;
+pub const LT8390_CTRL_MAX_SENSE_MV: u32 = 100;
+/// CTRL voltages where the window is linear-top / saturated, in mV.
+pub const LT8390_CTRL_LINEAR_TOP_MV: u32 = 1_150;
+pub const LT8390_CTRL_SAT_MV: u32 = 1_350;
+
+/// Smallest / largest current limit the fitted shunt can **sustain** (`mV/mΩ = A`,
+/// so `sense_mV · 1000 / R18_mΩ` is mA). With R18 = 2 mΩ: 2.5 A … 50 A. The low
+/// end is the exact latch-off and is only reachable once the stage is already
+/// switching — see [`CC_SET_MIN_MA`] for the cold-start floor.
+pub const CC_MIN_MA: u32 = LT8390_CTRL_MIN_SENSE_MV * 1_000 / ISENSE_SHUNT_MOHM;
+pub const CC_MAX_MA: u32 = LT8390_CTRL_MAX_SENSE_MV * 1_000 / ISENSE_SHUNT_MOHM;
+
+/// CTRL voltage needed to *leave* latch-off: the falling-threshold worst case
+/// (315 mV) plus the 25 mV hysteresis.
+///
+/// This is the trap in the low end of the CC range. The part can *sustain* a
+/// limit down at `LT8390_CTRL_LATCHOFF_MV` (0.30 V → 2.5 A) **once it is
+/// switching**, but from a cold start it will not begin switching until CTRL
+/// exceeds ~0.34 V. That is why the 2026-09-28 CV run held ~2.5 A while a CC
+/// cold start would not hold below ~6 A — start-vs-sustain, not a map error.
+pub const LT8390_CTRL_LATCHOFF_MAX_MV: u32 = 315;
+pub const LT8390_CTRL_LATCHOFF_HYST_MV: u32 = 25;
+pub const LT8390_CTRL_START_MV: u32 =
+    LT8390_CTRL_LATCHOFF_MAX_MV + LT8390_CTRL_LATCHOFF_HYST_MV;
+/// Datasheet-guaranteed cold-start floor (`(340 − 250) mV / 2 mΩ` = 4.5 A).
+pub const CC_START_MIN_MA: u32 =
+    (LT8390_CTRL_START_MV - LT8390_CTRL_OFFSET_MV) * 100 / ISENSE_SHUNT_MOHM;
+
+/// Bench-measured CC current offset: near the low end the loop delivers this
+/// much *more* current than commanded. On the 2026-09-28 board, setting 0.1 A
+/// drew 3.75 A and 0.2 A drew 3.85 A — a clean 1:1 slope with a **+3.65 A
+/// intercept**, i.e. a CTRL / ISP-ISN offset near latch-off, not a DAC map
+/// error. `dac_cc` cancels it here so the number on the I-LIM screen is the
+/// current actually drawn. Re-measure at mid-range before trusting it across
+/// the whole range: a 10 A run on 2026-09-27 tracked to <1 %, so the offset is
+/// known to fade at high current.
+pub const CC_CURRENT_OFFSET_MA: u32 = 3_650;
+
+/// Settable CC-range floor: the offset above plus a 0.1 A command, so the lowest
+/// setting (3.75 A here) is the lowest current the loop can actually deliver.
+/// Because the setpoint now means the *actual* current, the range reads
+/// 3.75 A … 20 A rather than 0.1 A … 20 A.
+pub const CC_SET_MIN_MA: u32 = CC_CURRENT_OFFSET_MA + 100;
+/// Settable CC-range ceiling (design max; the chip itself would allow 50 A).
+pub const CC_SET_MAX_MA: u32 = IOUT_MAX_MA;
 
 /// I2C addresses
 pub const TPS26750_ADDR: u8 = 0x21;
