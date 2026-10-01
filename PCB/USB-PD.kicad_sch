@@ -10,284 +10,6 @@
 		(rev "R1")
 	)
 	(lib_symbols
-		(symbol "0_PD240W:APTD1608LQBC/D"
-			(pin_numbers
-				(hide yes)
-			)
-			(pin_names
-				(hide yes)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "D1"
-				(at 1.524 5.334 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "Value" "APTD1608LQBC/D"
-				(at 1.524 2.794 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8589837755585884160"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "Standard LEDs - SMD Chip LED, Package= 0603, Color = Blue"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "MANUFACTURER" "Kingbright"
-				(at -3.302 10.414 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "MANUFACTURER PART NUMBER" "APTD1608LQBC/D"
-				(at -3.302 10.414 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "LCSC" "C5344742"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_fp_filters" "*kingbright_0603_blue*"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "APTD1608LQBC/D_1_0"
-				(polyline
-					(pts
-						(xy -2.794 5.08) (xy -2.032 5.842)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-						(color 0 102 255 1)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -2.54 4.826) (xy -3.048 5.334) (xy -3.556 4.318) (xy -2.54 4.826)
-					)
-					(stroke
-						(width -0.0001)
-						(type solid)
-						(color 0 102 255 1)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(polyline
-					(pts
-						(xy -2.286 4.318) (xy -1.524 5.08)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-						(color 0 102 255 1)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -2.032 4.064) (xy -2.54 4.572) (xy -3.048 3.556) (xy -2.032 4.064)
-					)
-					(stroke
-						(width -0.0001)
-						(type solid)
-						(color 0 102 255 1)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(polyline
-					(pts
-						(xy -1.27 6.35) (xy 1.27 6.35)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -1.27 3.81) (xy 1.13 3.81)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 7.62) (xy 0 6.37)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 3.81) (xy -1.27 6.35)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 3.81) (xy 1.27 6.35)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 2.54) (xy 0 3.79)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(pin passive line
-					(at 0 0 90)
-					(length 2.54)
-					(name "C"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 0 10.16 270)
-					(length 2.54)
-					(name "A"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "0_PD240W:CAT24C512YI-GT3"
 			(exclude_from_sim no)
 			(in_bom yes)
@@ -5828,12 +5550,6 @@
 		(uuid "424ae763-e921-4a9b-84d6-36ec7ed48aa8")
 	)
 	(junction
-		(at 300.99 144.78)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "4ba3ba64-2da8-453e-8642-e9d04ab2e1c5")
-	)
-	(junction
 		(at 208.28 142.24)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -5976,12 +5692,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "a23c273e-85c9-4d87-8347-7facaf72075a")
-	)
-	(junction
-		(at 306.07 114.3)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "a2c47539-e30e-4e1b-a385-18ff958411e8")
 	)
 	(junction
 		(at 350.52 104.14)
@@ -6233,16 +5943,6 @@
 			(type default)
 		)
 		(uuid "091aa22c-2dc0-4f22-b408-6884431f1399")
-	)
-	(wire
-		(pts
-			(xy 300.99 127) (xy 306.07 127)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "09237427-c3ee-49d8-89b8-81b9853419b5")
 	)
 	(wire
 		(pts
@@ -6613,16 +6313,6 @@
 			(type default)
 		)
 		(uuid "1fe8ac11-078d-4407-b3e5-afd35adbf3c0")
-	)
-	(wire
-		(pts
-			(xy 306.07 127) (xy 306.07 114.3)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "201a751c-9396-460e-b2f4-339bcd07e960")
 	)
 	(bus
 		(pts
@@ -7016,16 +6706,6 @@
 	)
 	(wire
 		(pts
-			(xy 293.37 144.78) (xy 300.99 144.78)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "453dabfe-e25a-42d0-92c2-86b089e04610")
-	)
-	(wire
-		(pts
 			(xy 267.97 72.39) (xy 267.97 74.93)
 		)
 		(stroke
@@ -7033,16 +6713,6 @@
 			(type default)
 		)
 		(uuid "45962109-8c83-48a6-8475-93650b7d0ff7")
-	)
-	(wire
-		(pts
-			(xy 381 137.16) (xy 381 139.7)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "48545f10-aee5-4629-ac8b-ddf415e524e9")
 	)
 	(wire
 		(pts
@@ -7063,16 +6733,6 @@
 			(type default)
 		)
 		(uuid "49d6e81f-e92a-4ad5-bb0a-1d81de8df746")
-	)
-	(wire
-		(pts
-			(xy 300.99 144.78) (xy 300.99 127)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "4a354c1e-317e-4f39-bacf-e54b4910ca16")
 	)
 	(wire
 		(pts
@@ -7416,16 +7076,6 @@
 	)
 	(wire
 		(pts
-			(xy 300.99 144.78) (xy 373.38 144.78)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "76c08acf-bcc7-4448-8432-d8defb08e612")
-	)
-	(wire
-		(pts
 			(xy 27.94 264.16) (xy 53.34 264.16)
 		)
 		(stroke
@@ -7483,16 +7133,6 @@
 			(type default)
 		)
 		(uuid "7db130b4-47d6-4769-aa22-511e4a03e2db")
-	)
-	(wire
-		(pts
-			(xy 381 129.54) (xy 381 132.08)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "7dc33857-b4de-495f-9c8f-cd53463cdb3f")
 	)
 	(wire
 		(pts
@@ -8064,16 +7704,6 @@
 		)
 		(uuid "b621ebaf-c96f-4248-b314-d813d263323e")
 	)
-	(wire
-		(pts
-			(xy 302.26 114.3) (xy 306.07 114.3)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "b6fe4023-1d7b-4de4-a38f-b35924d7563c")
-	)
 	(polyline
 		(pts
 			(xy 245.11 195.58) (xy 218.44 185.42)
@@ -8157,7 +7787,7 @@
 	)
 	(wire
 		(pts
-			(xy 311.15 114.3) (xy 306.07 114.3)
+			(xy 302.26 114.3) (xy 311.15 114.3)
 		)
 		(stroke
 			(width 0)
@@ -8647,16 +8277,6 @@
 	)
 	(wire
 		(pts
-			(xy 381 118.11) (xy 381 119.38)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f8ce17d8-b9e7-42dc-8a69-d74890c541f8")
-	)
-	(wire
-		(pts
 			(xy 151.13 118.11) (xy 161.29 118.11)
 		)
 		(stroke
@@ -8924,16 +8544,6 @@
 			(justify left bottom)
 		)
 		(uuid "6a308c74-6c8d-4553-adc6-dc47f1216c81")
-	)
-	(label "SWITCH_EN"
-		(at 358.14 144.78 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "6c69e960-5c27-4e90-a138-e06ae4badfc8")
 	)
 	(label "PD_GPIO1"
 		(at 73.66 250.19 0)
@@ -9264,20 +8874,6 @@
 			(justify right)
 		)
 		(uuid "f7da3ad9-a475-44be-bbea-f9581e02a52f")
-	)
-	(hierarchical_label "SWITCH_EN"
-		(shape input)
-		(at 293.37 144.78 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-				(thickness 0.254)
-				(bold yes)
-				(color 0 0 0 1)
-			)
-			(justify right)
-		)
-		(uuid "fc0b1456-8096-4453-9c80-91f9e33b1476")
 	)
 	(symbol
 		(lib_id "power:+1V5")
@@ -10008,120 +9604,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
 					(reference "#PWR082")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "0_passives:R_0402")
-		(at 381 134.62 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "145fffeb-8c98-4248-8270-c148b2b99f7e")
-		(property "Reference" "R45"
-			(at 383.54 133.35 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "330R 1%"
-			(at 383.54 135.89 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 381 134.62 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8579706017514917888"
-			(at 381 134.62 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor, 330R, 1%, 100ppm, 1/16W, 1005, 0402"
-			(at 381 134.62 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C25104"
-			(at 381 134.62 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "UNI-ROYAL(Uniroyal Elec)"
-			(at 381 134.62 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer Part Number" "0402WGF3300TCE"
-			(at 381 134.62 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "c48605aa-df2a-437b-a661-81286a26a1a2")
-		)
-		(pin "1"
-			(uuid "2506c91d-272f-44ef-97fc-b9efd3df188a")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
-					(reference "R45")
 					(unit 1)
 				)
 			)
@@ -12692,83 +12174,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:+3V3")
-		(at 381 118.11 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "5c0a773b-6abd-40bb-afd3-8a248f17d6dc")
-		(property "Reference" "#PWR099"
-			(at 381 118.11 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+3V3"
-			(at 381 114.3 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 381 118.11 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 381 118.11 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+3V3\""
-			(at 381 118.11 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "78932839-dd2f-4ef4-9dea-45fdec97f1bd")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
-					(reference "#PWR099")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:+BATT")
 		(at 68.58 203.2 270)
 		(unit 1)
@@ -13815,81 +13220,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:GND")
-		(at 381 149.86 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "87872f58-037e-40bf-a4be-02c460da9bd2")
-		(property "Reference" "#PWR0100"
-			(at 381 149.86 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND"
-			(at 381 156.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 381 149.86 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 381 149.86 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 381 149.86 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "37e1c199-0384-4ef4-a58b-8358cefa4621")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
-					(reference "#PWR0100")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Connector:TestPoint")
 		(at 53.34 255.27 270)
 		(unit 1)
@@ -14857,121 +14187,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
 					(reference "R41")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "0_PD240W:APTD1608LQBC/D")
-		(at 381 129.54 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "a6a1b141-0228-49b6-a4df-fb47222c4b1d")
-		(property "Reference" "D13"
-			(at 382.524 124.206 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "APTD1608LQBC/D"
-			(at 382.524 126.746 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "Altium_port:kingbright_0603_blue"
-			(at 381 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8589837755585884160"
-			(at 381 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Standard LEDs - SMD Chip LED, Package= 0603, Color = Blue"
-			(at 381 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C5344742"
-			(at 381 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "Kingbright"
-			(at 381 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer Part Number" "APTD1608LQBC/D"
-			(at 381 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "1da655f3-6e0f-47e3-868a-f53970dfd991")
-		)
-		(pin "1"
-			(uuid "cca8b2c4-43e8-49f2-93fa-f4ad5a4550b5")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
-					(reference "D13")
 					(unit 1)
 				)
 			)
@@ -17235,123 +16450,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
 					(reference "TP15")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Transistor_FET_Other:Q_NMOS_Depletion_GSD")
-		(at 378.46 144.78 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "ed89ffce-6177-46fc-b550-5e6f31c48ef1")
-		(property "Reference" "Q11"
-			(at 383.54 144.78 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "AO3404A"
-			(at 383.54 147.32 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "Altium_port:sot-23-3L_103p_300x130x110_n"
-			(at 378.46 144.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8586177430906146816"
-			(at 378.46 144.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "MOSFET 30V 1.4W, SOT-23-3L"
-			(at 378.46 144.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C30010"
-			(at 378.46 144.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "Alpha & Omega Semicon"
-			(at 378.46 144.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer Part Number" "AO3404A"
-			(at 378.46 144.78 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "3"
-			(uuid "5d4e254c-c861-4a08-bdb1-ef9e1c1c7bdb")
-		)
-		(pin "2"
-			(uuid "ce136ae6-f938-4078-90ef-d6b4a58d7fb6")
-		)
-		(pin "1"
-			(uuid "54e0cb5c-b173-4e79-9a06-26f4c1e5f7ef")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
-					(reference "Q11")
 					(unit 1)
 				)
 			)

@@ -5176,6 +5176,16 @@
 	)
 	(wire
 		(pts
+			(xy 214.63 158.75) (xy 234.95 158.75)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "34693a93-1cb1-477c-b67e-2e8e43c17d9b")
+	)
+	(wire
+		(pts
 			(xy 201.93 163.83) (xy 234.95 163.83)
 		)
 		(stroke
@@ -7261,6 +7271,17 @@
 			(justify left)
 		)
 		(uuid "e7a13dcf-e5fe-42c9-add3-6be836562488")
+	)
+	(hierarchical_label "Sel_high_gain"
+		(shape output)
+		(at 214.63 158.75 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right)
+		)
+		(uuid "ea362534-c367-4914-94e2-fb4233bd900f")
 	)
 	(symbol
 		(lib_id "power:+3V3")

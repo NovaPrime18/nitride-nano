@@ -313,269 +313,6 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "0_PD240W:SN74LVC1G17DBVR"
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "U10"
-				(at 5.08 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "Value" "SN74LVC1G17DBVR"
-				(at 5.08 -17.526 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" "https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf?ts=1773125655769&ref_url=https%253A%252F%252Fwww.ti.com%252Fproduct%252FSN74LVC1G17"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "SN74LVC1G17 Single Schmitt-Trigger Buffer"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "MANUFACTURER PART NUMBER" "SN74LVC1G17DBVR"
-				(at -1.27 3.81 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "MANUFACTURER" "Texas Instruments"
-				(at -1.27 3.81 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "LCSC" "C7836"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_fp_filters" "*sot25_95p_300x280x145_jedec_mo-178-aa_n*"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "SN74LVC1G17DBVR_1_0"
-				(rectangle
-					(start 5.08 0)
-					(end 20.32 -15)
-					(stroke
-						(width 0.0254)
-						(type solid)
-						(color 128 0 0 1)
-					)
-					(fill
-						(type background)
-					)
-				)
-				(pin passive line
-					(at 25.4 -2.54 180)
-					(length 5.08)
-					(name "NC"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 0 -12.7 0)
-					(length 5.08)
-					(name "GND"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 0 -2.54 0)
-					(length 5.08)
-					(name "VCC"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(symbol "SN74LVC1G17DBVR_2_0"
-				(rectangle
-					(start 5.08 0)
-					(end 15.24 -10)
-					(stroke
-						(width 0.0254)
-						(type solid)
-						(color 128 0 0 1)
-					)
-					(fill
-						(type background)
-					)
-				)
-				(polyline
-					(pts
-						(xy 7.62 -2.54) (xy 7.62 -7.54) (xy 12.62 -5.04) (xy 7.62 -2.54)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 7.62 -5.08) (xy 6.37 -5.08)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 12.446 -5.08) (xy 13.696 -5.08)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(pin passive line
-					(at 0 -5.08 0)
-					(length 5.08)
-					(name "A"
-						(effects
-							(font
-								(size 0 0)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 20.32 -5.08 180)
-					(length 5.08)
-					(name "Y"
-						(effects
-							(font
-								(size 0 0)
-							)
-						)
-					)
-					(number "4"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "0_passives:C_0603"
 			(pin_numbers
 				(hide yes)
@@ -1750,269 +1487,6 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "SN74LVC1G17DBVR_1"
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "U10"
-				(at 5.08 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "Value" "SN74LVC1G17DBVR"
-				(at 5.08 -17.526 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" "https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf?ts=1773125655769&ref_url=https%253A%252F%252Fwww.ti.com%252Fproduct%252FSN74LVC1G17"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "SN74LVC1G17 Single Schmitt-Trigger Buffer"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "MANUFACTURER PART NUMBER" "SN74LVC1G17DBVR"
-				(at -1.27 3.81 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "MANUFACTURER" "Texas Instruments"
-				(at -1.27 3.81 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "LCSC" "C7836"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_fp_filters" "*sot25_95p_300x280x145_jedec_mo-178-aa_n*"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "SN74LVC1G17DBVR_1_1_0"
-				(rectangle
-					(start 5.08 0)
-					(end 20.32 -15)
-					(stroke
-						(width 0.0254)
-						(type solid)
-						(color 128 0 0 1)
-					)
-					(fill
-						(type background)
-					)
-				)
-				(pin passive line
-					(at 25.4 -2.54 180)
-					(length 5.08)
-					(name "NC"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 0 -12.7 0)
-					(length 5.08)
-					(name "GND"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 0 -2.54 0)
-					(length 5.08)
-					(name "VCC"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(symbol "SN74LVC1G17DBVR_1_2_0"
-				(rectangle
-					(start 5.08 0)
-					(end 15.24 -10)
-					(stroke
-						(width 0.0254)
-						(type solid)
-						(color 128 0 0 1)
-					)
-					(fill
-						(type background)
-					)
-				)
-				(polyline
-					(pts
-						(xy 7.62 -2.54) (xy 7.62 -7.54) (xy 12.62 -5.04) (xy 7.62 -2.54)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 7.62 -5.08) (xy 6.37 -5.08)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 12.446 -5.08) (xy 13.696 -5.08)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(pin passive line
-					(at 0 -5.08 0)
-					(length 5.08)
-					(name "A"
-						(effects
-							(font
-								(size 0 0)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 20.32 -5.08 180)
-					(length 5.08)
-					(name "Y"
-						(effects
-							(font
-								(size 0 0)
-							)
-						)
-					)
-					(number "4"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "power:+3V3"
 			(power global)
 			(pin_numbers
@@ -2302,63 +1776,11 @@
 		)
 		(uuid "fe2d8427-2f80-46ca-b776-ea581040582a")
 	)
-	(text_box "ALERT is open-drain and can be configured to latch or not latch the overcurrent event."
-		(exclude_from_sim no)
-		(at 199.39 134.62 0)
-		(size 37.465 17.6754)
-		(margins 2 2 2 2)
-		(stroke
-			(width -0.0001)
-			(type solid)
-			(color 255 165 0 1)
-		)
-		(fill
-			(type none)
-		)
-		(effects
-			(font
-				(face "Comfortaa Light")
-				(size 1.2 1.2)
-				(color 0 0 0 1)
-			)
-			(justify left top)
-		)
-		(uuid "456e561d-16f3-4290-b84a-12c397949bb4")
-	)
-	(text_box "SN74LVC1G17 is a safety buffer to prevent software mistakes. Driving SWEN_READ cannot activate the power switch."
-		(exclude_from_sim no)
-		(at 248.92 135.89 0)
-		(size 41.91 13.2245)
-		(margins 2 2 2 2)
-		(stroke
-			(width -0.0001)
-			(type solid)
-			(color 200 200 200 1)
-		)
-		(fill
-			(type none)
-		)
-		(effects
-			(font
-				(face "Comfortaa Light")
-				(size 1.2 1.2)
-				(color 0 0 0 1)
-			)
-			(justify left top)
-		)
-		(uuid "74ec707f-e212-43a4-883d-58e5f88007d7")
-	)
 	(junction
 		(at 137.16 101.6)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "01b20e1e-6040-4a4b-9a8a-7793bcac378f")
-	)
-	(junction
-		(at 364.49 24.13)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "2ad98c1a-8eea-4758-97ca-d8bdfed1bfd3")
 	)
 	(junction
 		(at 57.15 167.64)
@@ -2421,22 +1843,10 @@
 		(uuid "76d022d5-d442-40c5-8b3e-39e6ec610a85")
 	)
 	(junction
-		(at 228.6 129.54)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "8297abdc-5de2-42a7-8082-6fa03a59308b")
-	)
-	(junction
 		(at 144.78 83.82)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "ac96f1ae-e5cf-45d7-8ab9-7af01d1dad23")
-	)
-	(junction
-		(at 287.02 129.54)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "b23c2677-ed80-4c67-ac42-60206ba2eea1")
 	)
 	(junction
 		(at 59.69 107.95)
@@ -2475,26 +1885,10 @@
 		(uuid "dc2c6cce-70f8-4f46-bf4d-de9f945de188")
 	)
 	(junction
-		(at 364.49 34.29)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "e4f3c7c1-5298-4e1c-8e18-1388d8418f7b")
-	)
-	(junction
 		(at 152.4 99.06)
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "e70225cf-500c-402c-89bc-ed226dbdcffb")
-	)
-	(junction
-		(at 231.14 129.54)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "f69ca14e-5895-41f8-b09e-2c96459a49f7")
-	)
-	(no_connect
-		(at 392.43 24.13)
-		(uuid "a90b5c02-7a61-4bbb-8628-32facb4d75ea")
 	)
 	(bus_entry
 		(at 212.09 109.22)
@@ -2553,16 +1947,6 @@
 			(type default)
 		)
 		(uuid "0691397b-0024-48af-ac67-86048f2bbf95")
-	)
-	(wire
-		(pts
-			(xy 283.21 129.54) (xy 287.02 129.54)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "07e5de8e-f8aa-4cbc-b2e6-7f1a46c352d1")
 	)
 	(wire
 		(pts
@@ -2626,16 +2010,6 @@
 	)
 	(wire
 		(pts
-			(xy 231.14 133.35) (xy 231.14 129.54)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "23758b35-fcf6-42e9-9fe7-7596c0094908")
-	)
-	(wire
-		(pts
 			(xy 144.78 83.82) (xy 148.59 83.82)
 		)
 		(stroke
@@ -2673,16 +2047,6 @@
 			(type default)
 		)
 		(uuid "2e41e97d-d185-4ac6-8e8e-9e0e95f08bff")
-	)
-	(wire
-		(pts
-			(xy 364.49 24.13) (xy 364.49 26.67)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "3d81f715-36dc-4de5-a3c6-eb55ef5bf3dd")
 	)
 	(wire
 		(pts
@@ -2796,16 +2160,6 @@
 	)
 	(wire
 		(pts
-			(xy 364.49 24.13) (xy 367.03 24.13)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "5e50221f-fae7-408b-8074-659f6cd2f70a")
-	)
-	(wire
-		(pts
 			(xy 162.56 137.16) (xy 144.78 137.16)
 		)
 		(stroke
@@ -2883,16 +2237,6 @@
 			(type default)
 		)
 		(uuid "7effff8b-d1ec-43c0-a38f-1881c0a754b2")
-	)
-	(wire
-		(pts
-			(xy 228.6 129.54) (xy 231.14 129.54)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8048e1d3-2cde-412e-ae72-54337fa2d5ce")
 	)
 	(wire
 		(pts
@@ -3003,26 +2347,6 @@
 			(type default)
 		)
 		(uuid "9cc2b1d1-ed4b-4461-a22f-fd24f2501ac9")
-	)
-	(wire
-		(pts
-			(xy 364.49 31.75) (xy 364.49 34.29)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9d475308-3a67-4c86-92b4-ab61f2707904")
-	)
-	(wire
-		(pts
-			(xy 287.02 129.54) (xy 300.99 129.54)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a4dbef85-96ef-4cc8-8b92-1250d4032a36")
 	)
 	(wire
 		(pts
@@ -3146,16 +2470,6 @@
 	)
 	(wire
 		(pts
-			(xy 236.22 133.35) (xy 231.14 133.35)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "c55be423-8022-4606-be50-732534864def")
-	)
-	(wire
-		(pts
 			(xy 116.84 83.82) (xy 116.84 92.71)
 		)
 		(stroke
@@ -3173,26 +2487,6 @@
 			(type default)
 		)
 		(uuid "c7bc7762-3147-4312-ad3e-f512d2b2c54c")
-	)
-	(wire
-		(pts
-			(xy 218.44 129.54) (xy 228.6 129.54)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "c9aa3b04-d82f-4586-994e-3c8bbe901664")
-	)
-	(wire
-		(pts
-			(xy 266.7 129.54) (xy 278.13 129.54)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "d68f2695-2636-40d1-b99d-5a0f1a08da93")
 	)
 	(bus
 		(pts
@@ -3286,16 +2580,6 @@
 	)
 	(wire
 		(pts
-			(xy 364.49 34.29) (xy 367.03 34.29)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "fba404bd-609a-4c3e-983a-4287f9aac0f6")
-	)
-	(wire
-		(pts
 			(xy 130.81 83.82) (xy 137.16 83.82)
 		)
 		(stroke
@@ -3316,26 +2600,6 @@
 	)
 	(wire
 		(pts
-			(xy 193.04 129.54) (xy 213.36 129.54)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "fcae0aae-351f-4034-b27e-4a04e1474004")
-	)
-	(wire
-		(pts
-			(xy 231.14 129.54) (xy 246.38 129.54)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "ff874b67-af5a-4a15-a4f9-e5b39d135b9d")
-	)
-	(wire
-		(pts
 			(xy 74.93 175.26) (xy 74.93 180.34)
 		)
 		(stroke
@@ -3343,16 +2607,6 @@
 			(type default)
 		)
 		(uuid "ffd13286-f7d3-4fef-87a6-319051e0a4cd")
-	)
-	(label "INA_ALERT"
-		(at 207.01 129.54 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "1baa1b16-e974-4dd3-8123-3e567a18845a")
 	)
 	(label "SENSE_P"
 		(at 154.94 129.54 180)
@@ -3408,20 +2662,6 @@
 		)
 		(uuid "1ee90a56-f68d-425c-8ccb-1d563d2a280b")
 	)
-	(hierarchical_label "SWITCH_EN"
-		(shape output)
-		(at 236.22 133.35 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-				(thickness 0.254)
-				(bold yes)
-				(color 0 0 0 1)
-			)
-			(justify left)
-		)
-		(uuid "3a82c75a-558f-48cb-98b6-e546c219d777")
-	)
 	(hierarchical_label "+VBUS_SENSED"
 		(shape input)
 		(at 50.8 83.82 180)
@@ -3472,20 +2712,6 @@
 		)
 		(uuid "df34bb7a-f5cc-4de3-b02a-61a165241dd7")
 	)
-	(hierarchical_label "SW_EN_READ"
-		(shape output)
-		(at 300.99 129.54 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-				(thickness 0.254)
-				(bold yes)
-				(color 0 0 0 1)
-			)
-			(justify left)
-		)
-		(uuid "f7e8ed65-1625-4f3f-9233-150de72d84ea")
-	)
 	(symbol
 		(lib_id "Device:R")
 		(at 127 83.82 90)
@@ -3508,7 +2734,7 @@
 				)
 			)
 		)
-		(property "Value" "8mR"
+		(property "Value" "3mR"
 			(at 127 80.01 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -3551,7 +2777,7 @@
 				)
 			)
 		)
-		(property "JLC" "C46634461"
+		(property "JLC" "C41382684"
 			(at 127 83.82 90)
 			(hide yes)
 			(show_name no)
@@ -3562,7 +2788,7 @@
 				)
 			)
 		)
-		(property "LCSC" "C46634461"
+		(property "LCSC" "C41382684"
 			(at 127 77.47 0)
 			(hide yes)
 			(show_name no)
@@ -3658,204 +2884,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
 					(reference "#PWR0103")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:GND")
-		(at 364.49 34.29 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "1b3bfe44-aa3b-4c5e-99cb-1434cf611016")
-		(property "Reference" "#PWR0116"
-			(at 364.49 34.29 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND"
-			(at 364.49 40.64 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 364.49 34.29 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 364.49 34.29 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 364.49 34.29 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "3bef96ab-8187-4148-b893-a2f6ade29441")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
-					(reference "#PWR0116")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_name "SN74LVC1G17DBVR_1")
-		(lib_id "0_PD240W:SN74LVC1G17DBVR")
-		(at 367.03 21.59 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "1d56f03d-b450-4902-92cd-9c516b2a713f")
-		(property "Reference" "U10"
-			(at 379.73 16.51 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "SN74LVC1G17DBVR"
-			(at 379.73 19.05 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Altium_port:sot25_95p_300x280x145_jedec_mo-178-aa_n"
-			(at 367.03 21.59 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf?ts=1773125655769&ref_url=https%253A%252F%252Fwww.ti.com%252Fproduct%252FSN74LVC1G17"
-			(at 367.03 21.59 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "SN74LVC1G17 Single Schmitt-Trigger Buffer"
-			(at 367.03 21.59 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C7836"
-			(at 367.03 21.59 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "Texas Instruments"
-			(at 367.03 21.59 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer Part Number" "SN74LVC1G17DBVR"
-			(at 367.03 21.59 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "3"
-			(uuid "546bd298-f55f-498b-928a-a6c67d754cd1")
-		)
-		(pin "4"
-			(uuid "58cb1793-5211-46ab-aae9-e717db230e0f")
-		)
-		(pin "1"
-			(uuid "8767bcdc-7875-490a-9fea-d419007d4dbe")
-		)
-		(pin "5"
-			(uuid "eec227ac-8797-4c76-9e18-1346e1b06981")
-		)
-		(pin "2"
-			(uuid "90785df2-060a-4b9e-9086-ec4b310e3199")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
-					(reference "U10")
 					(unit 1)
 				)
 			)
@@ -4373,83 +3401,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:+3V3")
-		(at 364.49 24.13 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "4240c3cc-dffc-4d69-93b4-64d9550d569f")
-		(property "Reference" "#PWR0115"
-			(at 364.49 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+3V3"
-			(at 364.49 19.05 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 364.49 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 364.49 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+3V3\""
-			(at 364.49 24.13 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "4246eddc-9333-4c6e-b8a8-fe0913b67f6d")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
-					(reference "#PWR0115")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "0_passives:R_0402")
 		(at 116.84 95.25 0)
 		(unit 1)
@@ -4558,120 +3509,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
 					(reference "R52")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "0_passives:R_0402")
-		(at 280.67 129.54 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "4454fecf-0baf-43f8-b8c2-baff7febd899")
-		(property "Reference" "R56"
-			(at 281.686 126.746 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "4.7k 1%"
-			(at 285.75 132.08 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 280.67 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8579705919464263680"
-			(at 280.67 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor, 4.7k, 1%, 100ppm, 1/16W, 1005, 0402"
-			(at 280.67 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C105871"
-			(at 280.67 129.54 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "UNI-ROYAL(Uniroyal Elec)"
-			(at 280.67 129.54 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer Part Number" "0402WGF1003TCE"
-			(at 280.67 129.54 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "b96180d4-cd09-49ec-b64c-88589ff22630")
-		)
-		(pin "1"
-			(uuid "7cee69e6-4e58-4686-a819-8c028085c550")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
-					(reference "R56")
 					(unit 1)
 				)
 			)
@@ -4953,96 +3790,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
 					(reference "C52")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 287.02 129.54 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "9564ee45-964e-46b0-a0de-c7e8d93059ad")
-		(property "Reference" "TP29"
-			(at 287.02 124.46 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "tp_round_70"
-			(at 285.75 133.35 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
-			(at 287.02 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 287.02 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Test Point, Round, 0.7mm"
-			(at 287.02 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" ""
-			(at 287.02 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "4a0e98f6-27d3-4fa8-85ce-c1f2e0079787")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
-					(reference "TP29")
 					(unit 1)
 				)
 			)
@@ -5344,356 +4091,6 @@
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
 					(reference "R47")
 					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "0_passives:R_0402")
-		(at 215.9 129.54 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "a116d84c-7c6a-4aad-a9a3-8de793caa433")
-		(property "Reference" "R55"
-			(at 212.09 130.81 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "27R 1%"
-			(at 224.79 130.81 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 215.9 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8588899757724995584"
-			(at 215.9 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor, 27R, 1%, 100ppm, 1/16W, 1005, 0402"
-			(at 215.9 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C138021"
-			(at 215.9 129.54 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "Yageo"
-			(at 215.9 129.54 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer Part Number" "RC0402FR-0727RL"
-			(at 215.9 129.54 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "79aaeee6-418f-457f-b3b2-dfdf07d4de94")
-		)
-		(pin "1"
-			(uuid "f8699ff3-b4eb-48b6-85bb-aaea499f7639")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
-					(reference "R55")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "0_passives:C_0603")
-		(at 364.49 29.21 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "a598fd63-56c9-426d-bf3a-fe550cc2eb79")
-		(property "Reference" "C64"
-			(at 361.315 28.575 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right bottom)
-			)
-		)
-		(property "Value" "100n X7R 100V"
-			(at 361.315 31.075 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right bottom)
-			)
-		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
-			(at 364.49 29.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8586178586332446721"
-			(at 364.49 29.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Capacitor, 100nF, 10%, X7R, 100V, 1608, 0603"
-			(at 364.49 29.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C15725"
-			(at 364.49 29.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "Samsung Electro-Mechanics"
-			(at 364.49 29.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer Part Number" "CL10B104KC8NNNC"
-			(at 364.49 29.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "dbdec027-94b1-4a95-bda6-39874e100469")
-		)
-		(pin "1"
-			(uuid "925a1e85-af2c-42b3-ad3b-4b8990df644e")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
-					(reference "C64")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "0_PD240W:SN74LVC1G17DBVR")
-		(at 246.38 124.46 0)
-		(unit 2)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "b14eed8e-7f85-486d-ac3b-a970c9cd4233")
-		(property "Reference" "U10"
-			(at 256.38 119.38 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "SN74LVC1G17DBVR"
-			(at 256.38 121.92 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Altium_port:sot25_95p_300x280x145_jedec_mo-178-aa_n"
-			(at 246.38 124.46 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://www.ti.com/lit/ds/symlink/sn74lvc1g17.pdf?ts=1773125655769&ref_url=https%253A%252F%252Fwww.ti.com%252Fproduct%252FSN74LVC1G17"
-			(at 246.38 124.46 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "SN74LVC1G17 Single Schmitt-Trigger Buffer"
-			(at 246.38 124.46 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C7836"
-			(at 246.38 124.46 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "Texas Instruments"
-			(at 246.38 124.46 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer Part Number" "SN74LVC1G17DBVR"
-			(at 246.38 124.46 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "3"
-			(uuid "85a32bc0-45bd-452d-af11-430097a034b6")
-		)
-		(pin "4"
-			(uuid "4db0bff9-94ba-4203-9b60-859671d95ebf")
-		)
-		(pin "1"
-			(uuid "753c1f3a-59f5-4813-9234-57a6cfe42fe2")
-		)
-		(pin "5"
-			(uuid "9b05a87b-4c7e-4620-898b-dcf9c67c1e4e")
-		)
-		(pin "2"
-			(uuid "f1695744-2af8-495d-8ae6-ce75dbee3f21")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
-					(reference "U10")
-					(unit 2)
 				)
 			)
 		)
@@ -6484,96 +4881,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
 					(reference "C53")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 228.6 129.54 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "f720af6b-92b7-461a-ad7e-71b62c8293d2")
-		(property "Reference" "TP28"
-			(at 228.6 124.46 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "tp_round_70"
-			(at 227.33 133.35 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
-			(at 228.6 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 228.6 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Test Point, Round, 0.7mm"
-			(at 228.6 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" ""
-			(at 228.6 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "b8c9670d-6569-4acb-b025-13ef15a54307")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/4379b8af-02d9-4f4c-b258-ce722d31539f"
-					(reference "TP28")
 					(unit 1)
 				)
 			)

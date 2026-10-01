@@ -10,284 +10,6 @@
 		(rev "R1")
 	)
 	(lib_symbols
-		(symbol "0_PD240W:APTD1608LQBC/D"
-			(pin_numbers
-				(hide yes)
-			)
-			(pin_names
-				(hide yes)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "D1"
-				(at 1.524 5.334 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "Value" "APTD1608LQBC/D"
-				(at 1.524 2.794 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8589837755585884160"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "Standard LEDs - SMD Chip LED, Package= 0603, Color = Blue"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "MANUFACTURER" "Kingbright"
-				(at -3.302 10.414 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "MANUFACTURER PART NUMBER" "APTD1608LQBC/D"
-				(at -3.302 10.414 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left bottom)
-				)
-			)
-			(property "LCSC" "C5344742"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_fp_filters" "*kingbright_0603_blue*"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "APTD1608LQBC/D_1_0"
-				(polyline
-					(pts
-						(xy -2.794 5.08) (xy -2.032 5.842)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-						(color 0 102 255 1)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -2.54 4.826) (xy -3.048 5.334) (xy -3.556 4.318) (xy -2.54 4.826)
-					)
-					(stroke
-						(width -0.0001)
-						(type solid)
-						(color 0 102 255 1)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(polyline
-					(pts
-						(xy -2.286 4.318) (xy -1.524 5.08)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-						(color 0 102 255 1)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -2.032 4.064) (xy -2.54 4.572) (xy -3.048 3.556) (xy -2.032 4.064)
-					)
-					(stroke
-						(width -0.0001)
-						(type solid)
-						(color 0 102 255 1)
-					)
-					(fill
-						(type outline)
-					)
-				)
-				(polyline
-					(pts
-						(xy -1.27 6.35) (xy 1.27 6.35)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -1.27 3.81) (xy 1.13 3.81)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 7.62) (xy 0 6.37)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 3.81) (xy -1.27 6.35)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 3.81) (xy 1.27 6.35)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 0 2.54) (xy 0 3.79)
-					)
-					(stroke
-						(width 0)
-						(type solid)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(pin passive line
-					(at 0 0 90)
-					(length 2.54)
-					(name "C"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 0 10.16 270)
-					(length 2.54)
-					(name "A"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "0_PD240W:TPD4S480RUKR"
 			(exclude_from_sim no)
 			(in_bom yes)
@@ -3089,147 +2811,6 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Device:R_Small"
-			(pin_numbers
-				(hide yes)
-			)
-			(pin_names
-				(offset 0.254)
-				(hide yes)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "R"
-				(at 0 0 90)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.016 1.016)
-					)
-				)
-			)
-			(property "Value" "R_Small"
-				(at 1.778 0 90)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "Resistor, small symbol"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_keywords" "R resistor"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_fp_filters" "R_*"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "R_Small_0_1"
-				(rectangle
-					(start -0.762 1.778)
-					(end 0.762 -1.778)
-					(stroke
-						(width 0.2032)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(symbol "R_Small_1_1"
-				(pin passive line
-					(at 0 2.54 270)
-					(length 0.762)
-					(name ""
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 0 -2.54 90)
-					(length 0.762)
-					(name ""
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "Diode:SMAJ48A"
 			(pin_numbers
 				(hide yes)
@@ -4626,12 +4207,6 @@
 		(uuid "52711cc4-ec3c-4308-93d1-f2db86157064")
 	)
 	(junction
-		(at 331.47 134.62)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "584f1e4c-e71d-4ef0-a48c-9ce796e17fd8")
-	)
-	(junction
 		(at 278.13 157.48)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -4974,16 +4549,6 @@
 	)
 	(wire
 		(pts
-			(xy 331.47 134.62) (xy 331.47 138.43)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "3967af76-8b82-42e3-944c-a1524a5abb24")
-	)
-	(wire
-		(pts
 			(xy 226.06 184.15) (xy 238.76 184.15)
 		)
 		(stroke
@@ -5141,16 +4706,6 @@
 			(type default)
 		)
 		(uuid "5bc16460-caf5-4a5f-9b62-f42f551f298f")
-	)
-	(wire
-		(pts
-			(xy 331.47 149.86) (xy 331.47 153.67)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "5cb2cf56-766e-4da9-bbf9-efcb2dad2067")
 	)
 	(wire
 		(pts
@@ -5444,16 +4999,6 @@
 	)
 	(wire
 		(pts
-			(xy 331.47 171.45) (xy 331.47 173.99)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "93640a90-aaeb-4a7d-99de-b55e175cb6d8")
-	)
-	(wire
-		(pts
 			(xy 180.34 171.45) (xy 238.76 171.45)
 		)
 		(stroke
@@ -5644,16 +5189,6 @@
 	)
 	(wire
 		(pts
-			(xy 331.47 158.75) (xy 331.47 161.29)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "bd59a8db-450f-4264-b8c5-c48bb75cbeac")
-	)
-	(wire
-		(pts
 			(xy 274.32 166.37) (xy 278.13 166.37)
 		)
 		(stroke
@@ -5714,16 +5249,6 @@
 	)
 	(wire
 		(pts
-			(xy 331.47 143.51) (xy 331.47 144.78)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "c99ab67e-c7f6-4fff-ad0c-b58fecedfc84")
-	)
-	(wire
-		(pts
 			(xy 238.76 200.66) (xy 236.22 200.66)
 		)
 		(stroke
@@ -5771,6 +5296,16 @@
 			(type default)
 		)
 		(uuid "d747f458-e181-4a1d-a5ca-135620c96479")
+	)
+	(wire
+		(pts
+			(xy 321.31 130.81) (xy 321.31 134.62)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "db84e719-d95c-4a1b-be53-96d71c2bfd35")
 	)
 	(wire
 		(pts
@@ -5951,16 +5486,6 @@
 			(type default)
 		)
 		(uuid "f9bdcbfd-b3d7-41da-9f5a-c2f387145c5f")
-	)
-	(wire
-		(pts
-			(xy 321.31 134.62) (xy 331.47 134.62)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "fa561f8e-89d3-40c1-a470-32156a14485d")
 	)
 	(wire
 		(pts
@@ -6430,99 +5955,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
 					(reference "C35")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:R_Small")
-		(at 331.47 140.97 0)
-		(mirror y)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "07522828-ccd6-48df-9147-775f6a519ab4")
-		(property "Reference" "R26"
-			(at 329.946 139.954 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.016 1.016)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "100k"
-			(at 330.454 141.732 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 331.47 140.97 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 331.47 140.97 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor, small symbol"
-			(at 331.47 140.97 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C60491"
-			(at 329.946 139.954 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "abde7ace-aaa3-4b7a-a046-24bf72120952")
-		)
-		(pin "2"
-			(uuid "dc5a5a0e-75f5-45fc-9c7b-3fc99e8643cb")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "R26")
 					(unit 1)
 				)
 			)
@@ -8129,82 +7561,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:GND")
-		(at 331.47 173.99 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "4d649f32-13ea-4430-80f4-5d494c7c0f66")
-		(property "Reference" "#PWR054"
-			(at 331.47 173.99 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND"
-			(at 331.47 180.34 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" ""
-			(at 331.47 173.99 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 331.47 173.99 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 331.47 173.99 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "07c39e89-af03-4a08-8b7d-e10442935113")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "#PWR054")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "0_passives:C_0805")
 		(at 161.29 176.53 0)
 		(unit 1)
@@ -8320,7 +7676,7 @@
 	)
 	(symbol
 		(lib_id "power:+BATT")
-		(at 331.47 134.62 0)
+		(at 321.31 130.81 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -8330,7 +7686,7 @@
 		(dnp no)
 		(uuid "67d03730-12c5-4316-bbdb-b1f5bff451a5")
 		(property "Reference" "#PWR053"
-			(at 331.47 134.62 0)
+			(at 321.31 130.81 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8341,7 +7697,7 @@
 			)
 		)
 		(property "Value" "+VBUS_LV"
-			(at 331.47 130.81 0)
+			(at 321.31 127 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8351,7 +7707,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 331.47 134.62 0)
+			(at 321.31 130.81 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8361,7 +7717,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 331.47 134.62 0)
+			(at 321.31 130.81 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8371,7 +7727,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 331.47 134.62 0)
+			(at 321.31 130.81 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8662,213 +8018,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
 					(reference "U3")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "0_passives:R_0402")
-		(at 331.47 156.21 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "826bd762-38cb-466e-99f5-95de45c4bce2")
-		(property "Reference" "R29"
-			(at 333.375 155.575 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "33k 1%"
-			(at 333.375 158.115 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 331.47 156.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8671329089120387072"
-			(at 331.47 156.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor, 33k, 1%, 100ppm, 1/16W, 1005, 0402"
-			(at 331.47 156.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C138003"
-			(at 331.47 156.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "Yageo"
-			(at 331.47 156.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer Part Number" "RC0402FR-0733KL"
-			(at 331.47 156.21 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "3b8bcb0d-34ae-49cc-923c-cb7629dbe278")
-		)
-		(pin "1"
-			(uuid "ee90211b-4a70-45bd-a8e0-e87d2c371c42")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "R29")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:R_Small")
-		(at 331.47 147.32 0)
-		(mirror y)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "839cdeca-bcfe-4bec-bc5a-b3b43b4ebfaa")
-		(property "Reference" "R27"
-			(at 329.946 146.304 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.016 1.016)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "100k"
-			(at 330.454 148.082 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 331.47 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 331.47 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor, small symbol"
-			(at 331.47 147.32 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C60491"
-			(at 329.946 146.304 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "6f239ef2-58a4-4d3f-b35b-0f4879cb7dd4")
-		)
-		(pin "2"
-			(uuid "f3776e51-c511-42a6-8dde-40a2f13b0398")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "R27")
 					(unit 1)
 				)
 			)
@@ -10095,7 +9244,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal"
+		(property "Footprint" "thommys-parts2:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal"
 			(at 109.22 62.23 0)
 			(hide yes)
 			(show_name no)
@@ -10182,121 +9331,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
 					(reference "P1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "0_PD240W:APTD1608LQBC/D")
-		(at 331.47 171.45 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "d8103ee7-f9da-49dd-8c2c-ec93af795b37")
-		(property "Reference" "D10"
-			(at 332.994 166.116 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "APTD1608LQBC/D"
-			(at 332.994 168.656 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "Altium_port:kingbright_0603_blue"
-			(at 331.47 171.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8589837755585884160"
-			(at 331.47 171.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Standard LEDs - SMD Chip LED, Package= 0603, Color = Blue"
-			(at 331.47 171.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C5344742"
-			(at 331.47 171.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer" "Kingbright"
-			(at 331.47 171.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Manufacturer Part Number" "APTD1608LQBC/D"
-			(at 331.47 171.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "026cc995-190a-4482-b4cf-d8f6960996d8")
-		)
-		(pin "1"
-			(uuid "42bc99a7-b192-4808-9dde-98756b89c31c")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/31a08f8c-0e6e-4d5e-9bfe-24618de18141"
-					(reference "D10")
 					(unit 1)
 				)
 			)
