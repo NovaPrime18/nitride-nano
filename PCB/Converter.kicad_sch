@@ -8136,12 +8136,6 @@
 		(uuid "745a81da-aff3-4585-9914-8f450a9cd3ef")
 	)
 	(junction
-		(at 127 207.01)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "765cb4f5-ea62-4ffb-b040-32b96ef30f24")
-	)
-	(junction
 		(at 127 204.47)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -10327,16 +10321,6 @@
 	)
 	(wire
 		(pts
-			(xy 127 210.82) (xy 127 207.01)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8ca3c4c6-bee3-456f-8e37-28f16e13da93")
-	)
-	(wire
-		(pts
 			(xy 139.7 241.3) (xy 132.08 241.3)
 		)
 		(stroke
@@ -10724,16 +10708,6 @@
 			(type default)
 		)
 		(uuid "a47e094a-3697-4f6b-8791-be3bee86ed98")
-	)
-	(wire
-		(pts
-			(xy 129.54 210.82) (xy 127 210.82)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a4ab5d71-86e6-4d58-9ac8-236167383f0e")
 	)
 	(wire
 		(pts
@@ -20728,96 +20702,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
 					(reference "R36")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector:TestPoint")
-		(at 129.54 210.82 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom no)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "8eaaead4-69df-41db-952e-285fb833a37b")
-		(property "Reference" "TP35"
-			(at 134.62 210.82 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Value" "tp_round_70"
-			(at 125.73 209.55 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left bottom)
-			)
-		)
-		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
-			(at 129.54 210.82 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 129.54 210.82 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Test Point, Round, 0.7mm"
-			(at 129.54 210.82 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" ""
-			(at 129.54 210.82 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "753c5dbb-0cd7-4b60-a465-6437fca26f5e")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/f0962043-1aad-4f17-a8f7-b50910365543"
-					(reference "TP35")
 					(unit 1)
 				)
 			)
