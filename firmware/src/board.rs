@@ -357,6 +357,12 @@ pub const CONVERTER_DISABLE_ACTIVE_HIGH: bool = true;
 
 /// UI timing
 pub const DEBOUNCE_MS: u64 = 25;
+/// Max gap between two encoder-button presses that counts as a double click.
+/// The single-click action (VSET mode on the Main screen) is deferred by this
+/// long so a double click can be recognised instead; it comfortably exceeds
+/// `DEBOUNCE_MS` while staying short enough that entering VSET mode still feels
+/// immediate.
+pub const ENC_DOUBLE_CLICK_MS: u64 = 350;
 /// Quadrature counts per encoder detent. `Qei::new` configures the timer for
 /// X4 decoding (`Sms::ENCODER_MODE_3`). The fitted encoder produces a detent
 /// every two counts (measured: one detent used to fire two `EncTurn` events, and

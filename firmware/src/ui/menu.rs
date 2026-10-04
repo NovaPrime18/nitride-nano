@@ -1,19 +1,32 @@
 //! Menu model: maps [`InputEvent`]s to [`AppState`] mutations per screen.
 //!
-//! Navigation: Main → CvSetpoint → CcLimit → PdContract → Settings, then BTN3
-//! unwinds back to Main. Settings (`CFG`) is a fullscreen scrollable list of
-//! [`CFG_ITEMS`]: encode-turn moves the highlight, the encoder button (or BTN1)
-//! activates the entry, BTN3 returns to Main. The list opens the EEPROM flash
-//! screen, arms the output-voltage sweep, or opens the PD screen.
+//! Navigation: Main → CcLimit → PdContract → Settings, then BTN3 unwinds back to
+//! Main. Settings (`CFG`) is a fullscreen scrollable list of [`CFG_ITEMS`]:
+//! encode-turn moves the highlight, the encoder button (or BTN1) activates the
+//! entry, BTN3 returns to Main. The list opens the EEPROM flash screen or arms
+//! the output-voltage sweep.
+//!
+//! Main-screen controls:
+//! - **BTN1** cycles the selected regulation mode (CV ↔ CC).
+//! - **BTN2** enables/disables the converter; while a fault is latched the first
+//!   press clears the latch and keeps the output off, so recovery stays a
+//!   deliberate two-step action.
+//! - **BTN3** moves on to the I-LIM screen and clears VSET mode.
+//! - **Encoder single click** toggles VSET mode: while on, the status line reads
+//!   `>V-SET` + `v_set`, the header shows Fine/Coarse, and encoder rotation trims
+//!   the setpoint with the active step. Rotation is ignored outside VSET mode.
+//! - **Encoder double click** toggles Fine/Coarse while VSET mode is on. The
+//!   single click is deferred by [`crate::board::ENC_DOUBLE_CLICK_MS`] so the two
+//!   gestures never overlap (see [`crate::ui::input`]).
 //!
 //! The sweep is a mode of the Main screen: selecting it returns to Main in
 //! [`SweepPhase::Armed`] and the bottom line prompts for the encoder button.
-//! While armed/running, any other button press cancels and parks the output;
-//! [`SweepPhase::Done`] is dismissed by any button. Encoder rotation is ignored
-//! in every non-`Off` sweep phase.
+//! While armed/running the Main screen's input is owned by the sweep: the encoder
+//! single click starts it, and any other button press (including a double click)
+//! cancels and parks the output. [`SweepPhase::Done`] is dismissed by any button.
+//! Encoder rotation is ignored in every non-`Off` sweep phase.
 //!
-//! Editing screens support a fine/coarse encoder step toggle on the encoder
-//! button. On the PD screen, BTN1 toggles Auto-tracking PD, BTN2 switches its
+//! On the PD screen, BTN1 toggles Auto-tracking PD, BTN2 switches its
 //! efficiency/power policy, the encoder steps presets in manual mode, and the
 //! encoder button confirms.
 
@@ -35,7 +48,11 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
             }
             match ev {
                 InputEvent::Btn3 => {
-                    app.ui.screen = MenuScreen::CvSetpoint;
+                    // Move on to I-LIM; leaving Main always clears VSET mode and
+                    // restores the fine step, exactly as the old V-SET screen did.
+                    app.ui.vset_mode = false;
+                    app.ui.encoder_step_mode = StepMode::Fine;
+                    app.ui.screen = MenuScreen::CcLimit;
                 }
                 InputEvent::Btn1 => {
                     // BTN1 toggles the selected regulation mode; the badge then
@@ -47,53 +64,51 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
                     };
                 }
                 InputEvent::Btn2 => {
-                    app.supply.mode = SupplyMode::Cc;
-                }
-                InputEvent::EncBtn => {
                     if app.supply.fault != Fault::None {
-                        // Acknowledge/clear the latch only. The output was forced off
-                        // when the fault tripped; keep it off so re-enabling is a
-                        // separate, deliberate press instead of a side effect of
-                        // clearing the fault.
+                        // Clear the latch only. The output was forced off when the
+                        // fault tripped; keep it off so re-enabling is a separate,
+                        // deliberate press instead of a side effect of clearing
+                        // the fault.
                         app.supply.fault = Fault::None;
                         app.supply.enabled = false;
                     } else {
-                        app.supply.enabled = !app.supply.enabled; // Normal toggle
+                        app.supply.enabled = !app.supply.enabled;
+                    }
+                }
+                InputEvent::EncBtn => {
+                    // Single click: toggle VSET mode. Turning it off restores the
+                    // fine step, so re-entering always starts precise.
+                    app.ui.vset_mode = !app.ui.vset_mode;
+                    if !app.ui.vset_mode {
+                        app.ui.encoder_step_mode = StepMode::Fine;
+                    }
+                }
+                InputEvent::EncDoubleClick => {
+                    // Only meaningful while editing; ignored on the bare Main
+                    // screen.
+                    if app.ui.vset_mode {
+                        app.ui.encoder_step_mode = match app.ui.encoder_step_mode {
+                            StepMode::Fine => StepMode::Coarse,
+                            StepMode::Coarse => StepMode::Fine,
+                        };
                     }
                 }
                 InputEvent::EncTurn(d) => {
-                    // 10 mV per detent on the main screen — quick glance-level trim.
-                    if d > 0 {
-                        app.supply.v_set_mv = (app.supply.v_set_mv + 10).min(board::VOUT_MAX_MV);
-                    } else {
-                        app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(10);
+                    // Only VSET mode trims the setpoint; a stray turn on the bare
+                    // Main screen must not perturb an applied output.
+                    if app.ui.vset_mode && d != 0 {
+                        let step = match app.ui.encoder_step_mode {
+                            StepMode::Fine => 100u32,     // 100 mV per click
+                            StepMode::Coarse => 1_000u32, // 1 V per click
+                        };
+                        if d > 0 {
+                            app.supply.v_set_mv =
+                                (app.supply.v_set_mv + step).min(board::VOUT_MAX_MV);
+                        } else {
+                            app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(step);
+                        }
                     }
                 }
-            }
-        }
-        // Inside menu.rs -> apply_input -> MenuScreen::CvSetpoint
-        MenuScreen::CvSetpoint => {
-            let step = match app.ui.encoder_step_mode {
-                StepMode::Fine => 100u32,     // 100 mV per click
-                StepMode::Coarse => 1_000u32, // 1 V per click
-            };
-            adjust_voltage_dynamic(app, ev, step);
-            if ev == InputEvent::Btn2 {
-                // Output on/off from the setpoint screens, so a setpoint can be
-                // dialled in and applied without walking back to Main. Enabling
-                // is always a deliberate press; boot never enables (see
-                // `SupplyState::default`).
-                app.supply.enabled = !app.supply.enabled;
-            }
-            if ev == InputEvent::EncBtn {
-                app.ui.encoder_step_mode = match app.ui.encoder_step_mode {
-                    StepMode::Fine => StepMode::Coarse,
-                    StepMode::Coarse => StepMode::Fine,
-                };
-            }
-            if ev == InputEvent::Btn3 {
-                app.ui.encoder_step_mode = StepMode::Fine; // Reset on exit
-                app.ui.screen = MenuScreen::CcLimit; // Move to the next setting
             }
         }
         MenuScreen::CcLimit => {
@@ -103,7 +118,7 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
             };
             adjust_current_dynamic(app, ev, step);
             if ev == InputEvent::Btn2 {
-                // See CvSetpoint: output on/off without leaving the screen.
+                // Output on/off without leaving the screen (see Main's BTN2).
                 app.supply.enabled = !app.supply.enabled;
             }
             if ev == InputEvent::EncBtn {
@@ -166,6 +181,8 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
                 // the derived rail (auto).
                 app.pd_control.renegotiate_request = true;
             }
+            // The double click is a Main-screen gesture only.
+            InputEvent::EncDoubleClick => {}
         },
         MenuScreen::Settings => match ev {
             InputEvent::EncTurn(d) => cfg_move_selection(app, d),
@@ -173,7 +190,7 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
             InputEvent::Btn3 => {
                 app.ui.screen = MenuScreen::Main;
             }
-            InputEvent::Btn2 => {}
+            InputEvent::Btn2 | InputEvent::EncDoubleClick => {}
         },
         MenuScreen::EepromFlash => match ev {
             InputEvent::Btn2 | InputEvent::Btn3 => {
@@ -181,20 +198,6 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
             }
             _ => {}
         },
-    }
-}
-
-/// Encoder-turn handler for the V-SET screen; ignores all other events.
-fn adjust_voltage_dynamic(app: &mut AppState, ev: InputEvent, step: u32) {
-    match ev {
-        InputEvent::EncTurn(d) => {
-            if d > 0 {
-                app.supply.v_set_mv = (app.supply.v_set_mv + step).min(board::VOUT_MAX_MV);
-            } else {
-                app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(step);
-            }
-        }
-        _ => {}
     }
 }
 
@@ -289,9 +292,6 @@ fn cfg_activate(app: &mut AppState) {
             app.sweep.index = 0;
             app.sweep.start_request = false;
             app.ui.screen = MenuScreen::Main;
-        }
-        CfgItem::PdContract => {
-            app.ui.screen = MenuScreen::PdContract;
         }
     }
 }

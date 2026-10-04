@@ -39,6 +39,12 @@
 //! status line (`>SWEEP` plus the confirm prompt / point progress / `DONE`),
 //! which also displaces the efficiency readout.
 //!
+//! VSET mode is likewise a mode of the power screen, not a screen of its own:
+//! while the Main screen is in VSET mode the tag becomes `>V-SET`, the setpoint
+//! replaces the efficiency readout, and the header shows Fine/Coarse. Setpoint
+//! readouts (`v_set`, `i_set`) use one fractional digit; measurement channels
+//! keep three.
+//!
 //! NOTE: uses `draw_line(x0, y0, x1, y1)` for horizontal and vertical rules.
 
 use embassy_stm32::i2c::{I2c, Master};
@@ -214,26 +220,29 @@ impl Ssd1306Ui {
 
     // ── Private drawing helpers ───────────────────────────────────────────────
 
-    /// Yellow zone: device name (or step mode when editing) on the left,
-    /// mode and enable badges on the right.
+    /// Yellow zone: temperatures (or a latched fault, or the Fine/Coarse step
+    /// mode while editing) on the left, mode and enable badges on the right.
     fn draw_header(&mut self, app: &AppState) {
         // Clear any stale pixels in the header region before redrawing.
         // This is needed because partial refresh only sends dirty pages to hardware,
         // so text shorter than previous content (e.g. "OFF" → "ON") would leave ghost pixels.
         self.display.fill_rect(0, 0, DISPLAY_W, ROW_DIVIDER);
 
-        // Show "Fine" or "Coarse" when editing CV/CC setpoints, otherwise temperature values
-        match app.ui.screen {
-            MenuScreen::CvSetpoint | MenuScreen::CcLimit => {
-                let mode_text = match app.ui.encoder_step_mode {
-                    StepMode::Fine => "Fine",
-                    StepMode::Coarse => "Coarse",
-                };
-                self.display.draw_str(COL_LABEL, ROW_HEADER, mode_text);
-            }
-            _ => {
-                self.draw_header_label_or_temps(app);
-            }
+        // A latched fault always owns the header — even while a setpoint screen or
+        // VSET mode is active — so the reason the output is off stays visible.
+        if let Some(label) = app.supply.fault.label() {
+            self.display.draw_str(COL_LABEL, ROW_HEADER, label);
+        } else if app.ui.screen == MenuScreen::CcLimit
+            || (app.ui.screen == MenuScreen::Main && app.ui.vset_mode)
+        {
+            // Show the active encoder step while a setpoint is editable.
+            let mode_text = match app.ui.encoder_step_mode {
+                StepMode::Fine => "Fine",
+                StepMode::Coarse => "Coarse",
+            };
+            self.display.draw_str(COL_LABEL, ROW_HEADER, mode_text);
+        } else {
+            self.draw_header_label_or_temps(app);
         }
 
         // Running: the badge shows the *detected* loop, not the user's selection
@@ -427,8 +436,8 @@ impl Ssd1306Ui {
         }
     }
 
-    /// Bottom row: active screen name on the left, then the setpoint (when
-    /// editing) or the efficiency readout (main screen) on the right.
+    /// Bottom row: active screen name on the left, then the setpoint (I-LIM, or
+    /// Main in VSET mode) or the efficiency readout (bare Main) on the right.
     fn draw_status_bar(&mut self, app: &AppState) {
         // A CFG sweep owns the whole bottom line while armed/running/done.
         if app.sweep.phase != SweepPhase::Off {
@@ -444,13 +453,14 @@ impl Ssd1306Ui {
         let auto = app.pd_control.mode == PdMode::Auto;
         let tag = match app.ui.screen {
             MenuScreen::Main => {
-                if auto {
+                if app.ui.vset_mode {
+                    "V-SET"
+                } else if auto {
                     "AUTO"
                 } else {
                     "MAIN"
                 }
             }
-            MenuScreen::CvSetpoint => "V-SET",
             MenuScreen::CcLimit => "I-LIM",
             MenuScreen::PdContract => "PD",
             MenuScreen::Settings => "CFG",
@@ -461,11 +471,11 @@ impl Ssd1306Ui {
         self.display.draw_str(FONT_W, ROW_STATUS, tag);
 
         match app.ui.screen {
-            MenuScreen::CvSetpoint => {
-                draw_setpoint_right(&mut self.display, app.supply.v_set_mv, Unit::Voltage)
-            }
             MenuScreen::CcLimit => {
                 draw_setpoint_right(&mut self.display, app.supply.i_set_ma, Unit::Current)
+            }
+            MenuScreen::Main if app.ui.vset_mode => {
+                draw_setpoint_right(&mut self.display, app.supply.v_set_mv, Unit::Voltage)
             }
             MenuScreen::Main => self.draw_efficiency(app),
             _ => {}
@@ -619,8 +629,13 @@ impl Ssd1306Ui {
             let label = CFG_ITEMS[idx as usize].label();
 
             if idx == app.ui.cfg_index {
-                // Filled row + inverted glyphs, matching the PD grid's selection.
-                self.display.fill_rect(0, y - 1, row_w, 10);
+                // Solid lit selection bar, one row taller and two rows shorter than
+                // the 7-px glyph cell so the highlight reads as a block instead of
+                // hugging the characters. The inverted glyphs go on top: strokes
+                // dark, and the 1-px inter-character gaps stay lit because the bar
+                // underneath is already lit (the PD grid's selection works the same
+                // way).
+                self.display.fill_rect_on(0, y - 1, row_w, 10);
                 self.display.draw_str_inverted(2, y, label);
             } else {
                 self.display.draw_str(2, y, label);
@@ -993,13 +1008,15 @@ fn draw_str_right(d: &mut Ssd1306, y: u8, s: &str) {
 
 /// Draw a setpoint reading right-aligned on the status bar.
 ///
-/// Example: `"SET  5.000 V"` flush with the right edge.
+/// Setpoints are shown with a single fractional digit (`fmt_decimal_1`) — enough
+/// to see a 100 mV / 100 mA step move, without the three-decimal clutter the
+/// measurement channels need. Example: `"SET 30.0V"` flush with the right edge.
 fn draw_setpoint_right(d: &mut Ssd1306, millivalue: u32, unit: Unit) {
     const PREFIX: &str = "SET ";
-    // Widest possible "SET " + value + unit field (12 chars).
+    // Widest possible "SET " + value + unit field: 4 + "10000.0" + 1 = 12 chars.
     const FIELD_W: u8 = 12 * FONT_W;
     let mut buf = [0u8; 8];
-    let val = fmt_decimal(&mut buf, millivalue);
+    let val = fmt_decimal_1(&mut buf, millivalue);
     let sym = unit.symbol();
 
     let total_w = (PREFIX.len() + val.len() + sym.len()) as u8 * FONT_W;
@@ -1069,6 +1086,32 @@ fn fmt_decimal(buf: &mut [u8; 8], millivalue: u32) -> &str {
     i += 1;
 
     core::str::from_utf8(&buf[..i]).unwrap_or("?.???")
+}
+
+/// Convert a milli-unit value to a **one-decimal** setpoint label, rounding to
+/// the nearest tenth.
+///
+/// Setpoints only need enough resolution to show the active encoder step (100 mV
+/// / 100 mA or 1 V / 1 A); measurements keep [`fmt_decimal`]'s three digits.
+///
+/// ```text
+/// 30_000  →  "30.0"
+///  3_750  →   "3.8"
+///    999  →   "1.0"
+/// 60_000  →  "60.0"
+/// ```
+fn fmt_decimal_1(buf: &mut [u8; 8], millivalue: u32) -> &str {
+    // Saturate first (only reachable during a fault), then round half-up. Even at
+    // the cap this yields "10000.0" — seven bytes, inside the 8-byte buffer.
+    let tenths = (millivalue.min(9_999_999) + 50) / 100;
+
+    let mut i = write_uint(buf, 0, tenths / 10);
+    buf[i] = b'.';
+    i += 1;
+    buf[i] = b'0' + (tenths % 10) as u8;
+    i += 1;
+
+    core::str::from_utf8(&buf[..i]).unwrap_or("?.?")
 }
 
 /// Write `value` as decimal digits with no leading zeros (at least one digit).

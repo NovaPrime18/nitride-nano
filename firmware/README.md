@@ -147,11 +147,35 @@ asynchronously) and can be disabled entirely with `LED_SUBSYSTEM_CODES` for a
 build that does not fit the INA228 or TPS26750. Every change is also logged on
 RTT (`LED: OVERCURRENT (code 1)`) so the blink code has a matching message.
 
+## Main screen controls
+
+The Main power screen is the default view and the only place the output setpoint
+is edited — there is no separate V-SET screen:
+
+* **BTN1** cycles the selected regulation mode, CV ↔ CC. The header badge shows
+  the selection while the output is off and the detected loop while it runs.
+* **BTN2** enables/disables the converter. When a protection fault is latched,
+  the first press clears the latch and keeps the output off (a deliberate
+  two-step recovery); a second press enables.
+* **BTN3** moves on to the next screen: Main → I-LIM → PD → CFG → Main.
+* **Encoder click** toggles VSET mode. While it is on, the bottom line reads
+  `>V-SET` with the voltage setpoint and the header shows the step mode; turning
+  the encoder trims `v_set` by 100 mV (Fine) or 1 V (Coarse). Clicking again, or
+  leaving with BTN3, exits and restores the fine step. Rotation is inert on the
+  bare Main screen so a stray turn cannot move an applied setpoint.
+* **Encoder double click** toggles Fine/Coarse while VSET mode is on. The single
+  click is deferred by `ENC_DOUBLE_CLICK_MS` (~350 ms) so the two gestures can
+  never both fire for one double click.
+
+Setpoint readouts use one fractional digit (`SET 30.0V`); the measurement columns
+keep three (`12.000 V`).
+
 ## Auto-tracking PD
 
-`PdContract` screen: **BTN1** toggles Auto-tracking on/off, **BTN2** switches the
-policy (efficiency-first vs maximum power), the encoder steps presets in manual
-mode, and the encoder button confirms/re-evaluates.
+`PdContract` screen (reached with BTN3 from the `Main`/`I-LIM` cycle, not from
+CFG): **BTN1** toggles Auto-tracking on/off, **BTN2** switches the policy
+(efficiency-first vs maximum power), the encoder steps presets in manual mode,
+and the encoder button confirms/re-evaluates.
 
 The LT8390A leaves its 4-switch buck-boost region only when `VIN/VOUT` clears
 ~1.35 (clean buck) or ~0.70 (clean boost); near `VIN ≈ VOUT` all four FETs
@@ -165,9 +189,11 @@ tuned from a bench efficiency sweep.
 ## CFG menu & output V sweep
 
 `CFG` (reached with BTN3 from the `PD` screen) is a fullscreen, scrollable list:
-`EEPROM WRITE`, `OUTPUT V SWEEP`, `PD CONTRACT`. Turn the encoder to move the
-highlight, press the encoder (or BTN1) to activate, BTN3 to go back. The list
-scrolls with a right-edge scrollbar once more entries are added.
+`EEPROM WRITE`, `OUTPUT V SWEEP`. The `PD CONTRACT` screen is deliberately not an
+entry here — it already has its own stop in the BTN3 screen cycle. Turn the
+encoder to move the highlight, press the encoder (or BTN1) to activate, BTN3 to
+go back. The list scrolls with a right-edge scrollbar once more entries are
+added.
 
 `OUTPUT V SWEEP` returns to the main screen and waits for an encoder-button
 press, then sweeps the output setpoint through 32 points from 10 V to 56 V at

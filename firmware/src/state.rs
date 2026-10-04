@@ -12,7 +12,7 @@ pub enum SupplyMode {
 }
 
 /// Latched hardware fault. Set by [`crate::control::supply::SupplyController`];
-/// cleared from the UI (encoder button on the main screen).
+/// cleared from the UI (BTN2 on the main screen).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Fault {
     None,
@@ -133,7 +133,6 @@ pub const PD_PRESET_VOLTAGES_MV: [u32; 6] = [12_000, 15_000, 20_000, 28_000, 36_
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MenuScreen {
     Main,
-    CvSetpoint,
     CcLimit,
     PdContract,
     Settings,
@@ -151,11 +150,13 @@ pub enum StepMode {
 /// Adding an option is a four-step change: a new variant here, its label in
 /// [`CfgItem::label`], an activation arm in `ui::menu::cfg_activate`, and the
 /// element appended to [`CFG_ITEMS`].
+///
+/// `PD CONTRACT` is deliberately *not* an entry: that screen already has its own
+/// stop in the BTN3 screen cycle (Main → I-LIM → PD → CFG → Main).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CfgItem {
     EepromWrite,
     OutputSweep,
-    PdContract,
 }
 
 impl CfgItem {
@@ -165,17 +166,12 @@ impl CfgItem {
         match self {
             CfgItem::EepromWrite => "EEPROM WRITE",
             CfgItem::OutputSweep => "OUTPUT V SWEEP",
-            CfgItem::PdContract => "PD CONTRACT",
         }
     }
 }
 
 /// Fullscreen CFG list contents, in display order.
-pub const CFG_ITEMS: [CfgItem; 3] = [
-    CfgItem::EepromWrite,
-    CfgItem::OutputSweep,
-    CfgItem::PdContract,
-];
+pub const CFG_ITEMS: [CfgItem; 2] = [CfgItem::EepromWrite, CfgItem::OutputSweep];
 
 /// Number of CFG rows that fit on screen at once; the list scrolls when
 /// [`CFG_ITEMS`] grows past this.
@@ -305,6 +301,11 @@ impl Default for SupplyState {
 pub struct UiState {
     pub screen: MenuScreen,
     pub editing: bool,
+    /// Main-screen VSET mode: set by a single encoder-button click, cleared by
+    /// another click or by leaving Main with BTN3. While set, encoder rotation
+    /// trims `v_set` and the status line shows `>V-SET` + the setpoint instead of
+    /// the efficiency readout.
+    pub vset_mode: bool,
     pub pd_profile_index: u8,
     pub encoder_step_mode: StepMode,
     /// Selected row in the fullscreen CFG list.
@@ -319,6 +320,7 @@ impl Default for UiState {
         Self {
             screen: MenuScreen::Main,
             editing: false,
+            vset_mode: false,
             pd_profile_index: 0,
             encoder_step_mode: StepMode::Fine,
             cfg_index: 0,

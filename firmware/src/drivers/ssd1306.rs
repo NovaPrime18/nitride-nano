@@ -96,11 +96,32 @@ impl Ssd1306 {
 
     /// Fill a rectangular region with black pixels and mark all affected pages dirty.
     pub fn fill_rect(&mut self, x: u8, y: u8, w: u8, h: u8) {
-        let x_end = (x as u16 + w as u16).saturating_sub(1).min(127);
-        let y_end = (y as u16 + h as u16).saturating_sub(1).min(63);
-        for px in x as u8..=x_end as u8 {
-            for py in y as u8..=y_end as u8 {
-                self.set_pixel(px, py, false);
+        self.fill_rect_value(x, y, w, h, false);
+    }
+
+    /// Fill a rectangular region with lit pixels — the inverse of
+    /// [`Self::fill_rect`].
+    ///
+    /// Selection bars use this so the bar is one solid block: inverted glyphs are
+    /// drawn on top afterwards, and the 1-px inter-character gap columns (which
+    /// [`Self::draw_str_inverted`] never touches) stay lit instead of punching
+    /// black stripes through the highlight. Drawing the same region with
+    /// [`Self::fill_rect`] first leaves the highlight looking glyph-sized.
+    pub fn fill_rect_on(&mut self, x: u8, y: u8, w: u8, h: u8) {
+        self.fill_rect_value(x, y, w, h, true);
+    }
+
+    /// Shared rectangle fill. An empty region is a no-op and the span is clipped to
+    /// the 128×64 panel.
+    fn fill_rect_value(&mut self, x: u8, y: u8, w: u8, h: u8, on: bool) {
+        if w == 0 || h == 0 || x >= 128 || y >= 64 {
+            return;
+        }
+        let x_end = (x as u16 + w as u16 - 1).min(127) as u8;
+        let y_end = (y as u16 + h as u16 - 1).min(63) as u8;
+        for px in x..=x_end {
+            for py in y..=y_end {
+                self.set_pixel(px, py, on);
             }
         }
     }
