@@ -11,14 +11,16 @@
 //! input 5 ms, ADC 2 ms, supply tick 1 ms, PD/INA228 100 ms, EEPROM step every
 //! pass, plus a 100 µs yield at the bottom of the loop.
 //!
-//! Service mode ([`nitride_firmware::service`]) lets a running board hand off to
-//! the ST ROM bootloader so it can be reflashed over UART; see
-//! [`nitride_firmware::hal::bootloader`].
+//! Reflashing on rev3 is over USB-C, using the STM32G474's built-in ROM USB DFU
+//! bootloader on PA11/PA12. It is entered by a **hardware strap** — hold BOOT0
+//! (`SW2`) across a reset (`SW3`) — so the application carries no bootloader
+//! handoff code at all: the ROM loader only stays when BOOT0 is high at the
+//! reset sampling instant, which a software jump cannot arrange.
+//!
+//! See `PCB/ECO-rev3-usb-dfu.md` for the ECO this pin map implements.
 
 #![no_std]
 #![no_main]
-
-use core::sync::atomic::Ordering;
 
 use defmt_rtt as _;
 use embassy_executor::Spawner;
@@ -31,7 +33,6 @@ use embassy_stm32::rcc::*;
 use embassy_stm32::timer::low_level::CountingMode;
 use embassy_stm32::timer::qei::{Qei, QeiPin};
 use embassy_stm32::timer::simple_pwm::{PwmPin, SimplePwm};
-use embassy_stm32::usart::{Config as UartConfig, Uart};
 use embassy_stm32::{bind_interrupts, peripherals, Config};
 use embassy_sync::mutex::Mutex;
 use embassy_time::{Duration, Instant, Timer};
@@ -44,25 +45,27 @@ use nitride_firmware::control::supply::SupplyController;
 use nitride_firmware::control::sweep::SweepController;
 use nitride_firmware::drivers::tps26750::Tps26750;
 use nitride_firmware::eeprom_workflow::{EepromWorkflow, WorkflowState};
-use nitride_firmware::hal::bootloader;
 use nitride_firmware::hal::converter_enable::ConverterEnable;
+use nitride_firmware::hal::high_gain::HighGain;
+use nitride_firmware::hal::load_enable::LoadEnable;
+use nitride_firmware::hal::output_switch::OutputSwitch;
 use nitride_firmware::pd::manager::PdManager;
 use nitride_firmware::runtime::{APP_STATE, I2C_PD_BUS, I2C_UI_BUS};
 use nitride_firmware::sense::adc_sense::{AdcSense, TelemetryFilter};
 use nitride_firmware::sense::ina_sense::InaSense;
-use nitride_firmware::service::{self, service_uart_task};
-use nitride_firmware::state::{AppState, EepromUiSnapshot, MenuScreen};
+use nitride_firmware::state::{AppState, EepromUiSnapshot, MenuScreen, OutInaTelemetry};
 use nitride_firmware::ui::input::InputHandler;
 use nitride_firmware::ui::led::led_task;
 use nitride_firmware::ui::menu::apply_input;
 use nitride_firmware::ui::task::ui_task;
 
 bind_interrupts!(struct Irqs {
-    I2C1_EV => embassy_stm32::i2c::EventInterruptHandler<peripherals::I2C1>;
-    I2C1_ER => embassy_stm32::i2c::ErrorInterruptHandler<peripherals::I2C1>;
-    I2C3_EV => embassy_stm32::i2c::EventInterruptHandler<peripherals::I2C3>;
-    I2C3_ER => embassy_stm32::i2c::ErrorInterruptHandler<peripherals::I2C3>;
-    USART3 => embassy_stm32::usart::InterruptHandler<peripherals::USART3>;
+    // rev3 PD bus (TPS26750 + both INA228s).
+    I2C2_EV => embassy_stm32::i2c::EventInterruptHandler<peripherals::I2C2>;
+    I2C2_ER => embassy_stm32::i2c::ErrorInterruptHandler<peripherals::I2C2>;
+    // rev3 UI bus (SSD1306 OLED + config EEPROM).
+    I2C4_EV => embassy_stm32::i2c::EventInterruptHandler<peripherals::I2C4>;
+    I2C4_ER => embassy_stm32::i2c::ErrorInterruptHandler<peripherals::I2C4>;
 });
 
 /// Copy the workflow's display-facing fields into the shared state so the UI
@@ -79,24 +82,6 @@ fn sync_eeprom_ui(app: &mut AppState, workflow: &EepromWorkflow) {
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    // Service mode, handoff leg: a previous boot recorded a request in `.uninit`
-    // RAM and reset. Take it here — before the executor starts or any peripheral
-    // is touched — so the ROM bootloader is entered from a pristine machine
-    // state. Diverges.
-    //
-    // Diagnostics: the raw marker words, a count of valid requests consumed
-    // since power-on, the reset-cause flags read before anything can clear
-    // them, and the ROM bootloader's vector words. Together these split
-    // "marker never written" from "marker consumed then jump failed".
-    let csr_early = unsafe { core::ptr::read_volatile(0x4002_1094 as *const u32) };
-    let (service_pending, marker_magic, marker_inv, jump_count) = bootloader::take_request_diag();
-    let rom_sp = unsafe { core::ptr::read_volatile(0x1FFF_0000 as *const u32) };
-    let rom_pc = unsafe { core::ptr::read_volatile(0x1FFF_0004 as *const u32) };
-    if service_pending {
-        defmt::info!("service mode: entering ROM bootloader");
-        bootloader::jump_to_system_bootloader();
-    }
-
     let mut config = Config::default();
     config.rcc.mux.adc12sel = mux::Adcsel::SYS;
     config.rcc.mux.adc345sel = mux::Adcsel::SYS;
@@ -142,8 +127,13 @@ async fn main(spawner: Spawner) {
 
     defmt::timestamp!("{=u64:us}", { embassy_time::Instant::now().as_micros() });
 
+    // rev3 power path. Park all three in their safe state before anything else
+    // can enable the converter: chip disabled, `CNV-EN-LOADEN` low (bottom gates
+    // on, output grounded) and the load switch open. `PWR_G` has a 100 kΩ
+    // pulldown on the board, so an MCU held in reset already leaves the load
+    // disconnected.
     let mut conv_en = ConverterEnable::new(Output::new(
-        p.PA11,
+        p.PB1,
         if board::CONVERTER_DISABLE_ACTIVE_HIGH {
             Level::High
         } else {
@@ -152,31 +142,29 @@ async fn main(spawner: Spawner) {
         Speed::Low,
     ));
     conv_en.set_enabled(false);
+    let mut load_en = LoadEnable::new(Output::new(p.PB3, Level::Low, Speed::Low));
+    load_en.set_enabled(false);
+    let mut pwr_g = OutputSwitch::new(Output::new(p.PB2, Level::Low, Speed::Low));
+    pwr_g.set_closed(false);
+    // CC sense range. The pin starts at ×1 (the widest window, and what the
+    // previous revision always ran) and then follows the setpoint; `SupplyController`
+    // only moves it while the stage is parked. The net has no external pull, so
+    // driving it from boot matters.
+    let mut high_gain = HighGain::new(
+        Output::new(p.PB6, Level::Low, Speed::Low),
+        board::CcRange::LowGain,
+    );
 
     let btn1 = Input::new(p.PB9, Pull::Up);
     let btn2 = Input::new(p.PB10, Pull::Up);
     let btn3 = Input::new(p.PB11, Pull::Up);
-    let enc_btn = Input::new(p.PB4, Pull::Up);
+    // rev3: the encoder button moved to PB0 to free PB4 for TIM3_CH1.
+    let enc_btn = Input::new(p.PB0, Pull::Up);
 
-    // Service mode, trigger #2: BTN1 held through power-up. Deterministic and
-    // needs no UART, so it doubles as the bring-up test for the handoff path.
-    // The output is already parked (DACs and converter disable above), and the
-    // subsequent boot consumes the request before this check, so it cannot loop.
-    //
-    // Confirm the level twice: a single early sample can catch a still-settling
-    // pin or contact bounce, and this path resets the MCU.
-    if board::SERVICE_BOOT_HOLD {
-        Timer::after(Duration::from_millis(50)).await;
-        if btn1.is_low() {
-            Timer::after(Duration::from_millis(200)).await;
-            if btn1.is_low() {
-                defmt::info!("service mode: BTN1 held at boot");
-                bootloader::request_on_next_boot();
-            }
-        }
-    }
-
-    let qei = Qei::new(p.TIM4, QeiPin::new(p.PB6), QeiPin::new(p.PA12));
+    // rev3: the quadrature encoder is TIM3 on PB4/PB5. The Qei driver, the X4
+    // decoding (`Sms::ENCODER_MODE_3`) and `board::ENCODER_COUNTS_PER_DETENT` are
+    // unchanged — only the timer instance and pins move.
+    let qei = Qei::new(p.TIM3, QeiPin::new(p.PB4), QeiPin::new(p.PB5));
     let mut enc_last: u16 = qei.count();
     // Carries the leftover quadrature counts between polls so a detent split
     // across two 5 ms windows still produces exactly one `EncTurn` event.
@@ -208,108 +196,36 @@ async fn main(spawner: Spawner) {
     // PD bus — which truncates `flush_partial` and leaves whole GDDRAM pages
     // unwritten (random speckle).
     //
-    // UI bus (I2C3, OLED/EEPROM): generous. A healthy transfer is <1 ms; this
+    // UI bus (I2C4, OLED/EEPROM): generous. A healthy transfer is <1 ms; this
     // only has to outlast the main loop's worst-case PD poll.
     let mut i2c_ui_config = I2cConfig::default();
     i2c_ui_config.frequency = embassy_stm32::time::Hertz::khz(400);
     i2c_ui_config.timeout = Duration::from_millis(250);
 
-    // PD bus (I2C1, TPS26750/INA228): short, so a missing or stuck PD controller
-    // fails fast instead of freezing the executor (and the OLED) for a second.
+    // PD bus (I2C2, TPS26750 + both INA228s): short, so a missing or stuck PD
+    // controller fails fast instead of freezing the executor (and the OLED) for
+    // a second.
     let mut i2c_pd_config = I2cConfig::default();
     i2c_pd_config.frequency = embassy_stm32::time::Hertz::khz(400);
     i2c_pd_config.timeout = Duration::from_millis(20);
 
-    // UI bus (I2C3): SSD1306 OLED, plus the CAT24C512 config EEPROM when
-    // JP8/JP9 are bridged.
+    // UI bus (I2C4): SSD1306 OLED, plus the CAT24C512 config EEPROM when
+    // JP8/JP9 are bridged. rev3 moved this from I2C3 (PA8/PB5) to free PA8 for
+    // the PD bus and PB6 for `High-Gain`.
     let i2c_ui = I2c::new(
-        p.I2C3, p.PA8, p.PB5, Irqs, p.DMA1_CH3, p.DMA1_CH4, i2c_ui_config,
+        p.I2C4, p.PC6, p.PB7, Irqs, p.DMA1_CH3, p.DMA1_CH4, i2c_ui_config,
     );
     let ui_bus = I2C_UI_BUS.init(Mutex::new(i2c_ui));
 
-    // PD bus (I2C1): TPS26750 USB-PD controller and INA228 input monitor.
-    // rev2 routes these to PC4/PB7, an I2C pin pair no single peripheral can
-    // drive, so SCL is bodged to PB8 and SDA stays on PB7.
+    // PD bus (I2C2): TPS26750 USB-PD controller, INA228 input monitor (U9) and
+    // INA228 output monitor (U12). rev3 moved this from I2C1 (PB8/PB7) to free
+    // PB8 for the BOOT0 strap; PC4/PA8 are a valid I2C2 pin pair, so the rev2
+    // SCL bodge is gone.
     let i2c_pd = I2c::new(
-        p.I2C1, p.PB8, p.PB7, Irqs, p.DMA1_CH1, p.DMA1_CH2, i2c_pd_config,
+        p.I2C2, p.PC4, p.PA8, Irqs, p.DMA1_CH1, p.DMA1_CH2, i2c_pd_config,
     );
     let pd_bus = I2C_PD_BUS.init(Mutex::new(i2c_pd));
     defmt::info!("boot: i2c up");
-
-    // Service mode, trigger #1: the on-board FT234XD sits on USART3
-    // (TX=PC10, RX=PC11) — the same port the ROM bootloader listens on. We only
-    // receive here, watching for the AN3155 sync byte so that merely opening
-    // the programmer hands the device over. DMA1_CH5/CH6 are the channels left
-    // free by the two I2C buses.
-    //
-    // RX MUST be pulled up: with the FT234XD unpowered (USB detached) its TXD is
-    // high-Z, and a floating RX generates framing/noise bytes that can include
-    // the 0x7F sync value — which would park the output and reset into the ROM
-    // bootloader on an otherwise normal power-up.
-    let mut service_uart = if board::SERVICE_UART_AUTODETECT {
-        let mut uart_config = UartConfig::default();
-        uart_config.baudrate = board::SERVICE_UART_BAUD;
-        uart_config.rx_pull = Pull::Up;
-        match Uart::new(
-            p.USART3,
-            p.PC11,
-            p.PC10,
-            Irqs,
-            p.DMA1_CH5,
-            p.DMA1_CH6,
-            uart_config,
-        ) {
-            Ok(uart) => Some(uart),
-            Err(_) => {
-                defmt::error!("service UART init failed; UART handoff disabled");
-                None
-            }
-        }
-    } else {
-        None
-    };
-    defmt::info!(
-        "boot: service uart {}",
-        if service_uart.is_some() { "up" } else { "off" }
-    );
-
-    // Service-mode bring-up diagnostic: print the marker words, the request
-    // counter, the reset-cause flags (captured at the top of main, before
-    // anything can RMVF-clear them) and the ROM bootloader's vector words over
-    // the FT234XD, where a plain terminal can read them with no probe attached
-    // (and none possible: a live probe freezes every handoff reset with its
-    // reset vector catch). Keep until service mode is bench-verified (§11).
-    if let Some(uart) = service_uart.as_mut() {
-        defmt::info!(
-            "boot diag: csr={=u32:x} magic={=u32:x} inv={=u32:x} cnt={=u32} romsp={=u32:x} rompc={=u32:x}",
-            csr_early,
-            marker_magic,
-            marker_inv,
-            jump_count,
-            rom_sp,
-            rom_pc
-        );
-        let mut msg = [0u8; 128];
-        let mut i = 0;
-        put(&mut msg, &mut i, b"DIAG csr=");
-        puth(&mut msg, &mut i, csr_early);
-        put(&mut msg, &mut i, b" magic=");
-        puth(&mut msg, &mut i, marker_magic);
-        put(&mut msg, &mut i, b" inv=");
-        puth(&mut msg, &mut i, marker_inv);
-        put(&mut msg, &mut i, b" p=");
-        put(&mut msg, &mut i, if service_pending { b"1" } else { b"0" });
-        put(&mut msg, &mut i, b" cnt=");
-        puth(&mut msg, &mut i, jump_count);
-        put(&mut msg, &mut i, b" romsp=");
-        puth(&mut msg, &mut i, rom_sp);
-        put(&mut msg, &mut i, b" rompc=");
-        puth(&mut msg, &mut i, rom_pc);
-        put(&mut msg, &mut i, b"\r\n");
-        if uart.write(&msg[..i]).await.is_err() {
-            defmt::error!("boot diag uart write failed");
-        }
-    }
 
     let app = AppState::default();
     let app_state = APP_STATE.init(Mutex::new(app));
@@ -321,12 +237,14 @@ async fn main(spawner: Spawner) {
     let mut tele_filter = TelemetryFilter::new();
     let mut pd_mgr = PdManager::new();
     let mut tps = Tps26750::new(board::TPS26750_ADDR);
-    let mut ina = InaSense::new();
+    let mut ina_in = InaSense::new(board::INA228_IN_ADDR, board::INA228_IN_SHUNT_MOHM);
+    let mut ina_out = InaSense::new(board::INA228_OUT_ADDR, board::INA228_OUT_SHUNT_MOHM);
     let mut eeprom_workflow = EepromWorkflow::new();
 
     {
         let mut i2c = pd_bus.lock().await;
-        let _ = ina.init(&mut i2c).await;
+        let _ = ina_in.init(&mut i2c).await;
+        let _ = ina_out.init(&mut i2c).await;
         // The TPS26750 loads its application firmware from EEPROM and is not
         // guaranteed to answer this early, so it is not probed here: PdManager
         // owns a presence watchdog that re-probes it until it responds.
@@ -336,21 +254,24 @@ async fn main(spawner: Spawner) {
     // The ISMON zero is a bench-calibrated constant (`board::ISENSE_ZERO_MV`),
     // deliberately NOT learned here: the LT8390A powers its ISMON buffer down
     // with the rest of the chip while EN/UVLO is low, so a sample taken with the
-    // converter parked does not see the operating offset. Log what is in use.
+    // converter parked does not see the operating offset. The zero is
+    // range-independent — the 0.25 V offset is inside the chip, after the
+    // differential — but the *gain* is not, so both are reported here. Which one
+    // is live is printed by the `isense:` line with the active range.
     defmt::info!(
-        "boot: isense zero = {} counts ({} mV), gain {} mV/A",
+        "boot: isense zero = {} counts ({} mV); gain {} mV/A at x1, {} mV/A at x10",
         sense.zero_raw(),
         board::ISENSE_ZERO_MV,
-        board::ISENSE_MV_PER_A
+        board::CcRange::LowGain.mv_per_a(),
+        board::CcRange::HighGain.mv_per_a()
     );
 
     // Converter-enable pin and the two open-loop maps, logged once so a bench
     // measurement can be checked against the exact numbers the firmware used.
-    // The enable line is worth verifying on the board: the firmware drives PA11,
-    // while the rev2 schematic routes the Q13 gate / EN/UVLO disable to PB1.
-    // If the converter cannot actually be parked, that mismatch is why.
+    // rev3 moved the `Q13` gate / `EN/UVLO` disable line from PA11 to PB1 and
+    // added the `CNV-EN-LOADEN` (PB3) and `PWR_G` (PB2) stages.
     defmt::info!(
-        "boot: conv-disable pin PA11 (active_high={}), CV dac PA4, CC dac PA6",
+        "boot: conv-disable PB1, load-enable PB3 (CNV-EN-LOADEN), pwr_g PB2 (active_high={}), high-gain PB6, CV dac PA4, CC dac PA6",
         board::CONVERTER_DISABLE_ACTIVE_HIGH
     );
     defmt::info!(
@@ -364,48 +285,68 @@ async fn main(spawner: Spawner) {
         board::CV_SUM_OHM
     );
     defmt::info!(
-        "boot: cc ctrl net R48={} R5={} R4={} VREF={} mV; bench CC offset {} mA; set {} mA -> code {} (ctrl {} mV); set {} mA -> code {} (ctrl {} mV); code0 ctrl {} mV (latchoff {})",
+        "boot: cc ctrl net R48={} R5={} R4={} VREF={} mV; code0 ctrl {} mV (latchoff {}, cold-start {})",
         board::CTRL_SERIES_OHM,
         board::CTRL_VREF_OHM,
         board::CTRL_GND_OHM,
         board::LT8390_VREF_MV,
-        board::CC_CURRENT_OFFSET_MA,
-        board::CC_SET_MIN_MA,
-        CcDac::setpoint_to_code(board::CC_SET_MIN_MA),
-        CcDac::ctrl_mv_for_code(CcDac::setpoint_to_code(board::CC_SET_MIN_MA)),
-        board::CC_SET_MAX_MA,
-        CcDac::setpoint_to_code(board::CC_SET_MAX_MA),
-        CcDac::ctrl_mv_for_code(CcDac::setpoint_to_code(board::CC_SET_MAX_MA)),
         CcDac::ctrl_mv_for_code(0),
-        board::LT8390_CTRL_LATCHOFF_MV
+        board::LT8390_CTRL_LATCHOFF_MV,
+        board::LT8390_CTRL_START_MV
     );
     // The CC window is the part's, not the firmware's: report the settable range
-    // next to what the chip can *sustain* and what it needs to cold-start. The
-    // settable floor is deliberately low (see `board::CC_SET_MIN_MA`) because a
-    // lower setpoint is the only route to a lower actual current.
+    // next to what the chip can *sustain* and what it needs to cold-start. rev3
+    // has two ranges, selected by the `High-Gain` mux, so print both. The *loop
+    // offsets* are 0 until they are re-measured on this board — the rev2 figure
+    // (3650 mA) was taken on a different sense node.
+    for r in [board::CcRange::LowGain, board::CcRange::HighGain] {
+        defmt::info!(
+            "boot: cc range {:?}: R_eff={} mOhm, ISMON {} mV/A, settable {}..{} mA, sustain {}..{} mA, cold-start {} mA, offset {} mA, set {} mA -> code {} (ctrl {} mV), set {} mA -> code {} (ctrl {} mV)",
+            r,
+            r.shunt_mohm(),
+            r.mv_per_a(),
+            r.set_min_ma(),
+            r.set_max_ma(),
+            r.min_ma(),
+            r.max_ma(),
+            r.start_min_ma(),
+            r.offset_ma(),
+            r.set_min_ma(),
+            CcDac::setpoint_to_code(r.set_min_ma(), r),
+            CcDac::ctrl_mv_for_code(CcDac::setpoint_to_code(r.set_min_ma(), r)),
+            r.set_max_ma(),
+            CcDac::setpoint_to_code(r.set_max_ma(), r),
+            CcDac::ctrl_mv_for_code(CcDac::setpoint_to_code(r.set_max_ma(), r))
+        );
+    }
     defmt::info!(
-        "boot: cc range settable {}..{} mA; sustain {}..{} mA; datasheet cold-start {} mA (R18={} mOhm, ISMON {} mV/A); ctrl {}..{} mV",
+        "boot: high-gain switches at iset <= {} mA; UI span {}..{} mA",
+        board::HIGH_GAIN_MAX_SET_MA,
         board::CC_SET_MIN_MA,
-        board::CC_SET_MAX_MA,
-        board::CC_MIN_MA,
-        board::CC_MAX_MA,
-        board::CC_START_MIN_MA,
-        board::ISENSE_SHUNT_MOHM,
-        board::ISENSE_MV_PER_A,
-        board::LT8390_CTRL_LATCHOFF_MV,
-        board::LT8390_CTRL_SAT_MV
+        board::CC_SET_MAX_MA
     );
     defmt::info!(
         "boot: iout software trip margin {}%; supply snapshot every {} ms",
         board::IOUT_TRIP_MARGIN_PCT,
         board::SUPPLY_LOG_MS
     );
+    // The rev3 power-up sequence, so the bench can check the scope against these
+    // exact numbers. See `board::OUTPUT_*` and `control::sequencer`.
+    defmt::info!(
+        "boot: output seq: preloaden {} ms, ramp timeout {} ms (reached {}%), switch settle {} ms, require_load={} (min {} mA), require_ina={}, discharge {} ms, conv-off {} ms",
+        board::OUTPUT_PRELOADEN_MS,
+        board::OUTPUT_RAMP_TIMEOUT_MS,
+        board::VOUT_REACHED_PCT,
+        board::OUTPUT_SWITCH_SETTLE_MS,
+        board::OUTPUT_SWITCH_REQUIRE_LOAD,
+        board::OUTPUT_SWITCH_MIN_MA,
+        board::OUTPUT_SWITCH_REQUIRE_INA,
+        board::OUTPUT_DISCHARGE_MS,
+        board::OUTPUT_CONV_OFF_MS
+    );
 
     spawner.spawn(led_task(app_state, led_ch)).unwrap();
     spawner.spawn(ui_task(app_state, ui_bus)).unwrap();
-    if let Some(uart) = service_uart {
-        spawner.spawn(service_uart_task(uart)).unwrap();
-    }
 
     let mut t_adc = Instant::now();
     let mut t_supply = Instant::now();
@@ -417,31 +358,6 @@ async fn main(spawner: Spawner) {
     let mut pd_period = Duration::from_millis(board::INA228_POLL_MS);
 
     loop {
-        // Service mode, handoff leg: park the output, let it settle, then reset
-        // with a request recorded so the next boot enters the ROM bootloader.
-        // Reusing `supply.tick` keeps the inverted-CV and CC-zero behaviour in
-        // one place; the APP_STATE lock is dropped before the settle delay.
-        if service::SERVICE_REQUEST.swap(false, Ordering::SeqCst) {
-            let was_enabled = {
-                let mut app = app_state.lock().await;
-                let was_enabled = app.supply.enabled;
-                app.supply.enabled = false;
-                supply.tick(&mut app, &mut dac_cv, &mut dac_cc, &mut conv_en);
-                was_enabled
-            };
-            conv_en.set_enabled(false);
-            defmt::info!("service mode: parking output before handoff");
-            // The settle wait only buys something when the converter was actually
-            // driving. Skipping it when the output was already parked cuts the
-            // handoff to reset time (~2 ms), well inside the host tools' retry
-            // window: stm32flash 0.7 resends 0x7F exactly once, 500 ms after the
-            // first byte (TERMIOS_TIMEOUT_MS in serial_posix.c), then gives up.
-            if was_enabled {
-                Timer::after(Duration::from_millis(board::SERVICE_PARK_SETTLE_MS)).await;
-            }
-            bootloader::request_on_next_boot();
-        }
-
         let now = Instant::now();
 
         if now.duration_since(t_input) >= Duration::from_millis(board::INPUT_POLL_MS) {
@@ -471,6 +387,10 @@ async fn main(spawner: Spawner) {
 
         if now.duration_since(t_adc) >= Duration::from_millis(board::ADC_SAMPLE_MS) {
             t_adc = now;
+            // The ISMON channel scales with the CC sense range, so read the range
+            // the supply tick has published. A short uncontended lock here rather
+            // than holding `APP_STATE` across the blocking ADC reads below.
+            let cc_range = app_state.lock().await.supply.cc_range;
             let raw = sense.sample(
                 &mut adc1,
                 &mut adc2,
@@ -480,22 +400,25 @@ async fn main(spawner: Spawner) {
                 &mut pin_vbus,
                 &mut pin_temp_conv,
                 &mut pin_temp_in,
+                cc_range,
             );
             let mut app = app_state.lock().await;
-            // The ADC filter only owns the output-side channels; carry the
-            // INA228's input-side values across its whole-struct replacement.
+            // The ADC filter only owns the output-side channels; carry both
+            // INA228 readings across its whole-struct replacement.
             let prev_vin = app.telemetry.vin_mv;
             let prev_iin = app.telemetry.iin_ma;
             let prev_pin = app.telemetry.pin_mw;
             let prev_ina_temp = app.telemetry.ina_temp_c;
             let prev_ina_ok = app.telemetry.ina_ok;
+            let prev_out_ina = app.telemetry.out_ina;
             let mut filtered = tele_filter.filter(raw);
             filtered.iin_ma = prev_iin;
             filtered.pin_mw = prev_pin;
             filtered.ina_temp_c = prev_ina_temp;
             filtered.ina_ok = prev_ina_ok;
+            filtered.out_ina = prev_out_ina;
             if prev_ina_ok {
-                // Prefer the INA228's input-bus voltage over the ADC divider.
+                // Prefer the input INA228's bus voltage over the ADC divider.
                 filtered.vin_mv = prev_vin;
             }
             app.telemetry = filtered;
@@ -504,13 +427,14 @@ async fn main(spawner: Spawner) {
             // are independent of the scaling constants, so comparing them at 0 A
             // vs a known load shows at a glance whether the LT8390A's monitor is
             // moving and what zero should be (calibrate with the output ON and
-            // no load). LT8390A + R18 (2 mΩ) should give ~25 counts/A.
+            // no load). One count is ~0.806 mV, so the counts-per-amp depends on
+            // the active range: ~25 counts/A at ×1, ~2.5 counts/A at ×10.
             if now.duration_since(t_isense_log) >= Duration::from_secs(1) {
                 t_isense_log = now;
                 let raw = sense.last_i_raw();
                 let zero = sense.zero_raw();
                 defmt::info!(
-                    "isense: raw={} ({} mV) zero={} ({} mV) span={} mV raw_i={} mA filt_i={} mA vout={} mV vset={} mV iset={} mA vin={} mV iin={} mA",
+                    "isense: raw={} ({} mV) zero={} ({} mV) span={} mV raw_i={} mA filt_i={} mA vout={} mV vset={} mV iset={} mA vin={} mV iin={} mA iout_ina={} mA (ina_ok={}) range={:?}",
                     raw,
                     raw * board::ADC_VREF_MV / 4096,
                     zero,
@@ -518,13 +442,16 @@ async fn main(spawner: Spawner) {
                     raw.saturating_sub(zero) * board::ADC_VREF_MV / 4096,
                     raw.saturating_sub(zero) * board::ADC_VREF_MV / 4096
                         * 1000
-                        / board::ISENSE_MV_PER_A,
+                        / app.supply.cc_range.mv_per_a(),
                     app.telemetry.iout_ma,
                     app.telemetry.vout_mv,
                     app.supply.v_set_mv,
                     app.supply.i_set_ma,
                     app.telemetry.vin_mv,
-                    app.telemetry.iin_ma
+                    app.telemetry.iin_ma,
+                    app.telemetry.out_ina.current_ma,
+                    app.telemetry.out_ina.ok,
+                    app.supply.cc_range
                 );
             }
         }
@@ -535,7 +462,15 @@ async fn main(spawner: Spawner) {
             // Sweep first: it may move the setpoint/phase this very tick, and the
             // supply tick below pushes the resulting setpoint to the CV DAC.
             sweep.tick(&mut app);
-            supply.tick(&mut app, &mut dac_cv, &mut dac_cc, &mut conv_en);
+            supply.tick(
+                &mut app,
+                &mut dac_cv,
+                &mut dac_cc,
+                &mut conv_en,
+                &mut load_en,
+                &mut pwr_g,
+                &mut high_gain,
+            );
         }
 
         if now.duration_since(t_pd) >= pd_period {
@@ -547,10 +482,56 @@ async fn main(spawner: Spawner) {
             if pd_mgr.has_pending_request() {
                 // Park the output (DACs + converter enable) before the input
                 // rail is renegotiated.
-                supply.tick(&mut app, &mut dac_cv, &mut dac_cc, &mut conv_en);
+                supply.tick(
+                &mut app,
+                &mut dac_cv,
+                &mut dac_cc,
+                &mut conv_en,
+                &mut load_en,
+                &mut pwr_g,
+                &mut high_gain,
+            );
             }
             pd_mgr.negotiate(&mut tps, &mut i2c, &app).await;
-            ina.poll(&mut i2c, &mut app).await;
+
+            // Input monitor U9: bus voltage, input current/power, die temp.
+            match ina_in.poll(&mut i2c).await {
+                Some(r) => {
+                    app.telemetry.vin_mv = r.bus_mv;
+                    app.telemetry.iin_ma = r.current_ma;
+                    app.telemetry.pin_mw = r.power_mw;
+                    app.telemetry.ina_temp_c = r.die_temp_c;
+                    app.telemetry.ina_ok = true;
+                }
+                None => {
+                    if !ina_in.is_present() {
+                        app.telemetry.ina_ok = false;
+                        app.telemetry.iin_ma = 0;
+                        app.telemetry.pin_mw = 0;
+                    }
+                }
+            }
+
+            // Output monitor U12: the load current and the output bus voltage.
+            // Authoritative for display (see `Telemetry::display_*`) and the only
+            // evidence that the output switch closed; the ADC stays the fast path
+            // the supply tick and the sequencer read.
+            match ina_out.poll(&mut i2c).await {
+                Some(r) => {
+                    app.telemetry.out_ina = OutInaTelemetry {
+                        bus_mv: r.bus_mv,
+                        current_ma: r.current_ma,
+                        power_mw: r.power_mw,
+                        die_temp_c: r.die_temp_c,
+                        ok: true,
+                    };
+                }
+                None => {
+                    if !ina_out.is_present() {
+                        app.telemetry.out_ina.ok = false;
+                    }
+                }
+            }
 
             // embassy's I2C driver waits for events in a blocking spin loop, so a
             // bus that does not answer blocks the whole executor (including
@@ -576,24 +557,5 @@ async fn main(spawner: Spawner) {
         }
 
         Timer::after(Duration::from_micros(100)).await;
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Service-UART boot-diagnostic formatting (no core::fmt on this target)
-// ---------------------------------------------------------------------------
-
-fn put(buf: &mut [u8; 128], i: &mut usize, s: &[u8]) {
-    buf[*i..*i + s.len()].copy_from_slice(s);
-    *i += s.len();
-}
-
-fn puth(buf: &mut [u8; 128], i: &mut usize, v: u32) {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    buf[*i..*i + 2].copy_from_slice(b"0x");
-    *i += 2;
-    for shift in (0..32).rev().step_by(4) {
-        buf[*i] = HEX[((v >> shift) & 0xF) as usize];
-        *i += 1;
     }
 }

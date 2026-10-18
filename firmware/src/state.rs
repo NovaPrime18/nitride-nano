@@ -20,10 +20,18 @@ pub enum Fault {
     OverVoltage,
     OverPower,
     OverTemp,
-    /// Input-bus overcurrent from the INA228 (beyond the PD contract cap).
+    /// Input-bus overcurrent from the input INA228 (beyond the PD contract cap).
     InputOverCurrent,
-    /// Input-bus overvoltage from the INA228.
+    /// Input-bus overvoltage from the input INA228.
     InputOverVoltage,
+    /// rev3: `CNV-EN-LOADEN` was raised but `Vsense_REG_OUT` never reached the
+    /// setpoint inside `board::OUTPUT_RAMP_TIMEOUT_MS` — the converter did not
+    /// start, or it cannot deliver the requested output.
+    OutputNotReached,
+    /// rev3: `PWR_G` was asserted but the output INA228 did not confirm the load
+    /// switch closed (no load current, output collapsed, or the monitor itself is
+    /// not answering). See `board::OUTPUT_SWITCH_*`.
+    OutputSwitchFailed,
     // TODO(dead-code): reserved for a "user switched the output off" state, but the
     // UI toggles `SupplyState::enabled` directly instead of raising a fault. Never
     // constructed or matched anywhere.
@@ -42,6 +50,8 @@ impl Fault {
             Fault::OverTemp => Some("OVERTEMP"),
             Fault::InputOverCurrent => Some("IN OCP"),
             Fault::InputOverVoltage => Some("IN OVP"),
+            Fault::OutputNotReached => Some("OUTPUT FAIL"),
+            Fault::OutputSwitchFailed => Some("SWITCH FAIL"),
         }
     }
 }
@@ -215,12 +225,35 @@ impl Default for SweepState {
     }
 }
 
+/// Output-side reading from the U12 INA228 on the output-return shunt R96.
+///
+/// This is the *authoritative* output telemetry when it is live: it measures the
+/// true load current and the output bus voltage at ~10 Hz. The MCU ADC path
+/// (`vout_mv` / `iout_ma`) stays in service as the **fast** path because the
+/// supply tick runs at 1 ms and cannot wait for a 50 ms conversion — the
+/// output-switch sequencer, sag detection and the over-current backstop all use
+/// the ADC values. See [`Telemetry::display_vout_mv`] and friends for the
+/// "which one does the user see" decision, which lives in one place.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct OutInaTelemetry {
+    /// Output bus voltage at the connector side of F2.
+    pub bus_mv: u32,
+    /// Load current; positive is current delivered to the load.
+    pub current_ma: i32,
+    /// `bus_mv * current_ma`.
+    pub power_mw: i32,
+    /// INA228 die temperature.
+    pub die_temp_c: i32,
+    /// True while the most recent U12 reads are succeeding.
+    pub ok: bool,
+}
+
 /// Filtered analog telemetry snapshot shared with the UI and control loop.
 ///
 /// Output-side fields (`vout_mv`, `iout_ma`, `pout_mw`) come from the MCU ADCs;
 /// the input-side fields (`vin_mv`, `iin_ma`, `pin_mw`, `ina_temp_c`) are
-/// refreshed from the INA228 when it is present, with the ADC's Vbus reading as
-/// the fallback for `vin_mv`.
+/// refreshed from the input INA228 U9 when it is present, with the ADC's Vbus
+/// reading as the fallback for `vin_mv`. `out_ina` carries the output INA228 U12.
 #[derive(Clone, Copy, Debug)]
 pub struct Telemetry {
     pub vin_mv: u32,
@@ -235,8 +268,42 @@ pub struct Telemetry {
     pub pin_mw: i32,
     /// INA228 die temperature.
     pub ina_temp_c: i32,
-    /// True while the most recent INA228 reads are succeeding.
+    /// True while the most recent input INA228 reads are succeeding.
     pub ina_ok: bool,
+    /// Output power monitor (U12) reading; see [`OutInaTelemetry`].
+    pub out_ina: OutInaTelemetry,
+}
+
+impl Telemetry {
+    /// Output voltage the user should see: the output INA228 when it is live,
+    /// else the ADC divider on `Vsense_REG_OUT`.
+    pub fn display_vout_mv(&self) -> u32 {
+        if self.out_ina.ok {
+            self.out_ina.bus_mv
+        } else {
+            self.vout_mv
+        }
+    }
+
+    /// Output current the user should see: the output INA228 when it is live,
+    /// else the ISMON-derived ADC value.
+    pub fn display_iout_ma(&self) -> u32 {
+        if self.out_ina.ok {
+            self.out_ina.current_ma.unsigned_abs()
+        } else {
+            self.iout_ma
+        }
+    }
+
+    /// Output power the user should see, matching [`Self::display_vout_mv`] and
+    /// [`Self::display_iout_ma`] so the efficiency ratio stays consistent.
+    pub fn display_pout_mw(&self) -> u32 {
+        if self.out_ina.ok {
+            self.out_ina.power_mw.unsigned_abs()
+        } else {
+            self.pout_mw
+        }
+    }
 }
 
 impl Default for Telemetry {
@@ -252,6 +319,7 @@ impl Default for Telemetry {
             pin_mw: 0,
             ina_temp_c: 25,
             ina_ok: false,
+            out_ina: OutInaTelemetry::default(),
         }
     }
 }
@@ -272,6 +340,13 @@ pub struct SupplyState {
     /// the same as the user-selected [`SupplyMode`]: the LT8390A transitions
     /// CV↔CC by itself, so the OLED badge reflects this field.
     pub cc_active: bool,
+    /// rev3: where the three-pin power-up sequence currently is. Published by the
+    /// sequencer in [`crate::control::sequencer`] and rendered on the OLED.
+    pub stage: crate::control::sequencer::Stage,
+    /// rev3: CC sense range currently commanded on the `High-Gain` pin. Latched
+    /// while the output is running (a range change is a ×10 step in CC loop gain),
+    /// so `i_set_ma` wanting the other range is deferred to the next disable.
+    pub cc_range: crate::board::CcRange,
 }
 
 impl Default for SupplyState {
@@ -292,6 +367,8 @@ impl Default for SupplyState {
             // contract goes away so an XT90 feed gets the full design current.
             input_current_cap_ma: board::IIN_MAX_MA as u32,
             cc_active: false,
+            stage: crate::control::sequencer::Stage::Off,
+            cc_range: crate::board::CcRange::LowGain,
         }
     }
 }

@@ -12,7 +12,10 @@
 //! - [`drivers`]: I2C device drivers (TPS26750, INA228, SSD1306).
 //! - [`ui`]: buttons/encoder input, menu model, and the OLED task.
 //! - [`eeprom_loader`] / [`eeprom_workflow`]: TPS26750 full-flash EEPROM upload.
-//! - [`service`]: service mode — hand off to the ROM bootloader for UART reflash.
+//!
+//! Reflashing is over USB-C via the STM32G474's ROM USB DFU bootloader, entered
+//! by a BOOT0 hardware strap at reset; there is no in-firmware handoff path. See
+//! `PCB/ECO-rev3-usb-dfu.md`.
 #![no_std]
 
 pub mod board;
@@ -24,6 +27,5 @@ pub mod hal;
 pub mod pd;
 pub mod runtime;
 pub mod sense;
-pub mod service;
 pub mod state;
 pub mod ui;

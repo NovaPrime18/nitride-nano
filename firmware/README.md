@@ -5,13 +5,16 @@ Embassy-based Rust firmware for the **STM32G474CEU6** on the nitride-nano pocket
 ## Features
 
 - **CV/CC control** via 12-bit DAC (PA4 CV, PA6 CC) referenced to VREF+ = +3V3 (the on-board tie; the internal VREFBUF is left high-Z); open-loop CV driven as an (inverted) map from setpoint to DAC code, derived analytically from the LT8390A feedback divider (R19/R20/R36), with code-rate slew limiting (no feedback loop)
-- **ADC telemetry** on PA0/PA1/PA3/PA7/PA9 (output side)
-- **INA228** input power monitor (Vin/Iin/Pin + die temp) on I2C1
+- **Switchable CC sense range** (`High-Gain`, PB6): ×1 directly across R96, or ×10 through the U14 INA241, giving 2.5–20 A or 0.3–5 A with ten times the resolution. The pin only moves while the output is parked, because a range change is a ×10 step in CC loop gain
+- **Sequenced output stage**: `Conv-Disable` (PB1) enables the converter with the output held at 0 V through the LT8390A's bottom gates (`CNV-EN-LOADEN`, PB3); raising that starts conversion, and `PWR_G` (PB2) connects the load only after `Vsense_REG_OUT` reaches the setpoint, verified against the output INA228
+- **ADC telemetry** on PA0 (`Vsense_REG_OUT`) / PA1 / PA3 (`ISMON`) / PA7 / PA9
+- **Two INA228** power monitors on I2C2: input (U9, `0x40`, R60 = 2 mΩ) and output (U12, `0x41`, R96 = 2 mΩ). The output one is authoritative for the displayed Vout/Iout/Pout and is the only evidence the load switch closed
 - **Auto-tracking PD** — negotiates a fixed input rail from the output setpoint, keeping the LT8390A out of its 4-switch buck-boost region when the requested power allows
 - **SSD1306** powersupply UI (128×64 I2C)
-- **3 buttons + rotary encoder** (PB9–11, PB6/PA12, PB4)
+- **3 buttons + rotary encoder** (PB9–11, PB4/PB5, PB0)
 - **TPS26750** USB-C PD driver (port of `../src/tps26750.cpp`)
-- **Protection**: 60 V / 20 A / 240 W / NTC overtemperature / INA228 input OCP-OVP
+- **Protection**: 60 V / 20 A / 240 W / NTC overtemperature / input OCP-OVP / output-not-reached / output-switch-failed
+- **USB-C reflash** via the STM32G474 ROM USB DFU bootloader (BOOT0 hardware strap, no application code)
 
 ## Requirements
 
@@ -28,90 +31,111 @@ rustup target add thumbv7em-none-eabihf
 cd firmware
 cargo build --release
 cargo run --release   # uses probe-rs runner from .cargo/config.toml
+
+# raw image for USB-DFU / stm32flash-style tools:
+cargo objcopy --release -- -O binary firmware.bin
 ```
 
-## Service mode — UART reflash: **known not to work on this silicon/board** (2026-09)
+## Reflashing over USB-C (rev3)
 
-The running firmware *does* hand control to the ST ROM bootloader — the trigger,
-the `.uninit` handoff marker, the `SYSRESETREQ` and the jump to `0x1FFF0000` all
-work and were each verified on hardware. **The ROM bootloader then returns to the
-application almost immediately instead of staying resident, so no host tool ever
-gets to sync.** Treat UART reflash as unavailable until the design changes; use
-SWD (`cargo run --release`, or `probe-rs download`) to flash.
+rev3 removes the FT234XD and reflashes over the STM32G474's **built-in ROM USB
+DFU bootloader** on PA11/PA12. There is **no bootloader-handoff code in the
+application**: the ROM loader only stays resident when BOOT0 is high at the
+reset sampling instant, which a software jump cannot arrange (this is exactly why
+the rev2 UART scheme in [`../PCB/ECO-rev3-boot0.md`](../PCB/ECO-rev3-boot0.md)
+never worked). Entry is therefore a hardware strap.
 
-### What was verified, and how
+1. Hold **BOOT0** (`SW2`), press and release **NRST** (`SW3`), release BOOT0.
+2. The device enumerates as `0483:df11`; `dfu-util -l` lists it.
+3. Write and run:
 
-- **The FT234XD link works.** A `0x7F` on the port is received on USART3,
-  accepted by the listener, and the output is parked. The "FTDI enumerates but
-  the MCU ignores the port" symptom was a *different* bug (below).
-- **The handoff marker works.** `request_on_next_boot()` stores `0xB00710AD` /
-  `0x4FF8EF52` in `.uninit`; it survives `sys_reset()`; `take_request()` accepts
-  it; and the jump runs with the correct system-memory vectors
-  (`0x20002160` / `0x1FFF5049`), confirmed by a trace in otherwise-unused SRAM.
-- **The G4 ROM bootloader is present and healthy**, but does not stay. Setting
-  the core straight to the ROM entry from a pristine reset
-  (`pc = 0x1FFF5049`, `msp = 0x20002160`, then resume) puts the PC back in the
-  application within ~100 ms, with the app's own boot banner on the UART. No
-  `0x79` ACK is ever produced, at any baud/parity, even while flooding `0x7F`.
-  The boot configuration is `nBOOT0=1`, `nSWBOOT0=0` — i.e. "boot from main
-  flash" — which is what the loader falls back to. This matches the widely
-  reported STM32G4/G0 behaviour that a software jump to the system loader does
-  not keep it resident; it is not a firmware defect and no amount of driver
-  teardown or interrupt-state fiddling changes it.
+```bash
+dfu-util -a 0 -s 0x08000000:leave -D firmware.bin
+# or: STM32CubeProgrammer -> USB -> Download
+```
 
-### The bug that *was* real (and is fixed)
+One-time per board: the option bytes must take BOOT0 from the PB8 pin —
+**`nSWBOOT0 = 1`** (`FLASH_OPTR` bit 26), i.e. `0xFBEFF8AA → 0xFFEFF8AA`, with
+`nBOOT1 = 1`. Verify with STM32CubeProgrammer → Option Bytes, or by SWD.
 
-`defmt-rtt`'s default blocking write froze the single-threaded executor a few
-seconds after boot whenever no `probe-rs` reader was draining RTT: the RTT
-control block lives in `.uninit`, its "host connected" flag survives resets, so
-after any probe session the buffer fills and `blocking_write` spins forever. The
-listener was therefore dead by the time a flasher connected — which is exactly
-why triggering only ever worked in the first seconds after a power cycle. Fixed
-in `Cargo.toml` with `defmt-rtt = { version = "0.4", features =
-["disable-blocking-mode"] }`.
+**SWD (`J4`) always works, even with a corrupt application, so a bad flash is
+never a brick.**
 
-### What would make USB-C reflash actually work
-
-1. **Hardware ECO (rev3) — chosen direction.** `BOOT0` must be strapped high at
-   reset. On the G4 BOOT0 *is* PB8, which is also `/MCU/I2C0_SCL` (pulled high by
-   R32), so the pin has to be freed from the I²C bus and given a strap that is low
-   by default and high only while a host is flashing. The full change — I²C
-   re-pin, the FT234XD `~RTS` strap circuit, the `nSWBOOT0` option byte, and the
-   firmware simplification — is written up in
-   [`../PCB/ECO-rev3-boot0.md`](../PCB/ECO-rev3-boot0.md). With it, stock
-   `stm32flash` / `STM32CubeProgrammer` work with no host script.
-2. **Zero-hardware alternative, works on rev2 today.** The G4 can also take
-   BOOT0 from the `nBOOT0` software option bit, so the *firmware* can select the
-   loader and reset — no board change. See §7 of the ECO.
-3. **In-app updater (fallback).** If neither of the above is wanted, the USART3
-   ↔ FT234XD link already works, so the application can implement its own
-   erase/write protocol. Safest shape is A/B across the two flash halves so a
-   failed transfer can never brick the board.
-
-> **Safety:** a firmware pin cannot hold its state through reset, so anything
-> that resets into the ROM loader leaves the converter unregulated. See the
-> PA11/Q13 fail-safe ECO in [BENCH.md](BENCH.md) before flashing with a load
-> attached.
+> **Safety:** a firmware pin cannot hold its state through reset. `PWR_G` has a
+> 100 kΩ pulldown, so the *load* is safely disconnected while the ROM loader runs,
+> but `PB1`/`PB3` have no pull resistors and the R7/R8 divider can leave the
+> converter enabled at an uncontrolled setpoint. See the fail-safe notes in
+> [BENCH.md](BENCH.md) before flashing with a load attached.
 
 ## Pin map
 
+### rev3
+
 | Signal | Pin | Notes |
 |--------|-----|-------|
-| I2C1 SCL/SDA | PB8 / PB7 | TPS26750 + INA228. **rev2 bodge:** PCB routes this bus to PC4/PB7, but no STM32G474 hardware I²C peripheral can drive PC4+PB7 together, so SCL is wired from PC4 to PB8 (I2C1_SCL). SDA stays on PB7 (I2C1_SDA). |
-| I2C3 SCL/SDA | PA8 / PB5 | SSD1306 OLED, and CAT24C512 EEPROM when JP8/JP9 are bridged |
+| PD bus I2C2 SCL/SDA | PC4 / PA8 | TPS26750 (`0x21`) + both INA228s (U9 `0x40`, U12 `0x41`). PC4/PA8 is a valid single-peripheral pin pair, so rev2's SCL bodge is gone |
+| UI bus I2C4 SCL/SDA | PC6 / PB7 | SSD1306 OLED (`0x3C`), and CAT24C512 EEPROM (`0x50`) when JP8/JP9 are bridged |
+| USB DM/DP | PA11 / PA12 | ROM USB DFU bootloader; the only pins with USB_DM/USB_DP. Short-to-VBUS protected through U3's SBU path |
+| BOOT0 | PB8 | `R59` 357 kΩ → GND, `SW2` → +3V3. Nothing in firmware |
 | CV DAC | PA4 | DAC1 CH1, buffered |
 | CC DAC | PA6 | DAC2 CH1, buffered |
-| Vout sense | PA0 | ADC1 (output side) |
-| I sense | PA3 | ADC1 |
-| Bus V | PA7 | ADC2 (input-bus fallback; INA228 is primary) |
+| `Vsense_REG_OUT` | PA0 | ADC1. R85+R86 124 k / R87 10 k = 248 k/10 k (85.14 V full scale) |
+| `ISMON` | PA3 | ADC1. Gain is range-dependent: 20 mV/A at ×1, 200 mV/A at ×10 |
+| Bus V | PA7 | ADC2 (input-bus fallback; the input INA228 is primary) |
 | NTC conv / in | PA1 / PA9 | ADC |
-| Disable | PA11 | GPIO (verify polarity at bring-up) |
+| `Conv-Disable` | PB1 | GPIO → `R78` 10 Ω → `Q13` gate → LT8390A `EN/UVLO`. **Active high = disabled**; `R7` 357 k / `R8` 64.9 k set the fail-safe state |
+| `PWR_G` | PB2 | GPIO → `Q12` → `Q7` → `R58` 27 Ω → `Q5` gate. Active high = load switch closed. `R21` 100 kΩ pulldown = load disconnected while the MCU is in reset |
+| `CNV-EN-LOADEN` | PB3 | GPIO → LT8390A `LOADEN`. Low holds BG1/BG2 on (output grounded); high releases soft-start |
+| `High-Gain` | PB6 | GPIO → U7 TMUX1574 `SEL`. Low = ×1 direct across R96, high = ×10 through the U14 INA241 |
 | Status LED | PA15 | D31, **active high** (PA15 → anode → R81 → GND); `TIM2_CH1` hardware PWM |
 | Buttons | PB9 / PB10 / PB11 | Active low |
-| Encoder A/B | PB6 / PA12 | TIM4 QEI |
-| Enc button | PB4 | |
+| Encoder A/B | PB4 / PB5 | TIM3 QEI (was TIM4 on PB6/PA12) |
+| Enc button | PB0 | |
 | PD IRQ | PB13 | EXTI |
-| UART debug / service mode | PC10/PC11 | USART3 → FT234XD. Intended as the ROM-bootloader reflash port — see "Service mode" above, it does **not** work on this board. |
+| Spare | PA2, PA5, PA10, PB2 used, PC10, PC11 | PC10/PC11 are the freed USART3 pins |
+| Removed | PA11 (was disable), PC10/PC11 (was USART3) | PA11 is now `USB_DM`; the FT234XD (U12) is gone |
+
+Net names did not change with the re-pin — only the MCU pins — so the pull-ups
+travelled with their buses.
+
+
+## Output-stage sequence (rev3)
+
+rev3 replaced the single `Conv-Disable` line with three pins, and the order is
+safety-critical. `src/control/sequencer.rs` owns the state machine; the header
+badge shows the stage (`PRE` / `RMP` / `SWO` / `ON` / `DWN` / `OFF`) instead of a
+bare `ON`.
+
+```text
+  Off ──enable──▶ Precharge ──20 ms──▶ Ramping ──Vout ok──▶ SwitchOn ──verify──▶ Running
+   ▲                  │                  │                    │                     │
+   └──────────────────┴──────────────────┴──── Disabling ◀────┴──────disable─────────┘
+```
+
+| Stage | PB1 chip | PB3 `LOADEN` | PB2 `PWR_G` | What is happening |
+|-------|----------|--------------|-------------|-------------------|
+| `Off` | disabled | low | open | All three parked; DACs at minimum output |
+| `Precharge` | **enabled** | low | open | LT8390A `BG1`/`BG2` hold the output at 0 V while INTVCC/VREF/CTRL settle |
+| `Ramping` | enabled | **high** | open | `LOADON` asserts, soft-start begins, output rises |
+| `SwitchOn` | enabled | high | **closed** | Load connected; the output INA228 must confirm it |
+| `Running` | enabled | high | closed | Normal CV/CC operation |
+| `Disabling` | off after 70 ms | low after 50 ms | **open immediately** | Unwinds in reverse: load off, then discharge, then chip off |
+
+Two things make this work, and both are easy to get wrong:
+
+* **`LOADEN` is only half the condition.** The LT8390A reaches its `UP/PRE` state
+  only when CTRL is above its rising latch-off (~0.325 V) **and** `LOADEN` is high.
+  A sub-floor current setpoint would therefore command CTRL below latch-off, raise
+  `LOADEN`, and start nothing. The sequencer floors the CC command at the range's
+  cold-start value (4.5 A at ×1, 450 mA at ×10) for the whole ramp and logs it.
+* **Current is the only proof the switch closed.** `Vsense_REG_OUT` is sensed on
+  the *converter* side of `Q5`, so a `Q5` that never conducts leaves the output
+  looking perfectly regulated. The check is the output INA228's shunt current.
+  With no load attached this cannot be satisfied — set
+  `board::OUTPUT_SWITCH_REQUIRE_LOAD = false` for a no-load bench run.
+
+Timings and thresholds are all in [`src/board.rs`](src/board.rs) under
+`OUTPUT_*` / `VOUT_REACHED_PCT`, and the boot banner prints them.
 
 ## Status LED (PA15)
 
@@ -136,10 +160,12 @@ long dark pause.
 | 4 | OVERTEMP | `Fault::OverTemp` |
 | 5 | IN OCP | `Fault::InputOverCurrent` |
 | 6 | IN OVP | `Fault::InputOverVoltage` |
-| 7 | INA228 FAULT | input monitor not answering |
+| 7 | INA228 FAULT | either power monitor not answering |
 | 8 | PD CTRL LOST | TPS26750 not answering |
 | 9 | PD NO RAIL | source caps known, none can serve the request |
 | 10 | EEPROM FAULT | last flash attempt failed |
+| 11 | OUTPUT FAIL | `Fault::OutputNotReached` — conversion never reached the setpoint |
+| 12 | SWITCH FAIL | `Fault::OutputSwitchFailed` — `PWR_G` asserted but the load switch was not confirmed |
 
 A latched protection fault always wins over the other states. Codes 7–9 are held
 back for `LED_SUBSYSTEM_GRACE_MS` after boot (the two chips are probed
@@ -166,6 +192,12 @@ is edited — there is no separate V-SET screen:
 * **Encoder double click** toggles Fine/Coarse while VSET mode is on. The single
   click is deferred by `ENC_DOUBLE_CLICK_MS` (~350 ms) so the two gestures can
   never both fire for one double click.
+
+The voltage setpoint is floored at `board::VSET_MIN_MV` (3 V): the LT8390A cannot
+regulate below its `LOADTG` minimum, so a lower setpoint would just time out in the
+rev3 ramp stage and latch `OUTPUT FAIL`. The current setpoint spans
+`CC_SET_MIN_MA` … `CC_SET_MAX_MA` (0.35–20 A); the I-LIM badge shows which sense
+range is actually in force and appends `*` when the setpoint wants the other one.
 
 Setpoint readouts use one fractional digit (`SET 30.0V`); the measurement columns
 keep three (`12.000 V`).
@@ -234,4 +266,17 @@ See [BENCH.md](BENCH.md) for the step-by-step validation checklist.
 
 ## Tuning
 
-Edit scaling constants and NTC parameters in [`src/board.rs`](src/board.rs) after measuring divider networks on the assembled board. The INA228 is configured for an 8 mΩ shunt (R60), `ADCRANGE = 0` and 20 A full scale (`INA228_*`).
+Edit scaling constants and NTC parameters in [`src/board.rs`](src/board.rs) after measuring divider networks on the assembled board.
+
+Both INA228s are configured for a **2 mΩ** shunt (input R60, output R96),
+`ADCRANGE = 0` (±163.84 mV) and 20 A full scale, which is `SHUNT_CAL = 1000`
+(`INA228_*`). rev2's input shunt was 8 mΩ (`SHUNT_CAL = 4000`); a rev2 board
+running this firmware would read input current 4× low.
+
+The CC loop's low-end offsets (`CC_CURRENT_OFFSET_MA_1X` / `_10X`) are **0 pending
+a rev3 measurement**: the rev2 figure (3650 mA) was taken on a different, high-side
+sense node and does not transfer. Re-measure per range by setting two low
+setpoints and taking the intercept of `actual − setpoint`, then re-run a
+mid-range point to confirm. See
+[`analysis/CC_RANGE_1_TO_20A.md`](analysis/CC_RANGE_1_TO_20A.md) and
+[`analysis/REV3_CC_RANGE_FRONTEND.md`](analysis/REV3_CC_RANGE_FRONTEND.md).

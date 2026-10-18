@@ -107,6 +107,10 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
                         } else {
                             app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(step);
                         }
+                        // Floor it: below `VSET_MIN_MV` the converter cannot
+                        // regulate and the rev3 sequencer would time out in
+                        // `Ramping` and latch `Fault::OutputNotReached`.
+                        app.supply.v_set_mv = app.supply.v_set_mv.max(board::VSET_MIN_MV);
                     }
                 }
             }
@@ -203,9 +207,11 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
 
 /// Encoder-turn handler for the I-LIM screen; ignores all other events.
 ///
-/// The settable range is bounded by the LT8390A's CC window, not by the ADC:
-/// below [`board::CC_SET_MIN_MA`] the chip cannot limit current (it stops
-/// switching), and [`board::CC_SET_MAX_MA`] is the design maximum.
+/// The settable span is [`board::CC_SET_MIN_MA`] … [`board::CC_SET_MAX_MA`], the
+/// union of both CC sense ranges. The *active* range can lag the setpoint while
+/// the output is running (see `control::supply`), so the per-range clamp is
+/// applied where the DAC is programmed, not here — clamping the setpoint to the
+/// active range would trap the knob inside the current range.
 fn adjust_current_dynamic(app: &mut AppState, ev: InputEvent, step: u32) {
     match ev {
         InputEvent::EncTurn(d) => {
@@ -217,8 +223,7 @@ fn adjust_current_dynamic(app: &mut AppState, ev: InputEvent, step: u32) {
             app.supply.i_set_ma = app
                 .supply
                 .i_set_ma
-                .max(board::CC_SET_MIN_MA)
-                .min(board::CC_SET_MAX_MA);
+                .clamp(board::CC_SET_MIN_MA, board::CC_SET_MAX_MA);
         }
         _ => {}
     }

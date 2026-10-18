@@ -1,6 +1,12 @@
 //! Constant-current limit DAC (PA6 / DAC2 CH1) driving the converter's CTRL pin
 //! **through the board's summing network** (R48/R5/R4 — see `board::CTRL_*`).
 //!
+//! Every conversion is parameterised by [`CcRange`], because rev3's `High-Gain`
+//! mux changes the shunt the LT8390A measures: the same CTRL voltage means a
+//! limit ten times lower at ×10. The range is a plain argument rather than
+//! ambient state so the caller can never convert one range's current with the
+//! other range's shunt.
+//!
 //! Two conversions matter here and they are not the same:
 //!
 //! * [`CcDac::ma_to_code`] turns a commanded output-current limit into a DAC
@@ -8,15 +14,15 @@
 //! * [`CcDac::current_ma_for_code`] / [`CcDac::ctrl_mv_for_code`] report what a
 //!   code *actually* produces, for the `supply:` diagnostics.
 //! * [`CcDac::setpoint_to_code`] is the entry point the UI path uses: it clamps
-//!   the user setpoint to the settable range and subtracts
-//!   [`board::CC_CURRENT_OFFSET_MA`], the bench-measured loop offset, so the
+//!   the user setpoint to the active range and subtracts
+//!   [`CcRange::offset_ma`], the bench-measured loop offset, so the
 //!   number on the I-LIM screen is the current actually drawn.
 //!
 //! Driving the DAC as if it fed CTRL directly (the previous behaviour) ignored
 //! the +VREF offset and the divider attenuation, so every programmed limit was
 //! ~14 % low and the absolute error grew with the setpoint.
 
-use crate::board;
+use crate::board::{self, CcRange};
 
 /// CC limit DAC on PA6 / DAC2 CH1.
 pub struct CcDac {
@@ -53,8 +59,8 @@ impl CcDac {
     /// One unit is 0.1 mV of sense threshold, which keeps the 0.1 A steps from
     /// collapsing onto one DAC code at the bottom of the range; capped at the
     /// 100 mV full-scale value (`1000` = 100.0 mV).
-    fn ctrl_term_mv_for_current(i_ma: u32) -> u32 {
-        let t = (i_ma as u64 * board::ISENSE_SHUNT_MOHM as u64) / 100;
+    fn ctrl_term_mv_for_current(i_ma: u32, range: CcRange) -> u32 {
+        let t = (i_ma as u64 * range.shunt_mohm() as u64) / 100;
         t.min(board::LT8390_CTRL_MAX_SENSE_MV as u64 * 10) as u32
     }
 
@@ -62,8 +68,8 @@ impl CcDac {
     /// datasheet transfer with the board shunt: linear over 0.30–1.15 V
     /// (threshold 5–90 mV), then the 1.15–1.35 V transition to the 100 mV full
     /// scale (200 mV of CTRL per 10 mV of threshold, i.e. `×2` per term unit).
-    fn ctrl_mv_for_current(i_ma: u32) -> u32 {
-        let term = Self::ctrl_term_mv_for_current(i_ma);
+    fn ctrl_mv_for_current(i_ma: u32, range: CcRange) -> u32 {
+        let term = Self::ctrl_term_mv_for_current(i_ma, range);
         let lin_top = board::LT8390_CTRL_LINEAR_MAX_SENSE_MV * 10;
         if term <= lin_top {
             board::LT8390_CTRL_OFFSET_MV + term
@@ -77,8 +83,8 @@ impl CcDac {
     /// switching, so this reports 0 rather than a small-but-switching limit.
     ///
     /// The threshold is kept in µV so the result does not lose resolution to
-    /// integer millivolt truncation (1 CTRL mV is 50 mA at R18 = 2 mΩ).
-    pub fn current_ma_for_code(code: u16) -> u32 {
+    /// integer millivolt truncation (1 CTRL mV is 50 mA at ×1 and 5 mA at ×10).
+    pub fn current_ma_for_code(code: u16, range: CcRange) -> u32 {
         let vctrl = Self::ctrl_mv_for_code(code);
         if vctrl < board::LT8390_CTRL_LATCHOFF_MV {
             return 0;
@@ -90,34 +96,34 @@ impl CcDac {
                 + (vctrl - board::LT8390_CTRL_LINEAR_TOP_MV) as u64 * 50;
             t.min(board::LT8390_CTRL_MAX_SENSE_MV as u64 * 1_000)
         };
-        // I_mA = thr_µV / R18_mΩ  (µV/mΩ = mA)
-        (thr_uv / board::ISENSE_SHUNT_MOHM as u64) as u32
+        // I_mA = thr_µV / R_eff_mΩ  (µV/mΩ = mA)
+        (thr_uv / range.shunt_mohm() as u64) as u32
     }
 
     /// Clamp a requested limit into the range the firmware can safely command:
-    /// [`board::CC_SET_MIN_MA`] … [`board::CC_SET_MAX_MA`]. The theoretical
-    /// shunt floor ([`board::CC_MIN_MA`]) is not used here because one DAC code
-    /// is ~40 mA at R18 = 2 mΩ and the exact floor request rounds to a code
-    /// *below* the CTRL latch-off — which would stop the stage instead of
-    /// limiting it.
-    pub fn clamp_current(i_ma: u32) -> u32 {
-        i_ma
-            .max(board::CC_SET_MIN_MA)
-            .min(board::CC_SET_MAX_MA)
+    /// `range.set_min_ma()` … `range.set_max_ma()`. The theoretical shunt floor
+    /// (`range.min_ma()`) is not used directly because one DAC code is ~40 mA at
+    /// ×1 and the exact floor request can round to a code *below* the CTRL
+    /// latch-off — which would stop the stage instead of limiting it.
+    pub fn clamp_current(i_ma: u32, range: CcRange) -> u32 {
+        i_ma.max(range.set_min_ma()).min(range.set_max_ma())
     }
 
     /// User setpoint (the current the user expects to be *drawn*) → the current
-    /// to actually command. The loop delivers [`board::CC_CURRENT_OFFSET_MA`]
+    /// to actually command. The loop delivers [`CcRange::offset_ma`]
     /// more than commanded near the low end, so the offset is removed here and
     /// the I-LIM number is the real output current.
-    fn commanded_ma(i_set_ma: u32) -> u32 {
-        i_set_ma.saturating_sub(board::CC_CURRENT_OFFSET_MA)
+    fn commanded_ma(i_set_ma: u32, range: CcRange) -> u32 {
+        i_set_ma.saturating_sub(range.offset_ma())
     }
 
     /// DAC code for a user *setpoint*: range clamp, bench offset, then the raw
     /// network/chip inversion. This is the only entry point the UI path needs.
-    pub fn setpoint_to_code(i_set_ma: u32) -> u16 {
-        Self::ma_to_code(Self::commanded_ma(Self::clamp_current(i_set_ma)))
+    pub fn setpoint_to_code(i_set_ma: u32, range: CcRange) -> u16 {
+        Self::ma_to_code(
+            Self::commanded_ma(Self::clamp_current(i_set_ma, range), range),
+            range,
+        )
     }
 
     /// Convert a current limit in mA to a 12-bit DAC code, inverting both the
@@ -133,11 +139,11 @@ impl CcDac {
     /// request whose CTRL target is below [`board::LT8390_CTRL_LATCHOFF_MV`] is
     /// reported by [`Self::current_ma_for_code`] as 0 rather than silently
     /// rounding up into a low-but-switching limit.
-    pub fn ma_to_code(i_ma: u32) -> u16 {
+    pub fn ma_to_code(i_ma: u32, range: CcRange) -> u16 {
         let (g_series, g_vref, g_gnd) = Self::conductances();
         let g_sum = g_series + g_vref + g_gnd;
 
-        let vctrl_target = Self::ctrl_mv_for_current(i_ma) as u64;
+        let vctrl_target = Self::ctrl_mv_for_current(i_ma, range) as u64;
         let num = vctrl_target * g_sum;
         let vref_term = board::LT8390_VREF_MV as u64 * g_vref;
         let vdac_mv = if num > vref_term {
@@ -154,8 +160,8 @@ impl CcDac {
 
     /// Update `code` for a new user setpoint (range-clamped and offset-cancelled
     /// via [`Self::setpoint_to_code`]). The caller writes it to the DAC.
-    pub fn set_current(&mut self, i_set_ma: u32) {
-        self.code = Self::setpoint_to_code(i_set_ma);
+    pub fn set_current(&mut self, i_set_ma: u32, range: CcRange) {
+        self.code = Self::setpoint_to_code(i_set_ma, range);
     }
 }
 

@@ -55,7 +55,7 @@ impl Ssd1306 {
         match i2c.write(self.addr, &[CMD, c]).await {
             Ok(()) => Ok(()),
             Err(e) => {
-                crate::drivers::note_i2c_error(&crate::drivers::I2C_UI_BUS_ERRORS, "3 (UI)", e);
+                crate::drivers::note_i2c_error(&crate::drivers::I2C_UI_BUS_ERRORS, "4 (UI)", e);
                 Err(())
             }
         }
@@ -245,7 +245,7 @@ impl Ssd1306 {
                     if let Err(e) = i2c.write(self.addr, &buf[..chunk.len() + 1]).await {
                         crate::drivers::note_i2c_error(
                             &crate::drivers::I2C_UI_BUS_ERRORS,
-                            "3 (UI)",
+                            "4 (UI)",
                             e,
                         );
                         return Err(());

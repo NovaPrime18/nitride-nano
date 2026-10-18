@@ -6,11 +6,22 @@ pub const VOUT_MIN_MV: u32 = 0;
 pub const IOUT_MAX_MA: u32 = 20_000;
 pub const POWER_MAX_MW: u32 = 240_000;
 
-/// Input bus limits, supervised from the INA228 (rev2 input-side monitor).
+/// Lowest output-voltage **setpoint** worth commanding.
+///
+/// The LT8390A's `LOADTG`/load-switch drive is only specified from
+/// `VOUT = 2.4–3 V` up, and this board senses `Vsense_REG_OUT` on the converter
+/// side of the output switch. Commanding below this cannot be regulated, so with
+/// the rev3 sequencer it would simply time out in `Ramping` and latch
+/// `Fault::OutputNotReached`. The UI floors the knob here so it cannot be walked
+/// into a guaranteed fault. Distinct from [`VOUT_MIN_MV`], which is only the
+/// Vout bar's display origin.
+pub const VSET_MIN_MV: u32 = 3_000;
+
+/// Input bus limits, supervised from the INA228 (U9, rev3 input-side monitor).
 /// These sit outside the PD contract itself and act as a firmware backstop on
-/// top of the INA228 ALERT → SWITCH_EN hardware protection. The current limit
-/// used at runtime is the active PD contract cap plus a small margin, falling
-/// back to `IIN_MAX_MA` on a non-PD (XT90) input.
+/// top of the hardware power-path protection. The current limit used at runtime
+/// is the active PD contract cap plus a small margin, falling back to
+/// `IIN_MAX_MA` on a non-PD (XT90) input.
 pub const VIN_MAX_MV: u32 = 58_000;
 pub const IIN_MAX_MA: i32 = 22_000;
 /// Headroom above the negotiated input-current cap before an input-overcurrent
@@ -43,24 +54,29 @@ pub const ADC_VREF_MV: u32 = 3300;
 // this 16-bit "oversampled" constant.
 // pub const ADC_MAX: u32 = 65535; // 16-bit oversampled
 
-/// Divider ratios: physical = adc_counts * SCALE / 4096 (12-bit ADC)
-/// TODO: derive from Converter.kicad_sch resistor networks.
-pub const VOUT_SENSE_NUM: u32 = 85_140; // mV at full scale (248k/10k divider, 3.3V ref)
-/// ISMON monitor gain at the PA3 node, in mV per amp. The LT8390A datasheet
-/// gives `V_ISMON = 10 · V(ISP−ISN) + V_OFFSET`, and the board's output-current
-/// shunt is R18 = 2 mΩ, so the gain is `10 · 2 mΩ = 20 mV/A`. This is a
-/// datasheet-derived value, not a per-board trim: verify it against a known load
-/// (a shunt swap scales it directly) before changing it.
-pub const ISENSE_MV_PER_A: u32 = 20;
+/// Divider ratios: physical = adc_counts * SCALE / 4096 (12-bit ADC).
+///
+/// Both are the *series* resistance over the bottom leg, times the 3.3 V
+/// reference; the resistor designators are from the rev3 sheets.
+///
+/// * `VOUT_SENSE_NUM` — `Vsense_REG_OUT` (PA0): R85 + R86 = 248 kΩ over R87 = 10 kΩ.
+/// * `VBUS_SENSE_NUM` — `Bus voltage` (PA7): R44 + R47 = 200 kΩ over R97 = 10 kΩ.
+pub const VOUT_SENSE_NUM: u32 = 85_140; // mV at full scale (248k/10k, 3.3 V ref)
+pub const VBUS_SENSE_NUM: u32 = 69_600; // mV at full scale (200k/10k, 3.3 V ref)
 
 /// Zero-current ISMON voltage at the PA3 node, in mV — the per-board offset
 /// calibration.
 ///
-/// The LT8390A offset is only specified to 0.20–0.30 V while the current signal
-/// is 20 mV/A, so the full 100 mV spread is 5 A of error. Even the 5 mV residual
-/// left by a near-typical part is 0.25 A on the display at *every* load — which
-/// is what the 2026-09-25 bench run showed (readings low by ~0.25 A from 0.25 A
-/// to 2.5 A).
+/// The LT8390A gives `V_ISMON = 10 · V(ISP−ISN) + V_OFFSET`, and it is only
+/// specified to 0.20–0.30 V, so the full 100 mV spread is 5 A of error at the ×1
+/// gain of 20 mV/A (0.5 A at the ×10 gain of 200 mV/A). Even the residual left by
+/// a near-typical part is 0.25 A on the display at *every* load at ×1 — which is
+/// what the 2026-09-25 bench run showed (readings low by ~0.25 A from 0.25 A to
+/// 2.5 A).
+///
+/// The offset is **range independent** (it is inside the chip, after the
+/// differential), but the ×10 mux does step the ISP/ISN common mode by ~87 mV
+/// (`R102`/`R103`), so re-check this in both ranges.
 ///
 /// MEASURE IT WITH THE OUTPUT **ENABLED** AND NO LOAD. The LT8390A's ISMON
 /// buffer is powered down with the rest of the chip while `EN/UVLO` is low, so
@@ -71,11 +87,10 @@ pub const ISENSE_MV_PER_A: u32 = 20;
 /// Bench procedure: enable the output with no load, read the `isense:` RTT line
 /// (`raw … mV`), or DMM the ISMON node / R49, and set this to that value. The
 /// value below was fitted from the 2026-09-27 bench run: with the converter
-/// enabled and no load, PA3 read raw 307–308 counts = 247–248 mV on this board,
+/// enabled and no load, PA3 read raw 307–308 counts = 247–248 mV on that board,
 /// so the previous 244 mV constant showed ~200–250 mA at true zero and carried
 /// that offset up through the whole range.
 pub const ISENSE_ZERO_MV: u32 = 248;
-pub const VBUS_SENSE_NUM: u32 = 69_600;
 
 /// DAC 12-bit. The DAC reference is VREF+, which this board ties to +3V3 (the
 /// internal VREFBUF is left high-impedance in `main`), so the full-scale
@@ -192,18 +207,19 @@ pub const CTRL_GND_OHM: u32 = 75_000; // R4,  CTRL    → GND
 ///
 /// ```text
 ///   V(ISP−ISN)_threshold = (V_CTRL − 0.25 V) · 0.1     (0.3 V ≤ V_CTRL ≤ 1.15 V)
-///   I_LIMIT              = V(ISP−ISN)_threshold / R18
+///   I_LIMIT              = V(ISP−ISN)_threshold / R_sense
 /// ```
 ///
-/// so with the R18 = 2 mΩ output shunt, `I_LIMIT(mA) = (V_CTRL(mV) − 250) · 50`.
-/// The transfer saturates at `V_CTRL ≥ 1.35 V` (100 mV ⇒ 50 A) and the part
-/// latches switching off below [`LT8390_CTRL_LATCHOFF_MV`] — which is why the
-/// disabled path's CC code of 0 is a genuine shutdown, not just a low limit.
+/// so with the 2 mΩ shunt at ×1, `I_LIMIT(mA) = (V_CTRL(mV) − 250) · 50`. The
+/// transfer saturates at `V_CTRL ≥ 1.35 V` (100 mV ⇒ 50 A) and the part latches
+/// switching off below [`LT8390_CTRL_LATCHOFF_MV`] — which is why the disabled
+/// path's CC code of 0 is a genuine shutdown, not just a low limit.
+///
+/// `R_sense` is **range dependent** on rev3: it is 2 mΩ at ×1 and 20 mΩ at ×10
+/// (see [`CcRange`]), so every conversion here takes a [`CcRange`].
 pub const LT8390_CTRL_OFFSET_MV: u32 = 250;
 /// Sense-threshold volts per volt of CTRL, scaled ×1000 (0.1 V/V).
 pub const LT8390_CTRL_SLOPE_MILLI: u32 = 100;
-/// Output current shunt R18, in milliohms.
-pub const ISENSE_SHUNT_MOHM: u32 = 2;
 /// Below this CTRL voltage the LT8390A stops switching (latch-off, 285–315 mV).
 pub const LT8390_CTRL_LATCHOFF_MV: u32 = 300;
 
@@ -218,12 +234,11 @@ pub const LT8390_CTRL_LATCHOFF_MV: u32 = 300;
 //           V_CTRL ≥ 1.35 V   constant 100 mV full scale
 //           V_CTRL < 0.30 V   stops switching (latch-off)
 //
-// so the part can command a **20:1** current window (5 → 100 mV), and no single
-// shunt value can reach below `CC_MIN_MA`. With the fitted R18 = 2 mΩ that is
-// 2.5 A … 50 A. The low end sits exactly on the latch-off, hence the settable
-// floor below.
+// so the part can command a **20:1** current window (5 → 100 mV) per shunt. No
+// single shunt value can cover 0.1 A → 20 A; that is 200:1. rev3 therefore makes
+// the sense shunt switchable at runtime through the ×10 INA241 front end.
 
-/// Sense-threshold window endpoints, in mV across R18.
+/// Sense-threshold window endpoints, in mV across the effective shunt.
 pub const LT8390_CTRL_MIN_SENSE_MV: u32 = 5;
 pub const LT8390_CTRL_LINEAR_MAX_SENSE_MV: u32 = 90;
 pub const LT8390_CTRL_MAX_SENSE_MV: u32 = 100;
@@ -231,66 +246,218 @@ pub const LT8390_CTRL_MAX_SENSE_MV: u32 = 100;
 pub const LT8390_CTRL_LINEAR_TOP_MV: u32 = 1_150;
 pub const LT8390_CTRL_SAT_MV: u32 = 1_350;
 
-/// Smallest / largest current limit the fitted shunt can **sustain** (`mV/mΩ = A`,
-/// so `sense_mV · 1000 / R18_mΩ` is mA). With R18 = 2 mΩ: 2.5 A … 50 A. The low
-/// end is the exact latch-off and is only reachable once the stage is already
-/// switching — see [`CC_SET_MIN_MA`] for the cold-start floor.
-pub const CC_MIN_MA: u32 = LT8390_CTRL_MIN_SENSE_MV * 1_000 / ISENSE_SHUNT_MOHM;
-pub const CC_MAX_MA: u32 = LT8390_CTRL_MAX_SENSE_MV * 1_000 / ISENSE_SHUNT_MOHM;
-
 /// CTRL voltage needed to *leave* latch-off: the falling-threshold worst case
 /// (315 mV) plus the 25 mV hysteresis.
 ///
-/// This is the trap in the low end of the CC range. The part can *sustain* a
-/// limit down at `LT8390_CTRL_LATCHOFF_MV` (0.30 V → 2.5 A) **once it is
-/// switching**, but from a cold start it will not begin switching until CTRL
-/// exceeds ~0.34 V. That is why the 2026-09-28 CV run held ~2.5 A while a CC
-/// cold start would not hold below ~6 A — start-vs-sustain, not a map error.
+/// This is the trap at the low end of the CC range. The part can *sustain* a
+/// limit down at [`LT8390_CTRL_LATCHOFF_MV`] **once it is switching**, but from a
+/// cold start it will not begin switching until CTRL exceeds ~0.34 V. On rev3
+/// this is also the condition the output sequencer has to satisfy before
+/// `CNV-EN-LOADEN` can take effect, because the LT8390A's `LOADON` signal needs
+/// CTRL above its rising latch-off as well as `LOADEN` high.
 pub const LT8390_CTRL_LATCHOFF_MAX_MV: u32 = 315;
 pub const LT8390_CTRL_LATCHOFF_HYST_MV: u32 = 25;
 pub const LT8390_CTRL_START_MV: u32 =
     LT8390_CTRL_LATCHOFF_MAX_MV + LT8390_CTRL_LATCHOFF_HYST_MV;
-/// Datasheet-guaranteed cold-start floor (`(340 − 250) mV / 2 mΩ` = 4.5 A).
-pub const CC_START_MIN_MA: u32 =
-    (LT8390_CTRL_START_MV - LT8390_CTRL_OFFSET_MV) * 100 / ISENSE_SHUNT_MOHM;
 
-/// Bench-measured CC current offset: near the low end the loop delivers this
-/// much *more* current than commanded. On the 2026-09-28 board, setting 0.1 A
-/// drew 3.75 A and 0.2 A drew 3.85 A — a clean 1:1 slope with a **+3.65 A
-/// intercept**, i.e. a CTRL / ISP-ISN offset near latch-off, not a DAC map
-/// error. `dac_cc` cancels it here so the number on the I-LIM screen is the
-/// current actually drawn. Re-measure at mid-range before trusting it across
-/// the whole range: a 10 A run on 2026-09-27 tracked to <1 %, so the offset is
-/// known to fade at high current.
-pub const CC_CURRENT_OFFSET_MA: u32 = 3_650;
+/// The CC sense range, i.e. which shunt the LT8390A's `ISP/ISN` pair sees.
+///
+/// rev3 wires a TMUX1574 (U7) between the output shunt R96 and the LT8390A:
+/// `SEL` low selects the shunt directly, `SEL` high routes it through the INA241
+/// gain-10 amplifier. `SEL` is driven by the `High-Gain` pin (PB6), so this enum
+/// is the firmware's name for that pin's state. The mux switches the `VC`
+/// compensation network on its third channel at the same time.
+///
+/// `R_eff` is what the chip *sees*, which is what every CC conversion must use:
+///
+/// | | [`CcRange::LowGain`] | [`CcRange::HighGain`] |
+/// |---|---|---|
+/// | `High-Gain` pin | low | high |
+/// | `R_eff` | 2 mΩ (R96) | 20 mΩ (R96 × 10) |
+/// | ISMON gain | 20 mV/A | 200 mV/A |
+/// | CC window | 2.5 A … 50 A | 0.25 A … 5 A |
+/// | cold-start floor | 4.5 A | 450 mA |
+///
+/// The two windows overlap over 2.5–5 A, which is where [`HIGH_GAIN_MAX_SET_MA`]
+/// puts the switch point.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, defmt::Format)]
+pub enum CcRange {
+    /// `High-Gain` low: the chip senses R96 directly.
+    #[default]
+    LowGain,
+    /// `High-Gain` high: the chip senses R96 through the INA241 ×10 amplifier.
+    HighGain,
+}
 
-/// Settable CC-range floor: the offset above plus a 0.1 A command, so the lowest
-/// setting (3.75 A here) is the lowest current the loop can actually deliver.
-/// Because the setpoint now means the *actual* current, the range reads
-/// 3.75 A … 20 A rather than 0.1 A … 20 A.
-pub const CC_SET_MIN_MA: u32 = CC_CURRENT_OFFSET_MA + 100;
-/// Settable CC-range ceiling (design max; the chip itself would allow 50 A).
-pub const CC_SET_MAX_MA: u32 = IOUT_MAX_MA;
+impl CcRange {
+    /// Effective shunt the LT8390A's `ISP/ISN` pair sees, in milliohms.
+    pub const fn shunt_mohm(self) -> u32 {
+        match self {
+            CcRange::LowGain => 2,
+            CcRange::HighGain => 20,
+        }
+    }
+
+    /// ISMON gain at the PA3 node, in mV per amp.
+    ///
+    /// The LT8390A gives `V_ISMON = 10 · V(ISP−ISN) + 0.25 V`, and
+    /// `V(ISP−ISN) = R_eff · I`, so the gain is `10 · R_eff` — 20 mV/A at ×1 and
+    /// **200 mV/A** at ×10. The 0.25 V offset is inside the chip, *after* the
+    /// differential, so it does not scale with the range (see
+    /// [`ISENSE_ZERO_MV`]).
+    pub const fn mv_per_a(self) -> u32 {
+        10 * self.shunt_mohm()
+    }
+
+    /// Lowest current limit the part can **sustain** (`5 mV / R_eff`).
+    ///
+    /// This sits exactly on the latch-off, so it is only reachable once the
+    /// stage is already switching — see [`Self::set_min_ma`] and
+    /// [`Self::start_min_ma`].
+    pub const fn min_ma(self) -> u32 {
+        LT8390_CTRL_MIN_SENSE_MV * 1_000 / self.shunt_mohm()
+    }
+
+    /// Highest current limit the part can command (`100 mV / R_eff`).
+    pub const fn max_ma(self) -> u32 {
+        LT8390_CTRL_MAX_SENSE_MV * 1_000 / self.shunt_mohm()
+    }
+
+    /// Datasheet-guaranteed cold-start floor: the current whose sense threshold
+    /// puts CTRL at [`LT8390_CTRL_START_MV`]. 4.5 A at ×1, 450 mA at ×10.
+    ///
+    /// The output sequencer floors the CC command here for the whole ramp, and
+    /// the LT8390A will not leave its `UP/PRE` state below it.
+    pub const fn start_min_ma(self) -> u32 {
+        (LT8390_CTRL_START_MV - LT8390_CTRL_OFFSET_MV) * 100 / self.shunt_mohm()
+    }
+
+    /// Bench-measured low-end loop offset for this range, in mA: near the bottom
+    /// of the window the loop delivers this much *more* current than commanded.
+    ///
+    /// **Both are 0 pending a rev3 measurement.** The rev2 value (3650 mA) was
+    /// measured on the old high-side R18 sense node and does **not** transfer to
+    /// rev3's low-side, mux-routed node. Re-measure per range by setting two low
+    /// setpoints and taking the intercept (`actual − setpoint`); see
+    /// `analysis/CC_RANGE_1_TO_20A.md`.
+    pub const fn offset_ma(self) -> u32 {
+        match self {
+            CcRange::LowGain => CC_CURRENT_OFFSET_MA_1X,
+            CcRange::HighGain => CC_CURRENT_OFFSET_MA_10X,
+        }
+    }
+
+    /// Lowest **settable** current: the loop offset plus a 0.1 A command, floored
+    /// above [`Self::min_ma`] so a request can never round to a DAC code below
+    /// the CTRL latch-off (which would stop the stage instead of limiting it).
+    pub const fn set_min_ma(self) -> u32 {
+        let v = self.offset_ma() + 100;
+        let lo = self.min_ma() + 100;
+        if v > lo {
+            v
+        } else {
+            lo
+        }
+    }
+
+    /// Highest **settable** current: the design maximum, capped by what this
+    /// range can actually command.
+    pub const fn set_max_ma(self) -> u32 {
+        let m = self.max_ma();
+        if IOUT_MAX_MA < m {
+            IOUT_MAX_MA
+        } else {
+            m
+        }
+    }
+
+    /// Which range a given user setpoint wants.
+    pub const fn for_setpoint(i_set_ma: u32) -> Self {
+        if i_set_ma <= HIGH_GAIN_MAX_SET_MA {
+            CcRange::HighGain
+        } else {
+            CcRange::LowGain
+        }
+    }
+}
+
+/// rev3 per-range CC loop offsets, in mA. **Re-measure both on the rev3 bench**;
+/// the rev2 figure was 3650 mA on a different sense node.
+pub const CC_CURRENT_OFFSET_MA_1X: u32 = 0;
+pub const CC_CURRENT_OFFSET_MA_10X: u32 = 0;
+
+/// CC setpoint at or below which [`CcRange::HighGain`] is selected.
+///
+/// 5 A is the top of the ×10 window and sits squarely inside the 2.5–5 A overlap
+/// with ×1, so every setpoint up to 5 A gets the extra low-end resolution while
+/// the range stays legal on both sides of the switch. Above it, ×1 covers the
+/// rest of the design range.
+///
+/// The gain pin is only moved while the stage is parked, because a range change
+/// is a ×10 step in the CC loop gain; see `control::supply`. A setpoint that
+/// wants the other range while running is deferred and logged.
+pub const HIGH_GAIN_MAX_SET_MA: u32 = 5_000;
+
+/// Settable CC span across **both** ranges, used by the UI so the I-LIM knob can
+/// always be moved anywhere in the design range.
+///
+/// The per-range clamp is applied where the DAC is actually programmed
+/// (`CcDac::clamp_current`), because while the output is running the active range
+/// can deliberately lag what the setpoint wants — clamping the *setpoint* to the
+/// active range there would trap the knob inside the current range with no way
+/// out.
+pub const CC_SET_MIN_MA: u32 = CcRange::HighGain.set_min_ma(); // 350 mA
+pub const CC_SET_MAX_MA: u32 = CcRange::LowGain.set_max_ma(); // 20 A
 
 /// I2C addresses
 pub const TPS26750_ADDR: u8 = 0x21;
 pub const SSD1306_ADDR: u8 = 0x3C;
 pub const CAT24C512_ADDR: u8 = 0x50;
-/// INA228 input power monitor on the PD bus (A0 = A1 = GND).
-pub const INA228_ADDR: u8 = 0x40;
+/// rev3 input power monitor, U9 on the PD bus (`A0 = A1 = GND`).
+pub const INA228_IN_ADDR: u8 = 0x40;
+/// rev3 output power monitor, U12 on the PD bus (`A0 = GND`, `A1 = +3V3`).
+///
+/// U12 senses the output-return shunt R96, so its shunt current is the **load**
+/// current, and its VBUS pin sits on `Power-Sense-Out/Bus_V` (the connector side
+/// of the output fuse F2). Its `ALERT` pin is unconnected, so the MCU must poll.
+pub const INA228_OUT_ADDR: u8 = 0x41;
 
-/// INA228 scaling. R60 = 8 mΩ on the input bus; 20 A × 8 mΩ = 160 mV, which
-/// fits the ±163.84 mV `ADCRANGE = 0` shunt range with ~2 % headroom.
-pub const INA228_SHUNT_MOHM: u32 = 8;
+/// INA228 shunt values, one per monitor.
+///
+/// * **Input (U9), R60 = 2 mΩ.** rev2 fitted 8 mΩ here (20 A × 8 mΩ = 160 mV,
+///   right at the ±163.84 mV `ADCRANGE = 0` limit); rev3 dropped it to 2 mΩ, so
+///   a full-scale 20 A now develops only 40 mV.
+/// * **Output (U12), R96 = 2 mΩ**, in the load-return path on the connector side
+///   of the output switch Q5. This is the same shunt the LT8390A `ISP/ISN` pair
+///   and the ×10 INA241 front end sense (through the U7 mux), so it is the one
+///   node the CC loop, the output monitor and the sequencer's switch-closed
+///   check all agree on.
+pub const INA228_IN_SHUNT_MOHM: u32 = 2;
+pub const INA228_OUT_SHUNT_MOHM: u32 = 2;
+
+/// Sanity bound on a decoded shunt current. `INA228_MAX_CURRENT_MA` is also the
+/// `CURRENT_LSB` denominator below, so both monitors share one LSB.
 pub const INA228_MAX_CURRENT_MA: u32 = IOUT_MAX_MA;
 /// CONFIG: ADCRANGE = 0 (±163.84 mV), shunt temperature compensation off.
 pub const INA228_CONFIG: u16 = 0x0000;
 /// ADC_CONFIG: MODE = 0xF (continuous bus + shunt + temperature), 1052 µs per
 /// conversion, AVG = 16 → ~50 ms per full update. Sample it every 100 ms.
 pub const INA228_ADC_CONFIG: u16 = 0xFB6A;
-/// SHUNT_CAL = 13107.2e6 × CURRENT_LSB × R_shunt with
-/// CURRENT_LSB = 20 A / 2^19 = 38.147 µA and R_shunt = 8 mΩ → 4000.
-pub const INA228_SHUNT_CAL: u16 = 4_000;
+/// `SHUNT_CAL = 13107.2e6 × CURRENT_LSB × R_shunt` with
+/// `CURRENT_LSB = 20 A / 2^19 = 38.147 µA`. At 2 mΩ that is 1000 for both
+/// monitors; rev2's 8 mΩ input shunt needed 4000.
+pub const INA228_SHUNT_CAL_PER_MOHM: u32 = 500; // 1000 per 2 mΩ
+/// `SHUNT_CAL` for a shunt of `mohm` milliohms, clamped to the 16-bit register.
+pub const fn ina228_shunt_cal(mohm: u32) -> u16 {
+    let v = INA228_SHUNT_CAL_PER_MOHM * mohm;
+    if v > u16::MAX as u32 {
+        u16::MAX
+    } else {
+        v as u16
+    }
+}
+pub const INA228_IN_SHUNT_CAL: u16 = ina228_shunt_cal(INA228_IN_SHUNT_MOHM);
+pub const INA228_OUT_SHUNT_CAL: u16 = ina228_shunt_cal(INA228_OUT_SHUNT_MOHM);
 
 /// Auto-tracking PD rail selection.
 ///
@@ -355,6 +522,84 @@ pub const PPS_FIXED_PREFER_MV: u32 = 1_000;
 /// Converter disable: active level (verify on bench vs LT8390 RUN).
 pub const CONVERTER_DISABLE_ACTIVE_HIGH: bool = true;
 
+// ---------------------------------------------------------------------------
+// rev3 output-stage power-up sequence
+// ---------------------------------------------------------------------------
+//
+// rev3 gives the MCU three power-path pins instead of one:
+//
+//   PB1  Conv-Disable    → Q13 → LT8390A EN/UVLO          (enables the chip)
+//   PB3  CNV-EN-LOADEN   → LT8390A LOADEN                 (grounds, then starts)
+//   PB2  PWR_G           → Q12 → Q7 → R58 → Q5 gate       (connects the load)
+//
+// The LT8390A `LOADEN` input is the mechanism the sequence is built on. Per the
+// datasheet (Rev. C): *"Forcing the pin low turns off TG1 and TG2, **turns on
+// BG1 and BG2**, disconnects the VC pin from all internal loads, and turns off
+// LOADTG."* So with the chip enabled but `LOADEN` low, the four-switch bridge's
+// **bottom gates are held on and the output is shorted to ground** — a defined
+// 0 V start with no load connected. Raising `LOADEN` releases the bridge into
+// soft-start, and the output ramps.
+//
+// `LOADEN` does not take effect immediately: the start-up sequence reaches its
+// `UP/PRE` state only once **CTRL is above its rising latch-off threshold
+// (≈0.325 V)** *and* `LOADEN` is high. That is why the sequencer forces the CC
+// DAC up to the cold-start floor for the whole ramp instead of applying the user
+// setpoint straight away — a sub-floor setpoint would otherwise command CTRL
+// below latch-off, `LOADEN` would be raised, and nothing would ever start.
+
+/// Delay after releasing `Conv-Disable` (chip enabled) before raising
+/// `CNV-EN-LOADEN`. Covers INTVCC/VREF settling and the CTRL node reaching the
+/// rising latch-off so `LOADON` asserts on the first try, while the output is
+/// still held at 0 V by BG1/BG2.
+pub const OUTPUT_PRELOADEN_MS: u64 = 20;
+
+/// Window allowed for `Vsense_REG_OUT` to reach [`VOUT_REACHED_PCT`] of the
+/// setpoint after `CNV-EN-LOADEN` goes high.
+///
+/// Sized from the CV DAC slew, which dominates: the DAC steps at most
+/// [`CV_SLEW_MAX_LSB_PER_TICK`] counts per 1 ms supply tick, and the parked code
+/// (4095) to the 48 V code (≈848) is ≈3250 counts ≈ 812 ms. The output cap
+/// charge through the CC limit is much faster. The check is on the *measured*
+/// output, so a faster ramp simply advances sooner.
+pub const OUTPUT_RAMP_TIMEOUT_MS: u64 = 1_200;
+
+/// Settle time after asserting `PWR_G` before the output INA228 is trusted.
+/// One full INA228 conversion cycle is ~50 ms (`INA228_ADC_CONFIG`); 250 ms
+/// guarantees at least one *post-switch* sample has been published even if the
+/// poll landed the instant `PWR_G` moved.
+pub const OUTPUT_SWITCH_SETTLE_MS: u64 = 250;
+
+/// `Vsense_REG_OUT` must reach this percentage of the setpoint for the output to
+/// count as "conversion started".
+pub const VOUT_REACHED_PCT: u32 = 90;
+
+/// Minimum `|I_out|` from the output INA228 that counts as "the output switch is
+/// carrying a load". One INA228 LSB is ~38 µA, so this is well above noise.
+pub const OUTPUT_SWITCH_MIN_MA: u32 = 50;
+
+/// Require the output INA228 to report load current before declaring the switch
+/// closed.
+///
+/// The output voltage `Vsense_REG_OUT` is sensed on the **converter** side of
+/// `Q5`, so a `Q5` that never conducts leaves the output looking perfectly
+/// regulated — current through R96 is the only direct evidence the load is
+/// connected. Set this **false** for a no-load bench bring-up: with nothing
+/// attached, a correctly closed switch also reads 0 A and the sequencer cannot
+/// tell the two cases apart.
+pub const OUTPUT_SWITCH_REQUIRE_LOAD: bool = true;
+
+/// Require the output INA228 to be answering at the end of the switch-on window.
+/// Set false on a board with U12 unpopulated.
+pub const OUTPUT_SWITCH_REQUIRE_INA: bool = true;
+
+/// While disabling: how long the load stays disconnected (`PWR_G` low) before
+/// `CNV-EN-LOADEN` is pulled low and the bottom gates discharge the output.
+pub const OUTPUT_DISCHARGE_MS: u64 = 50;
+
+/// While disabling: how long the output is held grounded before `Conv-Disable`
+/// is asserted and the LT8390A is shut down.
+pub const OUTPUT_CONV_OFF_MS: u64 = 20;
+
 /// UI timing
 pub const DEBOUNCE_MS: u64 = 25;
 /// Max gap between two encoder-button presses that counts as a double click.
@@ -383,8 +628,8 @@ pub const INA228_POLL_MS: u64 = 100;
 
 /// Status LED wiring: `PA15 → D31 (anode → cathode) → R81 → GND`, so PA15
 /// HIGH lights it — **active high**. PA15 is `TIM2_CH1`; TIM2 is otherwise
-/// unused (TIM4 is the encoder QEI, TIM15 is the Embassy time driver), so the
-/// LED is driven as hardware PWM and can be dimmed precisely.
+/// unused (TIM3 is the encoder QEI on rev3, TIM15 is the Embassy time driver),
+/// so the LED is driven as hardware PWM and can be dimmed precisely.
 pub const LED_PWM_HZ: u32 = 1_000;
 
 /// LED task tick. Only the on/off *envelope* is quantised to this; the
@@ -446,29 +691,3 @@ pub const SWEEP_SAMPLE_MS: u64 = 20;
 /// best/worst summary. Below it the point is still logged but marked invalid, so
 /// a stalled loop or a barely-answering INA228 cannot produce a bogus record.
 pub const SWEEP_MIN_SAMPLES: u16 = 10;
-
-/// Service mode: hand off to the ROM bootloader so the board can be reflashed
-/// over UART through the on-board FT234XD (USART3, PC10/PC11).
-///
-/// Listener baud for the AN3155 sync byte. It MUST match the host tool's
-/// connect baud (`STM32CubeProgrammer -c ... br=`, `stm32flash -b`), because
-/// only the *first* byte is matched here — after the handoff the ROM loader
-/// auto-bauds. STM32CubeProgrammer defaults to 115200; stm32flash to 57600.
-pub const SERVICE_UART_BAUD: u32 = 115_200;
-
-/// Watch USART3 for the bootloader sync byte (`0x7F`) and hand off when it
-/// arrives. This is what makes "open the programmer and connect" just work.
-pub const SERVICE_UART_AUTODETECT: bool = true;
-
-/// Hold BTN1 through power-up (or reset) to enter service mode. Deterministic,
-/// needs no UART, and doubles as the bring-up test for the handoff path.
-pub const SERVICE_BOOT_HOLD: bool = true;
-
-/// Delay after parking the output before resetting into the bootloader, giving
-/// the converter time to shut down and the output to discharge.
-///
-/// NOTE: this covers only the moments *before* the reset. Once the MCU resets,
-/// PA11 floats and Q13's gate is unconstrained, so the converter's state during
-/// flashing is set by the R7/R8 divider — see the /Converter/Conv-Disable
-/// finding in `BENCH.md`.
-pub const SERVICE_PARK_SETTLE_MS: u64 = 100;

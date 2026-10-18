@@ -4,8 +4,8 @@
 //! # Hardware
 //!
 //! `PA15 → D31 (anode → cathode) → R81 → GND`, so PA15 **high** lights it. PA15
-//! is `TIM2_CH1`, and TIM2 is free (TIM4 is the encoder QEI, TIM15 is the
-//! Embassy time driver), so the LED runs off hardware PWM. A pattern therefore
+//! is `TIM2_CH1`, and TIM2 is free (TIM3 is the encoder QEI on rev3, TIM15 is
+//! the Embassy time driver), so the LED runs off hardware PWM. A pattern therefore
 //! only sets the on/off *envelope* at [`board::LED_TICK_MS`] resolution while
 //! the PWM duty sets the brightness — the heartbeat stays dim and rock-steady
 //! even when a blocking I2C timeout stalls the executor, which a bit-banged
@@ -24,10 +24,12 @@
 //! | 4   | OVERTEMP     | `Fault::OverTemp`                         |
 //! | 5   | IN OCP       | `Fault::InputOverCurrent`                 |
 //! | 6   | IN OVP       | `Fault::InputOverVoltage`                 |
-//! | 7   | INA228 FAULT | `!telemetry.ina_ok`                       |
+//! | 7   | INA228 FAULT | either INA228 not answering             |
 //! | 8   | PD CTRL LOST | `!pd_present`                             |
 //! | 9   | PD NO RAIL   | `pd_control.error == PdAutoError::NoRail` |
 //! | 10  | EEPROM FAULT | EEPROM workflow error                     |
+//! | 11  | OUTPUT FAIL  | `Fault::OutputNotReached` (rev3)          |
+//! | 12  | SWITCH FAIL  | `Fault::OutputSwitchFailed` (rev3)        |
 //!
 //! Non-code states:
 //!
@@ -120,7 +122,10 @@ impl LedStatus {
         }
 
         if subsystems_ready {
-            if !app.telemetry.ina_ok {
+            // Either power monitor being absent is worth a code: the input one
+            // owns VIN/IIN/PIN, the output one owns the displayed VOUT/IOUT and
+            // is the only evidence the output switch closed.
+            if !app.telemetry.ina_ok || !app.telemetry.out_ina.ok {
                 return LedStatus::InaMissing;
             }
             if !app.pd_present {
@@ -157,6 +162,8 @@ impl LedStatus {
             LedStatus::Fault(Fault::OverTemp) => "OVERTEMP",
             LedStatus::Fault(Fault::InputOverCurrent) => "IN OCP",
             LedStatus::Fault(Fault::InputOverVoltage) => "IN OVP",
+            LedStatus::Fault(Fault::OutputNotReached) => "OUTPUT FAIL",
+            LedStatus::Fault(Fault::OutputSwitchFailed) => "SWITCH FAIL",
             // `classify` never produces `Fault(None)`.
             LedStatus::Fault(Fault::None) => "no fault",
             LedStatus::InaMissing => "INA228 FAULT",
@@ -189,6 +196,8 @@ fn fault_code(fault: Fault) -> u8 {
         Fault::OverTemp => 4,
         Fault::InputOverCurrent => 5,
         Fault::InputOverVoltage => 6,
+        Fault::OutputNotReached => 11,
+        Fault::OutputSwitchFailed => 12,
         // Not reachable through `classify`, which tests for `None` first.
         Fault::None => 0,
     }

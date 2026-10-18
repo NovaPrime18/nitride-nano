@@ -2,7 +2,10 @@
 
 use embassy_stm32::gpio::{Level, Output};
 
-/// LT8390 / converter run-disable line on PA11.
+/// Converter run-disable line on rev3 `PB1`.
+///
+/// `PB1 → R78 (10 Ω) → Q13 gate`; `Q13`'s drain pulls the LT8390A `EN/UVLO`
+/// node low. rev2 drove this from PA11, which rev3 needs for `USB_DM`.
 ///
 /// The pin is a *disable* input whose active level depends on the hardware
 /// revision ([`crate::board::CONVERTER_DISABLE_ACTIVE_HIGH`]); this wrapper

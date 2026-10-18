@@ -1,11 +1,16 @@
-//! TI INA228 input-side power monitor — plain SMBus register interface.
+//! TI INA228 power monitor — plain SMBus register interface.
 //!
-//! On rev2 the INA228 (U9, address `0x40`, A0 = A1 = GND) sits on the PD bus
-//! (I2C1: `SCL=PB8`, `SDA=PB7`) next to the TPS26750 and measures the
-//! **converter input** bus: an 8 mΩ shunt (R60) between the USB-PD side
-//! (`IN+`) and the converter input (`IN-`), with its VBUS pin on the converter
-//! side of that shunt. It is *not* an output monitor — output telemetry still
-//! comes from the MCU ADCs.
+//! rev3 fits **two** of these on the PD bus (I2C2: `SCL=PC4`, `SDA=PA8`):
+//!
+//! * **U9 at `0x40`** (`A0 = A1 = GND`) monitors the **converter input** bus: a
+//!   2 mΩ shunt (R60) between the USB-PD side (`IN+`) and the converter input
+//!   (`IN−`), with its VBUS pin on the converter side of that shunt.
+//! * **U12 at `0x41`** (`A0 = GND`, `A1 = +3V3`) monitors the **output** bus: the
+//!   2 mΩ return-path shunt (R96) between the output connector (`IN+`, fuse
+//!   side) and the output switch Q5 (`IN−`), with VBUS on `Bus_V`.
+//!
+//! The two instances differ only in address and shunt value, so this driver is
+//! parameterised over both and its reading fields are direction-neutral.
 //!
 //! Register access is ordinary SMBus (`write_read`), unlike the TPS26750's
 //! TI "Unique Address" protocol.
@@ -31,28 +36,44 @@ const INA228_MFG_ID_TI: u16 = 0x5449;
 const INA228_DEVICE_ID: u16 = 0x228;
 
 /// One decoded INA228 sample, in the firmware's milli-units.
+///
+/// The field names are deliberately direction-neutral: the same struct serves
+/// the input monitor (`bus_mv` = converter input voltage, `current_ma` positive
+/// into the converter) and the output monitor (`bus_mv` = output bus voltage,
+/// `current_ma` positive into the load).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Ina228Reading {
-    /// Converter input bus voltage (converter side of the 8 mΩ shunt).
-    pub vin_mv: u32,
-    /// Input current; positive means current flowing into the converter.
-    pub iin_ma: i32,
-    /// Input power derived from `vin_mv * iin_ma`.
-    pub pin_mw: i32,
+    /// Bus voltage at the device's VBUS pin.
+    pub bus_mv: u32,
+    /// Shunt current; positive is `IN+` → `IN−` through the shunt.
+    pub current_ma: i32,
+    /// Power derived from `bus_mv * current_ma`.
+    pub power_mw: i32,
     /// Die temperature in whole degrees Celsius.
     pub die_temp_c: i32,
     /// Raw shunt reading in microvolts (useful for calibration logs).
     pub shunt_uv: i32,
 }
 
-/// Handle for the INA228 at a fixed 7-bit I2C address.
+/// Handle for an INA228 at a fixed 7-bit I2C address and a known shunt.
 pub struct Ina228 {
     addr: u8,
+    shunt_mohm: u32,
+    shunt_cal: u16,
 }
 
 impl Ina228 {
-    pub fn new(addr: u8) -> Self {
-        Self { addr }
+    /// Bind to an INA228 and the shunt it measures.
+    ///
+    /// `shunt_mohm` also sets `SHUNT_CAL`, which the chip needs before any
+    /// current register is meaningful — the wrong value silently scales every
+    /// current and power reading.
+    pub const fn new(addr: u8, shunt_mohm: u32) -> Self {
+        Self {
+            addr,
+            shunt_mohm,
+            shunt_cal: board::ina228_shunt_cal(shunt_mohm),
+        }
     }
 
     /// Configure the device and verify its identity.
@@ -73,7 +94,7 @@ impl Ina228 {
             return false;
         }
         if !self
-            .write_reg16(i2c, INA228_REG_SHUNT_CAL, board::INA228_SHUNT_CAL)
+            .write_reg16(i2c, INA228_REG_SHUNT_CAL, self.shunt_cal)
             .await
         {
             return false;
@@ -90,8 +111,10 @@ impl Ina228 {
         let ok = mfg == INA228_MFG_ID_TI && (dev >> 4) == INA228_DEVICE_ID;
         if ok {
             defmt::info!(
-                "INA228 OK: addr=0x{:02x}, mfg=0x{:04x}, dev=0x{:04x}",
+                "INA228 OK: addr=0x{:02x}, shunt={} mOhm, shunt_cal={}, mfg=0x{:04x}, dev=0x{:04x}",
                 self.addr,
+                self.shunt_mohm,
+                self.shunt_cal,
                 mfg,
                 dev
             );
@@ -123,29 +146,30 @@ impl Ina228 {
         let shunt20 = ((raw_shunt as i32) << 8) >> 12;
         let bus20 = (raw_bus >> 4) as u32;
 
-        // VSHUNT LSB = 312.5 nV → µV = raw * 3125 / 10000.
-        // I(mA) = Vshunt(µV) / R(mΩ) = raw * 3125 / 80000 for the 8 mΩ shunt.
+        // VSHUNT LSB = 312.5 nV → µV = raw * 3125 / 10_000.
+        // I(mA) = Vshunt(µV) / R(mΩ), i.e. raw * 3125 / (10_000 * R).
         let shunt_uv = ((shunt20 as i64 * 3125) / 10_000) as i32;
-        let iin_ma = ((shunt20 as i64 * 3125) / 80_000) as i32;
+        let denom = 10_000i64 * self.shunt_mohm as i64;
+        let current_ma = ((shunt20 as i64 * 3125) / denom) as i32;
 
         // VBUS LSB = 195.3125 µV → mV = raw * 1953125 / 10000000.
-        let vin_mv = ((bus20 as u64 * 1_953_125) / 10_000_000) as u32;
+        let bus_mv = ((bus20 as u64 * 1_953_125) / 10_000_000) as u32;
 
         // DIETEMP LSB = 7.8125 m°C → °C = raw * 78125 / 10000000. Signed i16
         // input: do the multiply in i64 so a corrupt/full-scale read cannot
         // overflow i32 (which would panic in a debug build).
         let die_temp_c = (((raw_temp as i16) as i64 * 78_125) / 10_000_000) as i32;
 
-        if iin_ma.unsigned_abs() > board::INA228_MAX_CURRENT_MA * 2 {
+        if current_ma.unsigned_abs() > board::INA228_MAX_CURRENT_MA * 2 {
             return None;
         }
 
-        let pin_mw = ((vin_mv as i64 * iin_ma as i64) / 1000) as i32;
+        let power_mw = ((bus_mv as i64 * current_ma as i64) / 1000) as i32;
 
         Some(Ina228Reading {
-            vin_mv,
-            iin_ma,
-            pin_mw,
+            bus_mv,
+            current_ma,
+            power_mw,
             die_temp_c,
             shunt_uv,
         })
@@ -162,7 +186,7 @@ impl Ina228 {
         match i2c.write_read(self.addr, &[reg], &mut buf).await {
             Ok(()) => Some(u16::from_be_bytes(buf)),
             Err(e) => {
-                crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "1 (PD)", e);
+                crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "2 (PD)", e);
                 None
             }
         }
@@ -173,7 +197,7 @@ impl Ina228 {
         match i2c.write_read(self.addr, &[reg], &mut buf).await {
             Ok(()) => Some(((buf[0] as u32) << 16) | ((buf[1] as u32) << 8) | buf[2] as u32),
             Err(e) => {
-                crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "1 (PD)", e);
+                crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "2 (PD)", e);
                 None
             }
         }
@@ -189,7 +213,7 @@ impl Ina228 {
         match i2c.write(self.addr, &[reg, bytes[0], bytes[1]]).await {
             Ok(()) => true,
             Err(e) => {
-                crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "1 (PD)", e);
+                crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "2 (PD)", e);
                 false
             }
         }

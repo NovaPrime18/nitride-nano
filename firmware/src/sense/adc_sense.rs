@@ -9,6 +9,7 @@ use embassy_stm32::Peri;
 use embassy_time::Instant;
 
 use crate::board;
+use crate::board::CcRange;
 use crate::state::Telemetry;
 
 /// Time constant of the telemetry low-pass filter, in milliseconds.
@@ -90,12 +91,14 @@ impl TelemetryFilter {
             pout_mw: vout_mv.saturating_mul(iout_ma) / 1000,
             temp_conv_c: raw.temp_conv_c,
             temp_input_c: raw.temp_input_c,
-            // Input-side fields are owned by the INA228 poll; the caller copies
-            // the previous values back over these placeholders.
+            // Input-side fields are owned by the input INA228 poll and the
+            // output-side ones by the output INA228 poll; the caller copies the
+            // previous values back over these placeholders.
             iin_ma: 0,
             pin_mw: 0,
             ina_temp_c: 25,
             ina_ok: false,
+            out_ina: crate::state::OutInaTelemetry::default(),
         }
     }
 }
@@ -145,6 +148,13 @@ impl AdcSense {
     ///
     /// Channel → peripheral mapping is fixed by the PCB: Vout/Isense/temp_conv
     /// on ADC1, Vbus on ADC2, temp_in on ADC5.
+    ///
+    /// `range` is the CC sense range currently selected by the `High-Gain` pin.
+    /// It scales the ISMON channel only: the LT8390A's monitor gain is
+    /// `10 · R_eff`, so the same PA3 voltage means ten times less current at ×10.
+    /// The caller reads it from `AppState` before sampling, so the two never
+    /// disagree.
+    #[allow(clippy::too_many_arguments)]
     pub fn sample(
         &mut self,
         adc1: &mut Adc<'_, embassy_stm32::peripherals::ADC1>,
@@ -155,6 +165,7 @@ impl AdcSense {
         vbus: &mut Peri<'_, embassy_stm32::peripherals::PA7>,
         temp_conv: &mut Peri<'_, embassy_stm32::peripherals::PA1>,
         temp_in: &mut Peri<'_, embassy_stm32::peripherals::PA9>,
+        range: CcRange,
     ) -> Telemetry {
         let vout_raw = adc1.blocking_read(vout) as u32;
         let i_raw = adc1.blocking_read(isense) as u32;
@@ -165,13 +176,13 @@ impl AdcSense {
 
         let vout_mv = scale(vout_raw, board::VOUT_SENSE_NUM);
         let vbus_mv = scale(vbus_raw, board::VBUS_SENSE_NUM);
-        let iout_ma = if board::ISENSE_MV_PER_A > 0 {
+        let iout_ma = if range.mv_per_a() > 0 {
             // ISMON = 10·V(ISP−ISN) + V_OFFSET. Subtract the calibrated
             // zero-current count ([`board::ISENSE_ZERO_MV`]) before scaling by
-            // the datasheet gain. One count is ~0.806 mV, so keeping the
+            // the range's gain. One count is ~0.806 mV, so keeping the
             // arithmetic in counts preserves the full resolution.
             let d = i_raw.saturating_sub(self.zero_raw()) as u64;
-            ((d * board::ADC_VREF_MV as u64 * 1000) / (4096 * board::ISENSE_MV_PER_A as u64)) as u32
+            ((d * board::ADC_VREF_MV as u64 * 1000) / (4096 * range.mv_per_a() as u64)) as u32
         } else {
             0
         };
@@ -187,11 +198,12 @@ impl AdcSense {
             pout_mw,
             temp_conv_c: ntc_c(t_conv_raw),
             temp_input_c: ntc_c(t_in_raw),
-            // Filled in by the INA228 poll.
+            // Filled in by the two INA228 polls.
             iin_ma: 0,
             pin_mw: 0,
             ina_temp_c: 25,
             ina_ok: false,
+            out_ina: crate::state::OutInaTelemetry::default(),
         }
     }
 }

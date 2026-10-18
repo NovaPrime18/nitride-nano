@@ -1,11 +1,29 @@
-//! Output-stage supervisor: fault checks, enable gating, and CV/CC DAC updates.
-//! [`SupplyController::tick`] runs every [`crate::board::SUPPLY_TICK_MS`]
-//! from the main loop while holding the `APP_STATE` lock.
+//! Output-stage supervisor: fault checks, the rev3 three-pin power-up sequence,
+//! and CV/CC DAC updates. [`SupplyController::tick`] runs every
+//! [`crate::board::SUPPLY_TICK_MS`] from the main loop while holding the
+//! `APP_STATE` lock.
+//!
+//! # Power-up ordering
+//!
+//! rev3 replaced the single `Conv-Disable` line with three pins, and the order is
+//! safety-critical. [`crate::control::sequencer`] owns the decision logic (which
+//! stage we are in, and what each pin should be); this file owns the *application*
+//! order within one tick, which is why the DACs are programmed from the stage
+//! **before** the GPIOs move:
+//!
+//! 1. latch faults;
+//! 2. compute `want_on`;
+//! 3. step the sequencer;
+//! 4. program CV/CC from the resulting stage — the CC DAC must already be at or
+//!    above the cold-start floor when `CNV-EN-LOADEN` is raised, or the LT8390A
+//!    never leaves its `UP/PRE` state;
+//! 5. drive the three power-path pins;
+//! 6. latch any fault the sequencer raised.
 //!
 //! # Diagnostics
 //!
-//! The controller emits an edge-triggered line whenever the mode, enable state,
-//! latched fault, or clamped current limit changes, plus one consolidated
+//! The controller emits an edge-triggered line whenever the mode, stage, enable
+//! state, latched fault, or clamped current limit changes, plus one consolidated
 //! snapshot per [`board::SUPPLY_LOG_MS`] split into three greppable lines:
 //!
 //! * `supply[ctl]:` — mode/enable/fault, setpoints, CV & CC DAC codes, and what
@@ -28,26 +46,38 @@ use embassy_stm32::peripherals::{DAC1, DAC2};
 use embassy_time::Instant;
 
 use crate::board;
+use crate::board::CcRange;
 use crate::control::dac_cc::CcDac;
 use crate::control::dac_cv::CvDac;
+use crate::control::sequencer::{Inputs, Sequencer, Stage};
 use crate::hal::converter_enable::ConverterEnable;
+use crate::hal::high_gain::HighGain;
+use crate::hal::load_enable::LoadEnable;
+use crate::hal::output_switch::OutputSwitch;
 use crate::state::{Fault, SupplyMode};
 
-/// Owns the CV and CC DAC state machines and applies the fault policy.
+/// Owns the CV and CC DAC state machines, the rev3 power-up sequencer, and the
+/// fault policy.
 pub struct SupplyController {
     cv: CvDac,
     cc: CcDac,
+    seq: Sequencer,
+    /// Last (range, setpoint-wants) pair used for the deferred-range-change warning,
+    /// so the log only fires on an edge instead of every tick.
+    last_range_deferred: bool,
     /// Timestamp of the last consolidated `supply[...]` snapshot.
     last_log: Instant,
     // Edge-detection state for the change-triggered lines.
     last_enabled: bool,
     last_mode: SupplyMode,
     last_fault: Fault,
+    last_stage: Stage,
     last_power_clamped: bool,
     last_cc_active: bool,
     last_cc_below_floor: bool,
     last_sagging: bool,
     last_deep_buck: bool,
+    last_startup_clamped: bool,
 }
 
 impl SupplyController {
@@ -55,15 +85,19 @@ impl SupplyController {
         Self {
             cv: CvDac::new(),
             cc: CcDac::new(),
+            seq: Sequencer::new(),
+            last_range_deferred: false,
             last_log: Instant::now(),
             last_enabled: false,
             last_mode: SupplyMode::Off,
             last_fault: Fault::None,
+            last_stage: Stage::Off,
             last_power_clamped: false,
             last_cc_active: false,
             last_cc_below_floor: false,
             last_sagging: false,
             last_deep_buck: false,
+            last_startup_clamped: false,
         }
     }
 
@@ -84,18 +118,29 @@ impl SupplyController {
             Fault::OverTemp => "OVERTEMP",
             Fault::InputOverCurrent => "IN_OCP",
             Fault::InputOverVoltage => "IN_OVP",
+            Fault::OutputNotReached => "OUTPUT_NOT_REACHED",
+            Fault::OutputSwitchFailed => "OUTPUT_SWITCH_FAILED",
         }
     }
 
-    /// One control step: latch faults, gate the converter enable line, and push
-    /// new DAC codes. Any latched fault forces the output off and zeroes both
+    /// One control step: latch faults, run the three-pin power-up sequence, and
+    /// push new DAC codes. Any latched fault forces the output off and zeroes both
     /// DACs; the fault is cleared from the UI, not here.
+    ///
+    /// The power-path handles are separate types on purpose: `en` and `load_en`
+    /// are both active-high inputs to the same LT8390A, and swapping them would
+    /// silently invert the sequence — exactly the class of bug a pair of bare
+    /// `bool`s would invite.
+    #[allow(clippy::too_many_arguments)]
     pub fn tick(
         &mut self,
         app: &mut crate::state::AppState,
         dac_cv: &mut DacCh1<'_, DAC1, Blocking>,
         dac_cc: &mut DacCh1<'_, DAC2, Blocking>,
         en: &mut ConverterEnable,
+        load_en: &mut LoadEnable,
+        pwr_g: &mut OutputSwitch,
+        high_gain: &mut HighGain,
     ) {
         let tele = app.telemetry;
 
@@ -155,8 +200,7 @@ impl SupplyController {
             app.supply.enabled = false;
         }
 
-        let enabled = app.supply.enabled && app.supply.fault == Fault::None;
-        en.set_enabled(enabled);
+        let want_on = app.supply.enabled && app.supply.fault == Fault::None;
 
         // Current-limit budget. The output current ceiling is the user setpoint
         // (bounded by the design max) further limited by the *power* available
@@ -180,6 +224,53 @@ impl SupplyController {
         // This is the first thing to check when the converter current-limits well
         // below the number on the CC screen.
         let power_clamped = i_power_cap < i_cap;
+
+        // Step the three-pin power-up sequence. It reads the *fast* ADC output
+        // voltage, not the INA228's, so a 1 ms tick can act on it.
+        let out = self.seq.step(
+            Instant::now(),
+            Inputs {
+                want_on,
+                v_set_mv: app.supply.v_set_mv,
+                vout_adc_mv: tele.vout_mv,
+                out_ina_ok: tele.out_ina.ok,
+                out_ina_current_ma: tele.out_ina.current_ma,
+            },
+        );
+        if let Some(f) = out.fault {
+            app.supply.fault = f;
+            app.supply.enabled = false;
+        }
+        app.supply.stage = out.stage;
+
+        // CC sense range. The setpoint decides which range it wants, but the pin
+        // may only move while the stage is parked: a range change is a ×10 step in
+        // the CC loop gain (and a ~200 mV common-mode step at the chip's ISP/ISN
+        // pair), so switching it while regulating would kick the loop. The ×1
+        // window (2.5–50 A) still covers every setpoint above 2.5 A, so deferring
+        // is bounded and safe — only a sub-2.5 A setpoint genuinely needs ×10.
+        let wanted_range = CcRange::for_setpoint(app.supply.i_set_ma);
+        if out.stage == Stage::Off {
+            high_gain.set_range(wanted_range);
+        } else if high_gain.range() != wanted_range {
+            if !self.last_range_deferred {
+                defmt::warn!(
+                    "output: HIGH-GAIN range change deferred to the next disable: iset={} mA wants {:?} but stage={} is running {:?}",
+                    app.supply.i_set_ma,
+                    wanted_range,
+                    out.stage.label(),
+                    high_gain.range()
+                );
+            }
+            self.last_range_deferred = true;
+        }
+        if high_gain.range() == wanted_range {
+            self.last_range_deferred = false;
+        }
+        let range = high_gain.range();
+        app.supply.cc_range = range;
+
+        let enabled = !out.conv_disable;
 
         if !enabled {
             // Inverted CV DAC: park at full-scale code = minimum output. The CC
@@ -209,25 +300,48 @@ impl SupplyController {
                         SupplyMode::Cc => app.supply.i_set_ma,
                         _ => i_cap,
                     };
-                    let cc_req = cc_target.min(i_limit);
+                    let mut cc_req = cc_target.min(i_limit);
+                    // Every stage except `Running` is a start-up stage: the
+                    // LT8390A does not leave its `UP/PRE` state until CTRL is
+                    // above its rising latch-off (~0.325 V), so the command is
+                    // floored at the datasheet cold-start current for as long as
+                    // the sequencer asks. This is a deliberate, logged overshoot
+                    // of the user setpoint, bounded by the ramp window.
+                    let startup_clamped =
+                        out.cc_startup_clamp && cc_req < range.start_min_ma();
+                    if startup_clamped {
+                        cc_req = range.start_min_ma();
+                    }
+                    if startup_clamped && !self.last_startup_clamped {
+                        defmt::info!(
+                            "output: start-up CC floored at the {} mA cold-start value (CTRL >= {} mV, range {:?}) for stage={} so LOADEN can take effect",
+                            range.start_min_ma(),
+                            board::LT8390_CTRL_START_MV,
+                            range,
+                            out.stage.label()
+                        );
+                    }
+                    self.last_startup_clamped = startup_clamped;
+
                     // The setpoint is the current the user expects to be drawn;
                     // `set_current` cancels the bench CC offset and clamps to the
                     // settable range. Warn only when the *power* budget forces
                     // the limit below that range, so it is clear the PD contract
                     // rather than the CC setting is binding.
-                    let cc_eff = CcDac::clamp_current(cc_req);
-                    let below_floor = cc_req < board::CC_SET_MIN_MA;
+                    let cc_eff = CcDac::clamp_current(cc_req, range);
+                    let below_floor = cc_req < range.set_min_ma();
                     if below_floor && !self.last_cc_below_floor {
                         defmt::warn!(
-                            "supply: power budget limits CC to {} mA, below the {} mA settable floor (R18={} mOhm); limiting at {} mA",
+                            "supply: power budget limits CC to {} mA, below the {} mA settable floor for range {:?} (R_eff={} mOhm); limiting at {} mA",
                             cc_req,
-                            board::CC_SET_MIN_MA,
-                            board::ISENSE_SHUNT_MOHM,
+                            range.set_min_ma(),
+                            range,
+                            range.shunt_mohm(),
                             cc_eff
                         );
                     }
                     self.last_cc_below_floor = below_floor;
-                    self.cc.set_current(cc_eff);
+                    self.cc.set_current(cc_eff, range);
                     dac_cc.set(Value::Bit12Right(self.cc.code));
 
                     // NOTE: CC mode deliberately programs the CV DAC from
@@ -252,7 +366,7 @@ impl SupplyController {
                             tele.vout_mv,
                             app.supply.v_set_mv,
                             self.cc.code,
-                            CcDac::current_ma_for_code(self.cc.code)
+                            CcDac::current_ma_for_code(self.cc.code, range)
                         );
                         app.supply.fault = Fault::OverCurrent;
                     }
@@ -263,9 +377,17 @@ impl SupplyController {
                     self.cc.code = 0;
                     dac_cc.set(Value::Bit12Right(0));
                     self.last_cc_below_floor = false;
+                    self.last_startup_clamped = false;
                 }
             }
         }
+
+        // Apply the power-path pins. Deliberately *after* the DACs: on the way up
+        // the CC command must already be legal when `CNV-EN-LOADEN` rises, and on
+        // the way down the DACs are parked before the chip is shut off.
+        en.set_enabled(!out.conv_disable);
+        load_en.set_enabled(out.load_enable);
+        pwr_g.set_closed(out.pwr_g);
 
         // A converter that is enabled, has a non-trivial limit, is sitting at
         // (or above) that limit, and whose output has fallen away from the
@@ -288,6 +410,7 @@ impl SupplyController {
         self.log(
             app,
             enabled,
+            out.stage,
             i_cap,
             p_cap,
             i_power_cap,
@@ -300,10 +423,12 @@ impl SupplyController {
 
     /// Emit the change-triggered edge lines and the periodic consolidated
     /// snapshot. Split out so `tick` reads as control flow only.
+    #[allow(clippy::too_many_arguments)]
     fn log(
         &mut self,
         app: &crate::state::AppState,
         enabled: bool,
+        stage: Stage,
         i_cap: u32,
         p_cap: u32,
         i_power_cap: u32,
@@ -313,14 +438,18 @@ impl SupplyController {
         sagging: bool,
     ) {
         let tele = app.telemetry;
+        let range = app.supply.cc_range;
 
         if enabled != self.last_enabled
             || app.supply.mode != self.last_mode
             || app.supply.fault != self.last_fault
+            || stage != self.last_stage
         {
             defmt::info!(
-                "supply: state change mode={} en={} fault={} vout={} iout={} vset={} iset={}",
+                "supply: state change mode={} stage={} range={:?} en={} fault={} vout={} iout={} vset={} iset={}",
                 Self::mode_str(app.supply.mode),
+                stage.label(),
+                range,
                 enabled,
                 Self::fault_str(app.supply.fault),
                 tele.vout_mv,
@@ -352,7 +481,7 @@ impl SupplyController {
                 i_limit,
                 self.cc.code,
                 CcDac::ctrl_mv_for_code(self.cc.code),
-                CcDac::current_ma_for_code(self.cc.code)
+                CcDac::current_ma_for_code(self.cc.code, range)
             );
         }
 
@@ -365,7 +494,7 @@ impl SupplyController {
                 tele.iout_ma,
                 CvDac::implied_fb_mv(tele.vout_mv, self.cv.code),
                 i_limit,
-                CcDac::current_ma_for_code(self.cc.code),
+                CcDac::current_ma_for_code(self.cc.code, range),
                 CcDac::ctrl_mv_for_code(self.cc.code),
                 CvDac::nominal_dac_mv(self.cv.code),
                 CvDac::implied_dac_mv(tele.vout_mv),
@@ -397,6 +526,7 @@ impl SupplyController {
         self.last_enabled = enabled;
         self.last_mode = app.supply.mode;
         self.last_fault = app.supply.fault;
+        self.last_stage = stage;
         self.last_power_clamped = power_clamped;
         self.last_cc_active = cc_active;
         self.last_sagging = sagging;
@@ -416,8 +546,10 @@ impl SupplyController {
         let vout_err = tele.vout_mv as i64 - app.supply.v_set_mv as i64;
         let cv_code = self.cv.code;
         defmt::info!(
-            "supply[ctl]: mode={} en={} fault={} vset={} iset={} cv_code={} map_vout={} cc_code={} ctrl_mv={} cc_est={}",
+            "supply[ctl]: mode={} stage={} range={:?} en={} fault={} vset={} iset={} cv_code={} map_vout={} cc_code={} ctrl_mv={} cc_est={}",
             Self::mode_str(app.supply.mode),
+            stage.label(),
+            range,
             enabled,
             Self::fault_str(app.supply.fault),
             app.supply.v_set_mv,
@@ -426,7 +558,7 @@ impl SupplyController {
             CvDac::code_to_vout_mv(cv_code),
             self.cc.code,
             CcDac::ctrl_mv_for_code(self.cc.code),
-            CcDac::current_ma_for_code(self.cc.code)
+            CcDac::current_ma_for_code(self.cc.code, range)
         );
         defmt::info!(
             "supply[lim]: i_cap={} p_cap={} i_power_cap={} i_limit={} power_clamped={} cc_active={}",
@@ -438,13 +570,16 @@ impl SupplyController {
             cc_active
         );
         defmt::info!(
-            "supply[meas]: vout={} iout={} verr={} vin={} iin={} pin={} dac_nom={} dac_impl={} fb_impl={}",
+            "supply[meas]: vout={} iout={} verr={} vin={} iin={} pin={} ina_out_ok={} ina_out_vout={} ina_out_iout={} dac_nom={} dac_impl={} fb_impl={}",
             tele.vout_mv,
             tele.iout_ma,
             vout_err,
             tele.vin_mv,
             tele.iin_ma,
             tele.pin_mw,
+            tele.out_ina.ok,
+            tele.out_ina.bus_mv,
+            tele.out_ina.current_ma,
             CvDac::nominal_dac_mv(cv_code),
             CvDac::implied_dac_mv(tele.vout_mv),
             CvDac::implied_fb_mv(tele.vout_mv, cv_code)

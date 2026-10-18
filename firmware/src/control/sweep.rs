@@ -208,8 +208,11 @@ impl SweepController {
         if now < self.next_sample {
             return;
         }
-        self.acc
-            .push(app.telemetry.pin_mw, app.telemetry.pout_mw, app.telemetry.ina_ok);
+        self.acc.push(
+            app.telemetry.pin_mw,
+            app.telemetry.display_pout_mw(),
+            app.telemetry.ina_ok,
+        );
         self.next_sample = now + Duration::from_millis(board::SWEEP_SAMPLE_MS);
     }
 

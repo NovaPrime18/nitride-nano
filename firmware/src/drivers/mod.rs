@@ -1,8 +1,8 @@
 //! I2C device drivers and the OLED screen layout.
 //!
-//! Two independent buses: the TPS26750 USB-PD controller and INA228 input
-//! power monitor live on I2C1, while the SSD1306 and the TPS config EEPROM
-//! live on I2C3.
+//! Two independent buses: the TPS26750 USB-PD controller and both INA228 power
+//! monitors (U9 input, U12 output) live on I2C2, while the SSD1306 and the TPS
+//! config EEPROM live on I2C4.
 
 use core::sync::atomic::{AtomicU32, Ordering};
 
@@ -12,10 +12,10 @@ pub mod ssd1306_init;
 pub mod ssd1306_ui;
 pub mod tps26750;
 
-/// Cumulative I2C1 (TPS26750 + INA228) transaction failures since boot.
+/// Cumulative I2C2 (TPS26750 + INA228) transaction failures since boot.
 pub static I2C_PD_BUS_ERRORS: AtomicU32 = AtomicU32::new(0);
 
-/// Cumulative I2C3 (OLED + EEPROM) transaction failures since boot.
+/// Cumulative I2C4 (OLED + EEPROM) transaction failures since boot.
 pub static I2C_UI_BUS_ERRORS: AtomicU32 = AtomicU32::new(0);
 
 /// Map an embassy I2C error to a short static label for defmt logging.

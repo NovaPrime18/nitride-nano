@@ -60,6 +60,7 @@ use crate::board::{
     VOUT_MAX_MV,
     VOUT_MIN_MV,
 };
+use crate::control::sequencer::Stage;
 use crate::drivers::ssd1306::Ssd1306;
 use crate::pd::auto_track::nearest_preset_index;
 use crate::state::{
@@ -133,6 +134,13 @@ const EFF_BAR_LEFT: u8 = 92;
 const EFF_BAR_RIGHT: u8 = 127;
 /// Efficiency bar span, in whole percent.
 const EFF_RANGE: (u32, u32) = (0, 100);
+
+// CC sense-range badge on the I-LIM screen's status line: `x1` / `x10`, with a
+// trailing `*` when the setpoint wants the other range but the pin is latched.
+// Sits right after the ">I-LIM" tag (cols 0..36) and well clear of the
+// right-justified setpoint.
+const CC_RANGE_X: u8 = 42;
+const CC_RANGE_W: u8 = 26;
 
 // Bar height: 5 px tall, inset 1 px from the top of the 8-px character cell so
 // the row above the bar and the row below it stay clear.
@@ -264,11 +272,18 @@ impl Ssd1306Ui {
             }
         };
         self.display.draw_str(COL_MODE, ROW_HEADER, mode);
-        self.display.draw_str(
-            COL_ENABLE,
-            ROW_HEADER,
-            if app.supply.enabled { "ON" } else { "OFF" },
-        );
+        // The enable badge doubles as the rev3 sequence indicator: a transient
+        // power-up/power-down stage is far more informative than a bare "ON",
+        // which is all a healthy `Running` would say. `PRE`/`RAMP`/`SWON`/`DOWN`
+        // are the sequencer's intermediate stages; `ON` is only shown once the
+        // load switch has been verified closed.
+        let enable_badge = match app.supply.stage {
+            Stage::Running => "ON",
+            Stage::Off => "OFF",
+            other => other.label(),
+        };
+        self.display
+            .draw_str(COL_ENABLE, ROW_HEADER, enable_badge);
 
         // Separator line marks the hardware colour boundary
         self.display
@@ -280,7 +295,7 @@ impl Ssd1306Ui {
     fn draw_telemetry(&mut self, app: &AppState) {
         self.draw_input_values(app);
         self.draw_input_bars(app);
-        self.draw_output_header();
+        self.draw_output_header(app);
         self.draw_output_values(app);
         self.draw_output_bars(app);
     }
@@ -357,11 +372,19 @@ impl Ssd1306Ui {
         );
     }
 
-    /// Column headers for the output triple.
-    fn draw_output_header(&mut self) {
+    /// Column headers for the output triple, plus the source of the output V/I/P
+    /// values: `INA` while the U12 output monitor (R96 shunt) is answering, `ADC`
+    /// when they have fallen back to the MCU divider / ISMON path.
+    fn draw_output_header(&mut self, app: &AppState) {
         self.display.draw_str(OUT_COL0_LEFT, ROW_OUT_LABELS, "Vout");
         self.display.draw_str(OUT_COL1_LEFT, ROW_OUT_LABELS, "Iout");
         self.display.draw_str(OUT_COL2_LEFT, ROW_OUT_LABELS, "Pout");
+        // 3 chars right-justified in the Pout column (86..128), clear of "Pout".
+        self.display.draw_str(
+            OUT_COL2_RIGHT - 3 * FONT_W,
+            ROW_OUT_LABELS,
+            if app.telemetry.out_ina.ok { "INA" } else { "ADC" },
+        );
     }
 
     /// Output readings right-justified directly beneath their headers.
@@ -371,7 +394,7 @@ impl Ssd1306Ui {
             OUT_COL0_LEFT,
             OUT_COL0_RIGHT,
             ROW_OUT_VALUES,
-            app.telemetry.vout_mv,
+            app.telemetry.display_vout_mv(),
             "V",
         );
         draw_column_value(
@@ -379,7 +402,7 @@ impl Ssd1306Ui {
             OUT_COL1_LEFT,
             OUT_COL1_RIGHT,
             ROW_OUT_VALUES,
-            app.telemetry.iout_ma,
+            app.telemetry.display_iout_ma(),
             "A",
         );
         draw_column_value(
@@ -387,7 +410,7 @@ impl Ssd1306Ui {
             OUT_COL2_LEFT,
             OUT_COL2_RIGHT,
             ROW_OUT_VALUES,
-            app.telemetry.pout_mw,
+            app.telemetry.display_pout_mw(),
             "W",
         );
     }
@@ -399,7 +422,7 @@ impl Ssd1306Ui {
             OUT_BAR0_LEFT,
             OUT_BAR0_RIGHT,
             ROW_OUT_BARS,
-            app.telemetry.vout_mv,
+            app.telemetry.display_vout_mv(),
             VOUT_RANGE,
         );
         draw_bar(
@@ -407,7 +430,7 @@ impl Ssd1306Ui {
             OUT_BAR1_LEFT,
             OUT_BAR1_RIGHT,
             ROW_OUT_BARS,
-            app.telemetry.iout_ma,
+            app.telemetry.display_iout_ma(),
             IOUT_RANGE,
         );
         draw_bar(
@@ -415,7 +438,7 @@ impl Ssd1306Ui {
             OUT_BAR2_LEFT,
             OUT_BAR2_RIGHT,
             ROW_OUT_BARS,
-            app.telemetry.pout_mw,
+            app.telemetry.display_pout_mw(),
             POUT_RANGE,
         );
     }
@@ -423,7 +446,7 @@ impl Ssd1306Ui {
     /// Thin bar showing output power relative to the configured v_set × i_set ceiling.
     fn draw_power_bar(&mut self, app: &AppState) {
         let max_mw = ((app.supply.v_set_mv as u64 * app.supply.i_set_ma as u64) / 1_000).max(1);
-        let bar_len = ((app.telemetry.pout_mw as u64 * DISPLAY_W as u64) / max_mw)
+        let bar_len = ((app.telemetry.display_pout_mw() as u64 * DISPLAY_W as u64) / max_mw)
             .min(DISPLAY_W as u64) as u8;
 
         // Clear the whole row first so a shrinking bar doesn't leave its old
@@ -472,6 +495,7 @@ impl Ssd1306Ui {
 
         match app.ui.screen {
             MenuScreen::CcLimit => {
+                self.draw_cc_range_badge(app);
                 draw_setpoint_right(&mut self.display, app.supply.i_set_ma, Unit::Current)
             }
             MenuScreen::Main if app.ui.vset_mode => {
@@ -482,14 +506,37 @@ impl Ssd1306Ui {
         }
     }
 
+    /// On the I-LIM screen, show which CC sense range is actually in force and
+    /// whether the setpoint is asking for the other one.
+    ///
+    /// The range can only move while the output stage is parked (`High-Gain` is a
+    /// ×10 step in CC loop gain), so a setpoint that wants the other range while
+    /// running is *deferred*. A trailing `*` means the number under the cursor is
+    /// not the range currently limiting; cycling the output applies it.
+    fn draw_cc_range_badge(&mut self, app: &AppState) {
+        let range = app.supply.cc_range;
+        let deferred = crate::board::CcRange::for_setpoint(app.supply.i_set_ma) != range;
+        let text: &str = match (range, deferred) {
+            (crate::board::CcRange::LowGain, false) => "x1",
+            (crate::board::CcRange::LowGain, true) => "x1*",
+            (crate::board::CcRange::HighGain, false) => "x10",
+            (crate::board::CcRange::HighGain, true) => "x10*",
+        };
+        // Clear first: "x1" and "x10*" differ in length and this row is not
+        // otherwise redrawn on this screen, so leftover pixels would ghost.
+        self.display.fill_rect(CC_RANGE_X, ROW_STATUS, CC_RANGE_W, 8);
+        self.display.draw_str(CC_RANGE_X, ROW_STATUS, text);
+    }
+
     /// Efficiency readout on the main screen's status line: the input-to-output
     /// percentage, right-justified next to the tag, followed by a 0–100 % bar.
     ///
-    /// `pin_mw` is the INA228's input power and `pout_mw` the ADC's output
-    /// power, so the ratio is only meaningful while the monitor is responding.
+    /// `pin_mw` is the input INA228's power and `pout_mw` the output power the
+    /// user sees (the output INA228 when it is live, else the ADC), so the ratio
+    /// is only meaningful while both monitors are responding.
     fn draw_efficiency(&mut self, app: &AppState) {
         let pin_mw = app.telemetry.pin_mw;
-        let pout_mw = app.telemetry.pout_mw;
+        let pout_mw = app.telemetry.display_pout_mw();
 
         let mut buf = [0u8; 8];
         let pct = fmt_efficiency(&mut buf, pin_mw, pout_mw);

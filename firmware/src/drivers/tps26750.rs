@@ -169,7 +169,7 @@ impl Tps26750 {
             .write_read(self.addr, &[reg], &mut temp[..len + 1])
             .await
         {
-            crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "1 (PD)", e);
+            crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "2 (PD)", e);
             return false;
         }
         let count = temp[0];
@@ -198,7 +198,7 @@ impl Tps26750 {
         match i2c.write(self.addr, &buf[..n + 2]).await {
             Ok(()) => true,
             Err(e) => {
-                crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "1 (PD)", e);
+                crate::drivers::note_i2c_error(&crate::drivers::I2C_PD_BUS_ERRORS, "2 (PD)", e);
                 false
             }
         }

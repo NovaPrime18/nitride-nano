@@ -27,14 +27,14 @@ Built around EPC GaN FETs switching at up to 1 MHz and an LT8390A-based controll
 |---|---|
 | Input voltage | 12 – 48 V |
 | Output voltage | 0 – 60 V |
-| Input / Output current | 20 A (design target, untested) |
+| Input / Output current | 20 A (design target; 17.2 A input / 12.92 A output verified on Rev 2) |
 | Max output power | 240 W |
-| Switching frequency | 1 MHz (Rev 1) / 600 kHz (Rev 2) |
+| Switching frequency | 1 MHz (Rev 1 and Rev 2; `R1` = 147 kΩ on `RT`) |
 | Topology | Non-inverting buck/boost |
 | Input connector | XT90 |
 | Output connector | XT90 |
 
-> ⚠️ **20 A / 240 W figures are design targets. Revision 1 testing has verified up to 164 W output (see Testing below) — the full 20 A / 240 W envelope is still unverified.**
+> ⚠️ **20 A / 240 W figures are design targets. Revision 2 testing has verified up to 219 W output (52.4 V @ 4.18 A, 94.8 %); the full 240 W output envelope is still unverified.**
 
 ---
 
@@ -100,12 +100,43 @@ Bench results from Revision 1 hardware, measured at the operating points below.
 
 ---
 
+## Testing — Revision 2 (2.2 µH, 1 MHz)
+
+Bench results from Revision 2 hardware with the 2.2 µH Coilcraft XAL1010-222MED
+inductor at 1 MHz switching. Efficiency is `Pout / Pin`.
+
+### USB-C input
+
+| # | Input | Output | Efficiency |
+|---|---|---|---|
+| 1 | 28 V, 3.957 A — 110.8 W in | 12.4 V, 8.04 A — 99.7 W out | 90.0 % |
+| 2 | 36 V, 2.288 A — 82.4 W in | 12.4 V, 6.09 A — 75.5 W out | 91.7 % |
+| 3 | 20 V, 4.75 A — 95.0 W in | 6.4 V, 12.92 A — 82.7 W out | 87.0 % |
+
+### XT90 input
+
+| # | Input | Output | Efficiency |
+|---|---|---|---|
+| 1 | 16 V, 10.54 A — 168.6 W in | 52 V, 2.97 A — 154.4 W out | 91.6 % |
+| 2 | 13.81 V, 12.71 A — 175.5 W in | 38.6 V, 4 A — 154.4 W out | 88.0 % |
+| 3 | 16 V, 14.13 A — 226.1 W in | 51.7 V, 4 A — 206.8 W out | 91.5 % |
+| 4 | 16 V, 14.86 A — 237.8 W in | 51.8 V, 4.2 A — 217.6 W out | 91.5 % |
+| 5 | 14 V, 17.2 A — 240.8 W in | 51.7 V, 4.2 A — 217.1 W out | 90.2 % |
+| 6 | 24 V, 9.72 A — 233.3 W in | 52 V, 4.18 A — 217.4 W out | 93.2 % |
+| 7 | 36 V, 6.42 A — 231.1 W in | 52.4 V, 4.18 A — 219.0 W out | 94.8 % |
+
+**Peak efficiency:** 94.8 % at 36 V in → 52.4 V, 4.18 A (219.0 W out). The
+highest input-power point was 240.8 W (14 V, 17.2 A) at 90.2 %; peak output
+power was 219.0 W, up from 164 W on Revision 1.
+
+---
+
 ## Revision 2 Changes
 
 Reworks to the power stage and the bring-up bugs found on Revision 1:
 
 **Power stage**
-- New 2.2 µH inductor (Coilcraft XAL1010-222MED) at 600 kHz switching, chosen for lower core losses — the Rev 1 core was the hottest part by far
+- New 2.2 µH inductor (Coilcraft XAL1010-222MED) at 1 MHz switching (`R1` = 147 kΩ on `RT`), chosen for lower core losses — the Rev 1 core was the hottest part by far
 - Turn-off diodes in the gate paths: soft turn-on, quick turn-off
   - This prevents Miller turn-on of the output top FET caused by the input bottom FET through the inductor core (annoying issue to debug)
 - Flyback diodes on the power FETs: better placement and a different footprint (PMEG6020ETP)
@@ -146,4 +177,4 @@ See [`LICENSE`](./LICENSE) for the full text, or visit [ohwr.org/cern_ohl_s_v2](
 
 ## Status
 
-> 🚧 Work in progress — Revision 1 built and power-tested (results above); Revision 2 design complete and ordered.
+> 🚧 Work in progress — Revision 1 and Revision 2 built and power-tested (results above). The 20 A / 240 W envelope is still unverified.

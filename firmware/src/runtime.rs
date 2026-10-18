@@ -20,9 +20,9 @@ pub type I2cBusMutex = Mutex<CriticalSectionRawMutex, I2c<'static, Async, Master
 
 /// Global application state, initialised once in `main`.
 pub static APP_STATE: StaticCell<AppStateMutex> = StaticCell::new();
-/// Hardware I2C3 (`SCL=PA8`, `SDA=PB5`) — SSD1306 OLED and, when JP8/JP9 are
-/// bridged, the CAT24C512 TPS26750 config EEPROM.
+/// rev3 UI bus, hardware I2C4 (`SCL=PC6`, `SDA=PB7`) — SSD1306 OLED and, when
+/// JP8/JP9 are bridged, the CAT24C512 TPS26750 config EEPROM.
 pub static I2C_UI_BUS: StaticCell<I2cBusMutex> = StaticCell::new();
-/// Hardware I2C1 (`SCL=PB8` after the rev2 bodge, `SDA=PB7`) — TPS26750 USB-PD
-/// controller and INA228 input power monitor.
+/// rev3 PD bus, hardware I2C2 (`SCL=PC4`, `SDA=PA8`) — TPS26750 USB-PD
+/// controller and both INA228 power monitors (U9 input, U12 output).
 pub static I2C_PD_BUS: StaticCell<I2cBusMutex> = StaticCell::new();
