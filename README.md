@@ -177,4 +177,4 @@ See [`LICENSE`](./LICENSE) for the full text, or visit [ohwr.org/cern_ohl_s_v2](
 
 ## Status
 
-> 🚧 Work in progress — Revision 1 and Revision 2 built and power-tested (results above). The 20 A / 240 W envelope is still unverified.
+> 🚧 Work in progress — Revision 1 and Revision 2 built and power-tested (results above).
