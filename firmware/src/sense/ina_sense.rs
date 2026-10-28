@@ -5,7 +5,8 @@
 //!
 //! * the **input** monitor U9 (`0x40`, R60 = 2 mΩ), which owns `vin_mv`,
 //!   `iin_ma`, `pin_mw` and `ina_temp_c`;
-//! * the **output** monitor U12 (`0x41`, R96 = 2 mΩ), which owns
+//! * the **output** monitor U12 (`0x44`, R96 = 2 mΩ — see the strap note on
+//!   [`crate::board::INA228_OUT_ADDR`]), which owns
 //!   [`crate::state::Telemetry::out_ina`].
 //!
 //! Splitting `poll` (device state machine) from the merge keeps one copy of the
@@ -31,18 +32,54 @@ pub struct InaSense {
     failures: u8,
     last: Ina228Reading,
     next_probe: Instant,
+    /// VBUS scale correction applied to this monitor's `bus_mv` (and the power
+    /// derived from it): `bus_mv · num / den`. 1/1 for uncalibrated monitors.
+    vbus_scale: (u32, u32),
 }
 
 impl InaSense {
-    /// Bind to the INA228 at `addr` measuring a shunt of `shunt_mohm`.
+    /// Bind to the INA228 at `addr` measuring a shunt of `shunt_mohm`, with no
+    /// VBUS scale correction (the input monitor's default).
     pub fn new(addr: u8, shunt_mohm: u32) -> Self {
+        Self::new_scaled(addr, shunt_mohm, 1, 1)
+    }
+
+    /// Bind with a VBUS scale correction of `num/den`. Used by the output
+    /// monitor, whose `bus_mv` feeds the CV servo and the display: the
+    /// INA228's VBUS gain error is ±0.05 % max, and the servo's absolute
+    /// accuracy *is* this factor, so it is measured once per board against a
+    /// trusted DMM (see `board::INA228_OUT_VBUS_SCALE_*`).
+    pub fn new_scaled(addr: u8, shunt_mohm: u32, vbus_num: u32, vbus_den: u32) -> Self {
+        let vbus_scale = if vbus_den == 0 { (1, 1) } else { (vbus_num, vbus_den) };
         Self {
             ina: Ina228::new(addr, shunt_mohm),
             present: false,
             failures: 0,
             last: Ina228Reading::default(),
             next_probe: Instant::now(),
+            vbus_scale,
         }
+    }
+
+    /// Apply this monitor's VBUS scale to a reading, in place. Power follows
+    /// the corrected bus (current is untouched — the shunt path has its own
+    /// calibration); both shifts are ~0.05 % and documented.
+    fn scale_vbus(&self, r: &mut Ina228Reading) {
+        if self.vbus_scale == (1, 1) {
+            return;
+        }
+        let (num, den) = self.vbus_scale;
+        r.bus_mv = ((r.bus_mv as u64 * num as u64) / den as u64) as u32;
+        r.power_mw = ((r.power_mw as i64 * num as i64) / den as i64) as i32;
+    }
+
+    /// Allow the next `init`/`poll` to probe immediately, ignoring the
+    /// re-probe rate limit ([`ABSENT_RETRY_MS`]).
+    ///
+    /// Used by the boot-time board-detect in `main.rs`, which wants a few fast
+    /// retries back-to-back rather than the 1 s absent cadence.
+    pub fn arm_immediate_probe(&mut self) {
+        self.next_probe = Instant::now();
     }
 
     /// Configure and identify the device. Retries are rate-limited so an
@@ -73,8 +110,9 @@ impl InaSense {
         }
 
         match self.ina.read(i2c).await {
-            Some(reading) => {
+            Some(mut reading) => {
                 self.failures = 0;
+                self.scale_vbus(&mut reading);
                 self.last = reading;
                 Some(reading)
             }

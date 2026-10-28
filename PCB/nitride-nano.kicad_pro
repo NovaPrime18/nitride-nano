@@ -781,6 +781,10 @@
     [
       "21468f6a-570a-4ce2-9ce7-44a4fe6aa2c4",
       "Power-Sense-Out"
+    ],
+    [
+      "bb1da09d-6c83-4a74-98ba-ada671f4b592",
+      "OUTP-SW"
     ]
   ],
   "text_variables": {},

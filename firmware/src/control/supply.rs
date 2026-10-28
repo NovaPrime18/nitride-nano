@@ -54,7 +54,7 @@ use crate::hal::converter_enable::ConverterEnable;
 use crate::hal::high_gain::HighGain;
 use crate::hal::load_enable::LoadEnable;
 use crate::hal::output_switch::OutputSwitch;
-use crate::state::{Fault, SupplyMode};
+use crate::state::{Fault, SupplyMode, SweepPhase};
 
 /// Owns the CV and CC DAC state machines, the rev3 power-up sequencer, and the
 /// fault policy.
@@ -62,6 +62,54 @@ pub struct SupplyController {
     cv: CvDac,
     cc: CcDac,
     seq: Sequencer,
+    /// True when the boot-time board detect confirmed the rev3 power path
+    /// (see `main.rs`). While false, `want_on` is forced low, so the sequencer
+    /// never leaves [`Stage::Off`] and both DACs stay parked — a rev2 board
+    /// (whose converter-disable line the firmware does not drive, and whose
+    /// load switch is chip-driven `LOADTG`) can never be blind-enabled into a
+    /// load by a stray button press.
+    rev3_power_path: bool,
+    /// True when the boot self-test (`src/preflight.rs`) reported no `[FAIL]`.
+    /// While false the converter enable is refused and `Fault::PreflightFailed`
+    /// is latched, so an enable attempt is visibly refused rather than ignored.
+    preflight_ok: bool,
+    /// Edge state for the preflight refusal log.
+    preflight_refused: bool,
+    /// Edge state for the single refusal log while the gate blocks an enable.
+    gate_refused: bool,
+    /// When the output-current chain first looked implausible. The watchdog
+    /// latches [`Fault::SenseOpen`] only after
+    /// [`crate::board::SENSE_OPEN_CONFIRM_MS`] of a persistent mismatch, so a
+    /// load's soft-start or an INA228 sample-latency gap cannot trip it.
+    sense_open_since: Option<Instant>,
+    /// Last tick the implausible condition was actually seen.
+    ///
+    /// The confirmation window is only restarted once the condition has been
+    /// absent for a *full* [`crate::board::SENSE_OPEN_CONFIRM_MS`]: the input
+    /// monitor is polled and averaged on the PD bus, and its reading can drop out
+    /// for a second at a time (the bench log shows `pin` alternating between
+    /// ~46 W and ~0.4 W), so a single quiet tick must not reset the timer.
+    sense_last_suspect: Option<Instant>,
+    // -----------------------------------------------------------------
+    // CV metrology servo (see board::CV_SERVO_* and
+    // analysis/CV_CALIBRATION_PLAN.md phase 2)
+    // -----------------------------------------------------------------
+    /// Accumulated CV DAC trim, in codes. Sign convention: `target =
+    /// map_code − trim`, so a *positive* trim raises the output (it was
+    /// measured low). Bounded to ±[`board::CV_SERVO_MAX_TRIM_LSB`].
+    cv_trim_lsb: i16,
+    /// When the servo last changed the trim (rate limit).
+    cv_trim_last_step: Instant,
+    /// Setpoint the trim was last valid for; a knob turn invalidates it.
+    cv_trim_vset: u32,
+    /// CV DAC target computed last tick, to detect slew-settled.
+    cv_last_target: u16,
+    /// True while the servo is actively stepping (for the `settled` edge log).
+    cv_servo_stepping: bool,
+    /// Steps since the last servo log line (throttle: first + every 8th).
+    cv_servo_step_count: u32,
+    /// Edge latch for the one-time trim-clamp warning.
+    cv_trim_clamp_logged: bool,
     /// Last (range, setpoint-wants) pair used for the deferred-range-change warning,
     /// so the log only fires on an edge instead of every tick.
     last_range_deferred: bool,
@@ -81,11 +129,32 @@ pub struct SupplyController {
 }
 
 impl SupplyController {
+    /// Build with both enable gates open — the normal case on a healthy board.
     pub fn new() -> Self {
+        Self::with_gates(true, true)
+    }
+
+    /// Build with explicit gate verdicts: `rev3_power_path` from the board
+    /// detect and `preflight_ok` from the boot self-test. Either being `false`
+    /// parks the whole output path and refuses enables; see the field docs.
+    pub fn with_gates(rev3_power_path: bool, preflight_ok: bool) -> Self {
         Self {
             cv: CvDac::new(),
             cc: CcDac::new(),
             seq: Sequencer::new(),
+            rev3_power_path,
+            preflight_ok,
+            preflight_refused: false,
+            gate_refused: false,
+            sense_open_since: None,
+            sense_last_suspect: None,
+            cv_trim_lsb: 0,
+            cv_trim_last_step: Instant::now(),
+            cv_trim_vset: 0,
+            cv_last_target: board::DAC_MAX_CODE,
+            cv_servo_stepping: false,
+            cv_servo_step_count: 0,
+            cv_trim_clamp_logged: false,
             last_range_deferred: false,
             last_log: Instant::now(),
             last_enabled: false,
@@ -120,6 +189,9 @@ impl SupplyController {
             Fault::InputOverVoltage => "IN_OVP",
             Fault::OutputNotReached => "OUTPUT_NOT_REACHED",
             Fault::OutputSwitchFailed => "OUTPUT_SWITCH_FAILED",
+            Fault::OutputAboveSetpoint => "OUTPUT_ABOVE_SETPOINT",
+            Fault::PreflightFailed => "PREFLIGHT_FAILED",
+            Fault::SenseOpen => "SENSE_OPEN",
         }
     }
 
@@ -144,34 +216,113 @@ impl SupplyController {
     ) {
         let tele = app.telemetry;
 
-        // Hard overvoltage guard at 105% of the design max. The CV loop already
-        // clamps setpoints to VOUT_MAX_MV, so this trips only on regulation
-        // failure (runaway) — it must sit ABOVE VOUT_MAX_MV or normal
-        // full-scale operation would false-trip.
+        // Output-side supervision is judged only where its signals mean
+        // something:
+        //
+        // * **Current and power** come from the LT8390A ISMON pin, which senses
+        //   `ISP/ISN` across the output-return shunt R96, plus the output INA228
+        //   (U12) on the same taps. `Q5` is in the **return** path, so while it
+        //   is open the return node floats up to `VOUT` through any attached load
+        //   and ISMON is meaningless. The checks are therefore gated on the load
+        //   path actually being closed (`SwitchOn`/`Running`), which is also the
+        //   only time a limit violation can deliver current anywhere. The
+        //   sequencer additionally keeps `PWR_G` closed whenever the output is
+        //   above `board::OUTPUT_SWITCH_SAFE_VOUT_MV` (rev3 safety net).
+        // * **Overvoltage** is the converter-side node (`Vsense_REG_OUT`), real
+        //   whenever the user has the output enabled, so it is judged from the
+        //   moment of enable onward.
+        // * **Temperature** and the **input-side** INA228 backstop are always
+        //   valid (the NTCs sit on the always-on 3V3 rail, and the input checks
+        //   already require `ina_ok`).
+        //
+        // A fault is latched on *transition* only, so a condition that persists
+        // logs once instead of every 1 ms tick (a floating ISMON used to fill
+        // RTT at 1 kHz).
+        let out_current_valid = matches!(app.supply.stage, Stage::SwitchOn | Stage::Running);
+        let out_voltage_valid = app.supply.enabled;
         let ov_threshold = crate::board::VOUT_MAX_MV * 105 / 100;
-        if tele.iout_ma > crate::board::IOUT_MAX_MA {
-            app.supply.fault = Fault::OverCurrent;
-            defmt::info!("Fault::OverCurrent");
-        } else if tele.vout_mv > ov_threshold {
-            app.supply.fault = Fault::OverVoltage;
-            defmt::info!(
-                "Fault::OverVoltage: {} mV > {} mV threshold",
-                tele.vout_mv,
-                ov_threshold
-            );
-        } else if tele.pout_mw > crate::board::POWER_MAX_MW {
-            app.supply.fault = Fault::OverPower;
-            defmt::info!("Fault::OverPower");
-        } else if tele.temp_conv_c > crate::board::NTC_OVERTEMP_C
-            || tele.temp_input_c > crate::board::NTC_OVERTEMP_C
+
+        // Best available output-current magnitude. The two paths are independent
+        // consumers of the R96 taps: ISMON goes through U7/U14, U12 taps the
+        // shunt directly. Taking the larger keeps the over-current/over-power
+        // backstops alive when either one goes blind (rev3 bring-up: a dead range
+        // mux left ISMON at 0 A while the stage delivered ~45 W into a load).
+        let i_u12_ma = if tele.out_ina.ok {
+            tele.out_ina.current_ma.unsigned_abs()
+        } else {
+            0
+        };
+        let i_best_ma = tele.iout_ma.max(i_u12_ma);
+        let pout_best_mw = (tele.vout_mv as u64 * i_best_ma as u64 / 1_000) as u32;
+
+        // Sense-chain plausibility (rev3 safety net, see `board::SENSE_OPEN_*`).
+        //
+        // Two ways the output-current chain can lie:
+        //   * the converter is delivering meaningful power (input power, from a
+        //     different shunt) yet neither current path sees it — open taps /
+        //     shorted C71, or both readers dead;
+        //   * U12 sees the load current but ISMON does not — the U7 mux / U14 /
+        //     ISMON path is dead while the taps are fine.
+        //
+        // Either way the hardware CC loop (which reads ISP/ISN through the same
+        // mux) is no longer limiting anything, so this latches a fault rather
+        // than warning: a 30 V / 5 A stage with no current sense must not run.
+        let expected_iout_ma = if tele.ina_ok && tele.vout_mv > 0 && tele.pin_mw > 0 {
+            (tele.pin_mw as u64 * 1_000 / tele.vout_mv as u64) as u32
+        } else {
+            0
+        };
+        let blind_by_power = tele.ina_ok
+            && tele.pin_mw > board::SENSE_OPEN_MIN_PIN_MW
+            && (i_best_ma as u64) * 100
+                < expected_iout_ma as u64 * board::SENSE_OPEN_RATIO_PCT as u64;
+        let ismon_dead = tele.out_ina.ok
+            && i_u12_ma >= board::SENSE_OPEN_U12_MIN_MA
+            && (tele.iout_ma as u64) * 4 < i_u12_ma as u64;
+        let sense_suspect = out_current_valid && (blind_by_power || ismon_dead);
+        let mut sense_confirmed = false;
+        if sense_suspect {
+            let now = Instant::now();
+            if self.sense_open_since.is_none() {
+                self.sense_open_since = Some(now);
+                defmt::warn!(
+                    "sense: output-current chain implausible - ISMON={} mA, U12={} mA, but pin={} mW at vout={} mV (expected ~{} mA from the input monitor); vin={} mV iin={} mA. Confirming for {} ms before latching SENSE OPEN",
+                    tele.iout_ma,
+                    i_u12_ma,
+                    tele.pin_mw,
+                    tele.vout_mv,
+                    expected_iout_ma,
+                    tele.vin_mv,
+                    tele.iin_ma,
+                    board::SENSE_OPEN_CONFIRM_MS
+                );
+            }
+            self.sense_last_suspect = Some(now);
+            sense_confirmed = now
+                .duration_since(self.sense_open_since.unwrap_or(now))
+                .as_millis()
+                >= board::SENSE_OPEN_CONFIRM_MS;
+        } else if self.sense_last_suspect.is_none_or(|t| {
+            Instant::now().duration_since(t).as_millis() >= board::SENSE_OPEN_CONFIRM_MS
+        }) {
+            // Only restart the window once the condition has been gone for a full
+            // confirm period (see `sense_last_suspect`).
+            self.sense_open_since = None;
+            self.sense_last_suspect = None;
+        }
+
+        let mut detected = Fault::None;
+        if out_current_valid && i_best_ma > crate::board::IOUT_MAX_MA {
+            detected = Fault::OverCurrent;
+        } else if out_voltage_valid && tele.vout_mv > ov_threshold {
+            detected = Fault::OverVoltage;
+        } else if out_current_valid && pout_best_mw > crate::board::POWER_MAX_MW {
+            detected = Fault::OverPower;
+        } else if crate::board::NTC_SENSE_ENABLE
+            && (tele.temp_conv_c > crate::board::NTC_OVERTEMP_C
+                || tele.temp_input_c > crate::board::NTC_OVERTEMP_C)
         {
-            app.supply.fault = Fault::OverTemp;
-            defmt::info!(
-                "Fault::OverTemp! conv_c: {}, input_c: {}, limit: {}",
-                tele.temp_conv_c,
-                tele.temp_input_c,
-                crate::board::NTC_OVERTEMP_C
-            );
+            detected = Fault::OverTemp;
         } else if tele.ina_ok {
             // Input-side backstop from the INA228. The current limit follows the
             // negotiated PD cap (falling back to the design max on XT90 input)
@@ -180,24 +331,99 @@ impl SupplyController {
                 + crate::board::IIN_MARGIN_MA)
                 .min(crate::board::IIN_MAX_MA);
             if tele.iin_ma > iin_limit {
-                app.supply.fault = Fault::InputOverCurrent;
-                defmt::info!(
+                detected = Fault::InputOverCurrent;
+            } else if tele.vin_mv > crate::board::VIN_MAX_MV {
+                detected = Fault::InputOverVoltage;
+            }
+        }
+        // The sense-chain watchdog is the *lowest* priority: it only speaks up
+        // when no genuine over-current/over-voltage/over-temperature/input
+        // condition explains what the monitors are seeing (an input over-current,
+        // for instance, also makes the output current look implausibly small).
+        if detected == Fault::None && sense_confirmed {
+            detected = Fault::SenseOpen;
+        }
+        if detected != Fault::None && detected != app.supply.fault {
+            app.supply.fault = detected;
+            match detected {
+                Fault::OverCurrent => defmt::info!(
+                    "Fault::OverCurrent: iout={} mA (ISMON {} / U12 {}) > {} mA",
+                    i_best_ma,
+                    tele.iout_ma,
+                    i_u12_ma,
+                    crate::board::IOUT_MAX_MA
+                ),
+                Fault::OverVoltage => defmt::info!(
+                    "Fault::OverVoltage: {} mV > {} mV threshold",
+                    tele.vout_mv,
+                    ov_threshold
+                ),
+                Fault::OverPower => defmt::info!(
+                    "Fault::OverPower: pout={} mW (ISMON path {}) > {} mW",
+                    pout_best_mw,
+                    tele.pout_mw,
+                    crate::board::POWER_MAX_MW
+                ),
+                Fault::OverTemp => defmt::info!(
+                    "Fault::OverTemp! conv_c: {}, input_c: {}, limit: {}",
+                    tele.temp_conv_c,
+                    tele.temp_input_c,
+                    crate::board::NTC_OVERTEMP_C
+                ),
+                Fault::InputOverCurrent => defmt::info!(
                     "Fault::InputOverCurrent: {} mA > {} mA",
                     tele.iin_ma,
-                    iin_limit
-                );
-            } else if tele.vin_mv > crate::board::VIN_MAX_MV {
-                app.supply.fault = Fault::InputOverVoltage;
-                defmt::info!(
+                    (app.supply.input_current_cap_ma as i32 + crate::board::IIN_MARGIN_MA)
+                        .min(crate::board::IIN_MAX_MA)
+                ),
+                Fault::InputOverVoltage => defmt::info!(
                     "Fault::InputOverVoltage: {} mV > {} mV",
                     tele.vin_mv,
                     crate::board::VIN_MAX_MV
-                );
+                ),
+                Fault::SenseOpen => defmt::error!(
+                    "Fault::SenseOpen: the output-current chain is blind - ISMON={} mA, U12={} mA, but pin={} mW at vout={} mV (expected ~{} mA). The CC loop AND the software over-current trip cannot see the load current, so the stage is switched off. Check the U7 range mux (S1A/S2A pins 16/3 on SENSE_P/SENSE_N), R83/R98, C71 and the R96 taps before re-enabling.",
+                    tele.iout_ma,
+                    i_u12_ma,
+                    tele.pin_mw,
+                    tele.vout_mv,
+                    expected_iout_ma
+                ),
+                _ => {}
             }
         }
 
         if app.supply.fault != Fault::None {
             app.supply.enabled = false;
+        }
+
+        // Enable gates. On anything the boot detect did not confirm as rev3, or
+        // where the boot self-test reported a [FAIL], the output stage is never
+        // commanded on: the DACs stay parked (0 V CV target, CTRL at latch-off)
+        // and the sequencer sits in `Off`, so no stray button press can ramp a
+        // board the firmware cannot supervise.
+        if app.supply.enabled {
+            if !self.rev3_power_path {
+                if !self.gate_refused {
+                    self.gate_refused = true;
+                    defmt::warn!(
+                        "supply: output enable REFUSED - rev3 power path not detected at boot (rev2 board, or rev3 where neither the PD bus nor the OLED answered); sequencer is parked and the DACs stay at 0"
+                    );
+                }
+                app.supply.enabled = false;
+            } else if !self.preflight_ok {
+                if !self.preflight_refused {
+                    self.preflight_refused = true;
+                    defmt::warn!(
+                        "supply: output enable REFUSED - the boot self-test reported [FAIL] item(s); see the `preflight:` lines above. Fix the hardware, or accept it consciously with board::PREFLIGHT_BLOCK_ENABLE = false"
+                    );
+                }
+                app.supply.enabled = false;
+                app.supply.fault = Fault::PreflightFailed;
+            }
+        } else {
+            self.gate_refused = false;
+            self.preflight_refused = false;
         }
 
         let want_on = app.supply.enabled && app.supply.fault == Fault::None;
@@ -209,7 +435,16 @@ impl SupplyController {
         // and the output stage is a converter, so only the contract's power
         // (`VIN x I`) is meaningful at the output. Input over-current is
         // enforced separately by the INA228 backstop above.
-        let i_cap = app.supply.i_set_ma.min(crate::board::IOUT_MAX_MA);
+        // The range the setpoint asks for (overridden by
+        // `board::FORCE_CC_RANGE`). Resolved before the budget because a forced
+        // range also caps the settable current, and the ceiling below must not
+        // claim a limit the CC DAC will silently clamp.
+        let wanted_range = CcRange::for_setpoint(app.supply.i_set_ma);
+        let i_cap = app
+            .supply
+            .i_set_ma
+            .min(crate::board::IOUT_MAX_MA)
+            .min(wanted_range.set_max_ma());
         let p_cap = app
             .supply
             .input_power_cap_mw
@@ -227,17 +462,59 @@ impl SupplyController {
 
         // Step the three-pin power-up sequence. It reads the *fast* ADC output
         // voltage, not the INA228's, so a 1 ms tick can act on it.
+        //
+        // `cc_limited` lets the sequencer accept a CC-limited output as a
+        // completed ramp (the load switch is closed before the ramp on rev3, so a
+        // load that draws the limit holds the output below the setpoint on
+        // purpose). `load_current_ma` is the best available current, used only to
+        // decide whether releasing the load switch during a disable is safe.
+        let cc_limited =
+            i_limit > 0 && (i_best_ma as u64) * 100 >= (i_limit as u64) * 95;
         let out = self.seq.step(
             Instant::now(),
             Inputs {
                 want_on,
                 v_set_mv: app.supply.v_set_mv,
                 vout_adc_mv: tele.vout_mv,
+                // Previous tick's slew verdict (the DAC section below runs after the
+                // sequencer step); a 1 ms lag is irrelevant to a ramp budget.
+                cv_slew_settled: self.cv.code == self.cv_last_target,
                 out_ina_ok: tele.out_ina.ok,
+                // U12 is only expected where the PD bus actually lives (USB-C VBUS
+                // present); an XT90/DC feed has no PD bus by design.
+                out_ina_expected: app.pd_bus_alive(),
                 out_ina_current_ma: tele.out_ina.current_ma,
+                load_current_ma: i_best_ma,
+                cc_limited,
             },
         );
         if let Some(f) = out.fault {
+            if f == Fault::OutputSwitchFailed {
+                // The sequencer's own line says *why* the close was not
+                // confirmed; this one adds the hardware context that separates
+                // the two indistinguishable causes:
+                //   * firmware/GPIO: was `PWR_G` actually driven and does the pad
+                //     read back high?
+                //   * power path: is anything being delivered at all (`iin`,
+                //     `pin`)? With a load attached and `PWR_G` high, a dead
+                //     `Q12`/`Q7`/`R58`/`Q5` chain shows 0 mA everywhere, while a
+                //     bench run with no load shows the same thing by design.
+                let (pb1, pb2, pb3, pb6) = board::power_path_pin_levels();
+                defmt::error!(
+                    "output: switch context: PB2 PWR_G reads {} (1 = load switch commanded closed), PB1 disable={} PB3 LOADEN={} PB6 x10={}; converter-side vout={} mV vs U12 bus={} mV; iout ADC={} mA U12={} mA; vin={} mV iin={} mA pin={} mW. If a load was attached and `iin`/`pin` are near zero, this is the Q12/Q7/R58/Q5 gate chain; closure cannot be proven by current with nothing attached, so leave board::OUTPUT_SWITCH_REQUIRE_LOAD = false (its default) for a no-load bench",
+                    pb2 as u8,
+                    pb1 as u8,
+                    pb3 as u8,
+                    pb6 as u8,
+                    tele.vout_mv,
+                    tele.out_ina.bus_mv,
+                    tele.iout_ma,
+                    tele.out_ina.current_ma,
+                    tele.vin_mv,
+                    tele.iin_ma,
+                    tele.pin_mw
+                );
+            }
             app.supply.fault = f;
             app.supply.enabled = false;
         }
@@ -249,7 +526,6 @@ impl SupplyController {
         // pair), so switching it while regulating would kick the loop. The ×1
         // window (2.5–50 A) still covers every setpoint above 2.5 A, so deferring
         // is bounded and safe — only a sub-2.5 A setpoint genuinely needs ×10.
-        let wanted_range = CcRange::for_setpoint(app.supply.i_set_ma);
         if out.stage == Stage::Off {
             high_gain.set_range(wanted_range);
         } else if high_gain.range() != wanted_range {
@@ -280,18 +556,32 @@ impl SupplyController {
             dac_cv.set(Value::Bit12Right(self.cv.code));
             self.cc.code = 0;
             dac_cc.set(Value::Bit12Right(0));
+            app.supply.dac_cv_code = self.cv.code;
+            app.supply.dac_cc_code = 0;
             self.last_cc_below_floor = false;
+            self.reset_cv_trim(app.supply.v_set_mv);
         } else {
             match app.supply.mode {
                 SupplyMode::Cv | SupplyMode::Cc => {
+                    // CV metrology servo first: it decides this tick's trim from
+                    // the *settled* state, then the trim folds into the slew
+                    // target below (it never steps the DAC around the limiter).
+                    self.cv_servo_tick(app, out.stage);
+
                     // Open-loop CV from the setpoint via the (inverted) map,
                     // with the DAC code slewed at most
                     // board::CV_SLEW_MAX_LSB_PER_TICK counts per tick so
                     // setpoint changes step gently (avoids ringing / FET
-                    // heating).
-                    let target = self.cv.mv_to_code(app.supply.v_set_mv);
+                    // heating). The servo trim is a code-domain correction on
+                    // top of the map: `target = map − trim`, so a positive
+                    // trim raises the output.
+                    let map_code = self.cv.mv_to_code(app.supply.v_set_mv);
+                    let target = (map_code as i32 - self.cv_trim_lsb as i32)
+                        .clamp(0, board::DAC_MAX_CODE as i32) as u16;
+                    self.cv_last_target = target;
                     self.cv.slew(target);
                     dac_cv.set(Value::Bit12Right(self.cv.code));
+                    app.supply.dac_cv_code = self.cv.code;
 
                     // CC limit. In CC mode the *user* limit is used; in CV mode
                     // the same limit is the safety ceiling. Both are clamped by
@@ -343,6 +633,7 @@ impl SupplyController {
                     self.last_cc_below_floor = below_floor;
                     self.cc.set_current(cc_eff, range);
                     dac_cc.set(Value::Bit12Right(self.cc.code));
+                    app.supply.dac_cc_code = self.cc.code;
 
                     // NOTE: CC mode deliberately programs the CV DAC from
                     // `v_set_mv`, exactly like CV mode. The LT8390A diode-ORs its
@@ -354,13 +645,21 @@ impl SupplyController {
                     // current-limiting it. With the normal voltage ceiling
                     // command, the chip transitions CV↔CC on its own.
 
+                    // The trip only means something with the load path closed:
+                    // ISMON senses the return shunt behind the open Q5 until
+                    // `SwitchOn`, and floats then (see the fault-gate note at
+                    // the top of `tick`). Use the best of ISMON/U12: if the mux
+                    // path is dead this trip is the only over-current backstop
+                    // left, and U12 still sees the load.
                     if app.supply.mode == SupplyMode::Cv
-                        && tele.iout_ma
-                            > i_limit * board::IOUT_TRIP_MARGIN_PCT / 100
+                        && matches!(out.stage, Stage::SwitchOn | Stage::Running)
+                        && i_best_ma > i_limit * board::IOUT_TRIP_MARGIN_PCT / 100
                     {
                         defmt::warn!(
-                            "Fault::OverCurrent SOFTWARE trip: iout={} mA > i_limit={} mA ({}% margin) vout={} mV vset={} mV cc_code={} cc_est={} mA isense_biased_high?",
+                            "Fault::OverCurrent SOFTWARE trip: iout={} mA (ISMON {} / U12 {}) > i_limit={} mA ({}% margin) vout={} mV vset={} mV cc_code={} cc_est={} mA isense_biased_high?",
+                            i_best_ma,
                             tele.iout_ma,
+                            i_u12_ma,
                             i_limit,
                             board::IOUT_TRIP_MARGIN_PCT,
                             tele.vout_mv,
@@ -376,8 +675,11 @@ impl SupplyController {
                     dac_cv.set(Value::Bit12Right(self.cv.code));
                     self.cc.code = 0;
                     dac_cc.set(Value::Bit12Right(0));
+                    app.supply.dac_cv_code = self.cv.code;
+                    app.supply.dac_cc_code = 0;
                     self.last_cc_below_floor = false;
                     self.last_startup_clamped = false;
+                    self.reset_cv_trim(app.supply.v_set_mv);
                 }
             }
         }
@@ -392,9 +694,15 @@ impl SupplyController {
         // A converter that is enabled, has a non-trivial limit, is sitting at
         // (or above) that limit, and whose output has fallen away from the
         // setpoint is being current-limited by the hardware CC loop.
+        // A converter that is enabled, has a non-trivial limit, is sitting at
+        // (or above) that limit, and whose output has fallen away from the
+        // setpoint is being current-limited by the hardware CC loop. Gated on
+        // the load path being closed: the return shunt carries no meaningful
+        // current until `PWR_G` does.
         let cc_active = enabled
+            && matches!(out.stage, Stage::SwitchOn | Stage::Running)
             && i_limit > 0
-            && tele.iout_ma * 100 >= i_limit * 90
+            && i_best_ma * 100 >= i_limit * 90
             && tele.vout_mv < app.supply.v_set_mv * 95 / 100;
         app.supply.cc_active = cc_active;
 
@@ -403,7 +711,15 @@ impl SupplyController {
         // converter that cannot deliver the requested power looks like, and it
         // is the case the bench run hit (collapse at ~9 A while the CC limit was
         // programmed to 16 A).
+        //
+        // Gated on the stages where the output is *supposed* to be at the
+        // setpoint: during `Precharge`/`Ramping` a low output is the ramp doing
+        // its job, and during `Disabling` it is the node bleeding down, so
+        // judging those produced a warning that read like a fault on every
+        // enable (``OUTPUT OUT OF REGULATION ... at iout=0 mA`` mid-ramp, and
+        // again after the switch opened).
         let sagging = enabled
+            && matches!(out.stage, Stage::SwitchOn | Stage::Running)
             && app.supply.v_set_mv > 0
             && tele.vout_mv < app.supply.v_set_mv * board::VOUT_SAG_PCT / 100;
 
@@ -419,6 +735,132 @@ impl SupplyController {
             cc_active,
             sagging,
         );
+    }
+
+    // -----------------------------------------------------------------
+    // CV metrology servo (Phase 2 of analysis/CV_CALIBRATION_PLAN.md)
+    // -----------------------------------------------------------------
+
+    /// Zero the servo trim and re-anchor it to `vset`.
+    ///
+    /// Called on every servo-invalidating event (disable, mode change,
+    /// setpoint change, sweep start, fault): the static map — analytic or
+    /// fitted — is always the correct *starting point* at a new setpoint, and
+    /// a trim earned at one voltage would over-correct at another (a B-scale
+    /// error is 3.5 LSB at 20 V but only 0.9 LSB at 5 V).
+    fn reset_cv_trim(&mut self, vset_mv: u32) {
+        self.cv_trim_lsb = 0;
+        self.cv_servo_stepping = false;
+        self.cv_servo_step_count = 0;
+        self.cv_trim_clamp_logged = false;
+        self.cv_trim_vset = vset_mv;
+    }
+
+    /// CV metrology servo: nudge the CV DAC target by ±1 code every
+    /// [`board::CV_SERVO_PERIOD_MS`] so the *measured* output (U12, the ±0.05 %
+    /// monitor on the load side of F2) matches the setpoint.
+    ///
+    /// This is the slow outer metrology loop around the chip's fast FB loop
+    /// (`VOUT = A − B·code` in `control::dac_cv`): the fit removes the big
+    /// systematic map errors, and this removes what a fit cannot — DAC INL and
+    /// temperature drift — plus the load-path (bead + F2) drop, because U12's
+    /// VBUS pin sits at the output terminals.
+    ///
+    /// It only ever *steps* under all of these, and every break resets the
+    /// trim to the static map (see [`Self::reset_cv_trim`]):
+    ///
+    /// * steady CV: [`Stage::Running`], `mode == Cv`, not current-limiting
+    ///   (`cc_active` — VOUT below setpoint is *correct* in CC, integrating
+    ///   against it would wind up), not sagging, no sweep in flight;
+    /// * the output INA228 is answering (its reading is the servo's only
+    ///   input; without it the servo freezes on the last code, which the
+    ///   static map continues to hold);
+    /// * the CV slew has settled (`cv.code == cv_last_target`) — never trim
+    ///   mid-ramp;
+    /// * the rate limiter: one code step per period, at most 28.8 mV each.
+    ///
+    /// Authority is clamped to [`board::CV_SERVO_MAX_TRIM_LSB`] (±1.84 V),
+    /// far below the 105 % overvoltage guard, and the step direction follows
+    /// the inverted map: output measured low → trim up (code down).
+    fn cv_servo_tick(&mut self, app: &crate::state::AppState, stage: Stage) {
+        let tele = app.telemetry;
+        let vset = app.supply.v_set_mv;
+
+        // `cc_active` is published later in this same tick; the value read here
+        // is last tick's verdict, which is perfect for a 500 ms-period servo.
+        let servo_ready = board::CV_SERVO_ENABLE
+            && vset > 0
+            && app.supply.mode == SupplyMode::Cv
+            && stage == Stage::Running
+            && tele.out_ina.ok
+            && !app.supply.cc_active
+            && app.sweep.phase != SweepPhase::Running
+            && tele.vout_mv as u64 * 100 >= vset as u64 * board::VOUT_SAG_PCT as u64
+            && self.cv.code == self.cv_last_target;
+
+        if !servo_ready || vset != self.cv_trim_vset {
+            if self.cv_trim_lsb != 0 {
+                defmt::info!(
+                    "cv servo: trim reset to the map (trim={} lsb; setpoint moved or CV not steady)",
+                    self.cv_trim_lsb
+                );
+            }
+            self.reset_cv_trim(vset);
+            return;
+        }
+
+        let now = Instant::now();
+        if now.duration_since(self.cv_trim_last_step).as_millis() < board::CV_SERVO_PERIOD_MS {
+            return;
+        }
+
+        let err_mv = vset as i64 - tele.out_ina.bus_mv as i64;
+        if err_mv.unsigned_abs() <= board::CV_SERVO_DEADBAND_MV as u64 {
+            if self.cv_servo_stepping {
+                self.cv_servo_stepping = false;
+                defmt::info!(
+                    "cv servo: settled, err={} mV, trim={} lsb (vset={} vout_ina={})",
+                    err_mv,
+                    self.cv_trim_lsb,
+                    vset,
+                    tele.out_ina.bus_mv
+                );
+            }
+            self.cv_servo_step_count = 0;
+            self.cv_trim_clamp_logged = false;
+            return;
+        }
+
+        // One code step toward the error: output low (err > 0) wants the trim
+        // up, which lowers the code and raises the output on this inverted map.
+        let dir: i16 = if err_mv > 0 { 1 } else { -1 };
+        let wanted = self.cv_trim_lsb + dir;
+        let clamped =
+            wanted.clamp(-board::CV_SERVO_MAX_TRIM_LSB, board::CV_SERVO_MAX_TRIM_LSB);
+        if clamped != wanted && !self.cv_trim_clamp_logged {
+            self.cv_trim_clamp_logged = true;
+            defmt::warn!(
+                "cv servo: TRIM CLAMPED at {} lsb ({} lsb = ~{} mV of authority) - the static map is off by more than the servo can correct; run the CV calibration (analysis/cv_cal/fit.py)",
+                board::CV_SERVO_MAX_TRIM_LSB,
+                board::CV_SERVO_MAX_TRIM_LSB,
+                board::CV_SERVO_MAX_TRIM_LSB as u32 * board::CV_CAL_B_UV_PER_LSB / 1000
+            );
+        }
+        self.cv_trim_lsb = clamped;
+        self.cv_trim_last_step = now;
+        self.cv_servo_stepping = true;
+        self.cv_servo_step_count = self.cv_servo_step_count.saturating_add(1);
+        // Throttle the step lines: the first of a burst, then every 8th, so a
+        // long settle does not flood RTT but its progress stays visible.
+        if self.cv_servo_step_count == 1 || self.cv_servo_step_count.is_multiple_of(8) {
+            defmt::info!(
+                "cv servo: err={} mV -> trim={} lsb (vset={} vout_ina={})",
+                err_mv,
+                self.cv_trim_lsb,
+                vset,
+                tele.out_ina.bus_mv
+            );
+        }
     }
 
     /// Emit the change-triggered edge lines and the periodic consolidated
@@ -546,7 +988,7 @@ impl SupplyController {
         let vout_err = tele.vout_mv as i64 - app.supply.v_set_mv as i64;
         let cv_code = self.cv.code;
         defmt::info!(
-            "supply[ctl]: mode={} stage={} range={:?} en={} fault={} vset={} iset={} cv_code={} map_vout={} cc_code={} ctrl_mv={} cc_est={}",
+            "supply[ctl]: mode={} stage={} range={:?} en={} fault={} vset={} iset={} cv_code={} map_vout={} trim={} cc_code={} ctrl_mv={} cc_est={}",
             Self::mode_str(app.supply.mode),
             stage.label(),
             range,
@@ -556,6 +998,7 @@ impl SupplyController {
             app.supply.i_set_ma,
             cv_code,
             CvDac::code_to_vout_mv(cv_code),
+            self.cv_trim_lsb,
             self.cc.code,
             CcDac::ctrl_mv_for_code(self.cc.code),
             CcDac::current_ma_for_code(self.cc.code, range)

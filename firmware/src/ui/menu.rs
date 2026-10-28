@@ -1,23 +1,31 @@
 //! Menu model: maps [`InputEvent`]s to [`AppState`] mutations per screen.
 //!
-//! Navigation: Main → CcLimit → PdContract → Settings, then BTN3 unwinds back to
-//! Main. Settings (`CFG`) is a fullscreen scrollable list of [`CFG_ITEMS`]:
-//! encode-turn moves the highlight, the encoder button (or BTN1) activates the
-//! entry, BTN3 returns to Main. The list opens the EEPROM flash screen or arms
-//! the output-voltage sweep.
+//! Navigation: Main → V-SET → CcLimit → PdContract → Settings, then BTN3 unwinds
+//! back to Main. Settings (`CFG`) is a fullscreen scrollable list of
+//! [`CFG_ITEMS`]: encode-turn moves the highlight, the encoder button (or BTN1)
+//! activates the entry, BTN3 returns to Main. The list opens the EEPROM flash
+//! screen or arms the output-voltage sweep.
 //!
 //! Main-screen controls:
 //! - **BTN1** cycles the selected regulation mode (CV ↔ CC).
 //! - **BTN2** enables/disables the converter; while a fault is latched the first
 //!   press clears the latch and keeps the output off, so recovery stays a
-//!   deliberate two-step action.
-//! - **BTN3** moves on to the I-LIM screen and clears VSET mode.
+//!   deliberate two-step action. The setpoint screens share that rule
+//!   ([`toggle_output`]).
+//! - **BTN3** moves on to the V-SET screen and clears VSET mode.
 //! - **Encoder single click** toggles VSET mode: while on, the status line reads
 //!   `>V-SET` + `v_set`, the header shows Fine/Coarse, and encoder rotation trims
 //!   the setpoint with the active step. Rotation is ignored outside VSET mode.
+//!   This is the quick path; the same field is also reachable as its own screen
+//!   with BTN3 (see [`MenuScreen::CvSetpoint`]).
 //! - **Encoder double click** toggles Fine/Coarse while VSET mode is on. The
 //!   single click is deferred by [`crate::board::ENC_DOUBLE_CLICK_MS`] so the two
 //!   gestures never overlap (see [`crate::ui::input`]).
+//!
+//! The setpoint screens (V-SET and I-LIM) share one input shape: encoder
+//! rotation trims the value with the active step, the encoder button toggles
+//! Fine/Coarse, BTN2 toggles the output without leaving the screen, and BTN3
+//! moves on down the cycle (restoring the fine step on the way out).
 //!
 //! The sweep is a mode of the Main screen: selecting it returns to Main in
 //! [`SweepPhase::Armed`] and the bottom line prompts for the encoder button.
@@ -48,11 +56,12 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
             }
             match ev {
                 InputEvent::Btn3 => {
-                    // Move on to I-LIM; leaving Main always clears VSET mode and
-                    // restores the fine step, exactly as the old V-SET screen did.
+                    // Move on to V-SET; leaving Main always clears VSET mode (the
+                    // screen owns the same field from here on) and restores the
+                    // fine step, so the editor is entered precise.
                     app.ui.vset_mode = false;
                     app.ui.encoder_step_mode = StepMode::Fine;
-                    app.ui.screen = MenuScreen::CcLimit;
+                    app.ui.screen = MenuScreen::CvSetpoint;
                 }
                 InputEvent::Btn1 => {
                     // BTN1 toggles the selected regulation mode; the badge then
@@ -63,18 +72,7 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
                         _ => SupplyMode::Cv,
                     };
                 }
-                InputEvent::Btn2 => {
-                    if app.supply.fault != Fault::None {
-                        // Clear the latch only. The output was forced off when the
-                        // fault tripped; keep it off so re-enabling is a separate,
-                        // deliberate press instead of a side effect of clearing
-                        // the fault.
-                        app.supply.fault = Fault::None;
-                        app.supply.enabled = false;
-                    } else {
-                        app.supply.enabled = !app.supply.enabled;
-                    }
-                }
+                InputEvent::Btn2 => toggle_output(app),
                 InputEvent::EncBtn => {
                     // Single click: toggle VSET mode. Turning it off restores the
                     // fine step, so re-entering always starts precise.
@@ -96,23 +94,35 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
                 InputEvent::EncTurn(d) => {
                     // Only VSET mode trims the setpoint; a stray turn on the bare
                     // Main screen must not perturb an applied output.
-                    if app.ui.vset_mode && d != 0 {
-                        let step = match app.ui.encoder_step_mode {
-                            StepMode::Fine => 100u32,     // 100 mV per click
-                            StepMode::Coarse => 1_000u32, // 1 V per click
-                        };
-                        if d > 0 {
-                            app.supply.v_set_mv =
-                                (app.supply.v_set_mv + step).min(board::VOUT_MAX_MV);
-                        } else {
-                            app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(step);
-                        }
-                        // Floor it: below `VSET_MIN_MV` the converter cannot
-                        // regulate and the rev3 sequencer would time out in
-                        // `Ramping` and latch `Fault::OutputNotReached`.
-                        app.supply.v_set_mv = app.supply.v_set_mv.max(board::VSET_MIN_MV);
+                    if app.ui.vset_mode {
+                        let step = voltage_step(app.ui.encoder_step_mode);
+                        nudge_vset(app, d, step);
                     }
                 }
+            }
+        }
+        MenuScreen::CvSetpoint => {
+            // The BTN3 route to the same field VSET mode edits on Main. Same
+            // input shape as the I-LIM screen below: turn trims, encoder button
+            // steps Fine/Coarse, BTN2 toggles the output, BTN3 moves on.
+            let step = voltage_step(app.ui.encoder_step_mode);
+            if let InputEvent::EncTurn(d) = ev {
+                nudge_vset(app, d, step);
+            }
+            if ev == InputEvent::Btn2 {
+                // Output on/off without leaving the screen, so a setpoint can be
+                // dialled in and applied without walking back to Main.
+                toggle_output(app);
+            }
+            if ev == InputEvent::EncBtn {
+                app.ui.encoder_step_mode = match app.ui.encoder_step_mode {
+                    StepMode::Fine => StepMode::Coarse,
+                    StepMode::Coarse => StepMode::Fine,
+                };
+            }
+            if ev == InputEvent::Btn3 {
+                app.ui.encoder_step_mode = StepMode::Fine; // Reset on exit
+                app.ui.screen = MenuScreen::CcLimit; // Move to the next setting
             }
         }
         MenuScreen::CcLimit => {
@@ -123,7 +133,7 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
             adjust_current_dynamic(app, ev, step);
             if ev == InputEvent::Btn2 {
                 // Output on/off without leaving the screen (see Main's BTN2).
-                app.supply.enabled = !app.supply.enabled;
+                toggle_output(app);
             }
             if ev == InputEvent::EncBtn {
                 app.ui.encoder_step_mode = match app.ui.encoder_step_mode {
@@ -203,6 +213,58 @@ pub fn apply_input(app: &mut AppState, ev: InputEvent) {
             _ => {}
         },
     }
+}
+
+/// Encoder step for the output-voltage setpoint, in millivolts per detent.
+///
+/// 100 mV / 1 V, matching the I-LIM screen's 100 mA / 1 A: fine enough to land
+/// on a target rail, coarse enough to cross the whole 3–56 V span quickly.
+fn voltage_step(mode: StepMode) -> u32 {
+    match mode {
+        StepMode::Fine => 100,     // 100 mV per click
+        StepMode::Coarse => 1_000, // 1 V per click
+    }
+}
+
+/// Toggle the output, honouring the fault latch.
+///
+/// Shared by every screen with an output toggle (Main, V-SET, I-LIM) so the
+/// "two deliberate presses" recovery rule holds everywhere: while a fault is
+/// latched a press clears the latch **only** and keeps the output off, so
+/// clearing a fault can never also switch the converter on. Setting `enabled`
+/// outright on a latched fault would leave it asserted, and the first press on
+/// Main — the one that clears the latch — would then enable the output as a side
+/// effect.
+fn toggle_output(app: &mut AppState) {
+    if app.supply.fault != Fault::None {
+        app.supply.fault = Fault::None;
+        app.supply.enabled = false;
+    } else {
+        app.supply.enabled = !app.supply.enabled;
+    }
+}
+
+/// Nudge the output-voltage setpoint by one encoder detent.
+///
+/// Shared by the [`MenuScreen::CvSetpoint`] screen and Main's VSET mode so the two
+/// routes to the same field cannot drift apart. The setpoint is clamped to
+/// [`board::VSET_MIN_MV`] … [`board::VOUT_MAX_MV`]: below the floor the converter
+/// cannot regulate (the rev3 sequencer would time out in `Ramping` and latch
+/// `Fault::OutputNotReached`), and above the ceiling the CV map has no code.
+///
+/// One step per delivered event, like the I-LIM setpoint: the input poll already
+/// batches a fast flick into a single event, and a setpoint that jumps by however
+/// hard the knob was spun is hard to land.
+fn nudge_vset(app: &mut AppState, detents: i16, step_mv: u32) {
+    if detents > 0 {
+        app.supply.v_set_mv = (app.supply.v_set_mv + step_mv).min(board::VOUT_MAX_MV);
+    } else if detents < 0 {
+        app.supply.v_set_mv = app.supply.v_set_mv.saturating_sub(step_mv);
+    }
+    app.supply.v_set_mv = app
+        .supply
+        .v_set_mv
+        .clamp(board::VSET_MIN_MV, board::VOUT_MAX_MV);
 }
 
 /// Encoder-turn handler for the I-LIM screen; ignores all other events.

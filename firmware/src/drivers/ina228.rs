@@ -5,9 +5,11 @@
 //! * **U9 at `0x40`** (`A0 = A1 = GND`) monitors the **converter input** bus: a
 //!   2 mΩ shunt (R60) between the USB-PD side (`IN+`) and the converter input
 //!   (`IN−`), with its VBUS pin on the converter side of that shunt.
-//! * **U12 at `0x41`** (`A0 = GND`, `A1 = +3V3`) monitors the **output** bus: the
-//!   2 mΩ return-path shunt (R96) between the output connector (`IN+`, fuse
-//!   side) and the output switch Q5 (`IN−`), with VBUS on `Bus_V`.
+//! * **U12 at `0x44`** (`A1 = +3V3 (VS)`, `A0 = GND` — see the address table
+//!   note in `board::INA228_OUT_ADDR`; the straps are not binary-weighted)
+//!   monitors the **output** bus: the 2 mΩ return-path shunt (R96) between the
+//!   output connector (`IN+`, fuse side) and the output switch Q5 (`IN−`), with
+//!   VBUS on `Bus_V`.
 //!
 //! The two instances differ only in address and shunt value, so this driver is
 //! parameterised over both and its reading fields are direction-neutral.

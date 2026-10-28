@@ -5544,12 +5544,6 @@
 		(uuid "3fc60403-5423-4438-9c08-938f4e134b07")
 	)
 	(junction
-		(at 293.37 114.3)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "424ae763-e921-4a9b-84d6-36ec7ed48aa8")
-	)
-	(junction
 		(at 208.28 142.24)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6184,16 +6178,6 @@
 		)
 		(uuid "17331ed0-9fd0-47db-9529-26c984100952")
 	)
-	(wire
-		(pts
-			(xy 293.37 114.3) (xy 293.37 118.11)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "1733c775-3138-4b74-876e-68ccbc6726fe")
-	)
 	(bus
 		(pts
 			(xy 340.36 181.61) (xy 340.36 180.34)
@@ -6203,16 +6187,6 @@
 			(type default)
 		)
 		(uuid "19066065-3a58-408e-a71b-ba5bf86cda82")
-	)
-	(wire
-		(pts
-			(xy 293.37 125.73) (xy 293.37 129.54)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "1a5bb62f-ce1a-47a7-9167-4114e8dde13a")
 	)
 	(wire
 		(pts
@@ -10600,81 +10574,6 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 293.37 129.54 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "33b84ef2-57a3-4c4d-9cd8-adb133174bd3")
-		(property "Reference" "#PWR090"
-			(at 293.37 129.54 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "GND"
-			(at 293.37 135.89 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 293.37 129.54 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 293.37 129.54 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" ""
-			(at 293.37 129.54 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "1221f0de-64f6-4416-8be1-7269f0cf072a")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
-					(reference "#PWR090")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:GND")
 		(at 143.51 74.93 0)
 		(unit 1)
 		(body_style 1)
@@ -10743,100 +10642,6 @@
 			(project "nitride-nano"
 				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
 					(reference "#PWR064")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Device:R")
-		(at 293.37 121.92 0)
-		(mirror x)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "3b52ab62-7344-421f-adb0-d72050115fd5")
-		(property "Reference" "R91"
-			(at 295.91 123.1901 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "10k"
-			(at 295.91 120.6501 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
-			(at 291.592 121.92 90)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 293.37 121.92 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Resistor"
-			(at 293.37 121.92 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "LCSC" "C2906861"
-			(at 295.91 123.1901 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "5df17860-3a68-401e-8abc-4515bf9bb172")
-		)
-		(pin "1"
-			(uuid "b611e5b5-0cc7-458e-a4aa-ae680dc61407")
-		)
-		(instances
-			(project "nitride-nano"
-				(path "/aaad0350-e7db-44d5-b7ef-99e6416f6948/a05511eb-3c5e-4a0d-8491-3131eaddecdc"
-					(reference "R91")
 					(unit 1)
 				)
 			)

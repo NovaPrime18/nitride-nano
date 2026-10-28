@@ -39,11 +39,13 @@
 //! status line (`>SWEEP` plus the confirm prompt / point progress / `DONE`),
 //! which also displaces the efficiency readout.
 //!
-//! VSET mode is likewise a mode of the power screen, not a screen of its own:
-//! while the Main screen is in VSET mode the tag becomes `>V-SET`, the setpoint
-//! replaces the efficiency readout, and the header shows Fine/Coarse. Setpoint
-//! readouts (`v_set`, `i_set`) use one fractional digit; measurement channels
-//! keep three.
+//! The voltage setpoint has two routes to the same field, and they render
+//! identically: the `CvSetpoint` screen (one stop in the BTN3 cycle) and VSET
+//! mode, a mode of the power screen entered with the encoder button. In both the
+//! tag reads `>V-SET`, the setpoint replaces the efficiency readout, and the
+//! header shows Fine/Coarse — so switching routes never moves anything on the
+//! panel. Setpoint readouts (`v_set`, `i_set`) use one fractional digit;
+//! measurement channels keep three.
 //!
 //! NOTE: uses `draw_line(x0, y0, x1, y1)` for horizontal and vertical rules.
 
@@ -240,7 +242,8 @@ impl Ssd1306Ui {
         // VSET mode is active — so the reason the output is off stays visible.
         if let Some(label) = app.supply.fault.label() {
             self.display.draw_str(COL_LABEL, ROW_HEADER, label);
-        } else if app.ui.screen == MenuScreen::CcLimit
+        } else if app.ui.screen == MenuScreen::CvSetpoint
+            || app.ui.screen == MenuScreen::CcLimit
             || (app.ui.screen == MenuScreen::Main && app.ui.vset_mode)
         {
             // Show the active encoder step while a setpoint is editable.
@@ -321,8 +324,18 @@ impl Ssd1306Ui {
         self.display
             .fill_rect(IN2_VALUE_CLEAR_X, ROW_IN_VALUES, IN2_VALUE_CLEAR_W, 8);
 
-        // No source capabilities were read: there is no PD source on the bus
-        // (dead bus, no cable, or a non-PD input). Say so plainly.
+        // The Iin field is measured only by the input INA228, which lives on the
+        // USB-PD side of the board (powered from the TPS26750's own LDO). With an
+        // XT90/DC input there is no PD bus at all, so show the input mode rather
+        // than an error: `NO PD` is reserved for a *live* PD bus with no source
+        // negotiated, and `INA!` for a live bus whose monitor is missing.
+        if !app.pd_bus_alive() {
+            self.display
+                .draw_str(IN2_VALUE_CLEAR_X, ROW_IN_VALUES, "XT90");
+            return;
+        }
+        // No source capabilities were read: there is a live PD bus but no source
+        // on it. Say so plainly.
         if app.pd_control.error == PdAutoError::NoCable {
             self.display
                 .draw_str(IN2_VALUE_CLEAR_X, ROW_IN_VALUES, "NO PD");
@@ -459,8 +472,9 @@ impl Ssd1306Ui {
         }
     }
 
-    /// Bottom row: active screen name on the left, then the setpoint (I-LIM, or
-    /// Main in VSET mode) or the efficiency readout (bare Main) on the right.
+    /// Bottom row: active screen name on the left, then the setpoint (V-SET or
+    /// I-LIM, including Main in VSET mode) or the efficiency readout (bare Main)
+    /// on the right.
     fn draw_status_bar(&mut self, app: &AppState) {
         // A CFG sweep owns the whole bottom line while armed/running/done.
         if app.sweep.phase != SweepPhase::Off {
@@ -484,6 +498,9 @@ impl Ssd1306Ui {
                     "MAIN"
                 }
             }
+            // The dedicated V-SET screen and Main's VSET mode show the same tag
+            // and the same field; only the route differs.
+            MenuScreen::CvSetpoint => "V-SET",
             MenuScreen::CcLimit => "I-LIM",
             MenuScreen::PdContract => "PD",
             MenuScreen::Settings => "CFG",
@@ -494,6 +511,9 @@ impl Ssd1306Ui {
         self.display.draw_str(FONT_W, ROW_STATUS, tag);
 
         match app.ui.screen {
+            MenuScreen::CvSetpoint => {
+                draw_setpoint_right(&mut self.display, app.supply.v_set_mv, Unit::Voltage)
+            }
             MenuScreen::CcLimit => {
                 self.draw_cc_range_badge(app);
                 draw_setpoint_right(&mut self.display, app.supply.i_set_ma, Unit::Current)
@@ -822,6 +842,10 @@ impl Ssd1306Ui {
             PdMode::Manual => "MAN",
         });
 
+        if !app.pd_bus_alive() {
+            self.display.draw_str(30, 57, "NO PD BUS");
+            return;
+        }
         match ctrl.error {
             PdAutoError::NoCable => {
                 self.display.draw_str(30, 57, "NO PD");

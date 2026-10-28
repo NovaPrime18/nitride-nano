@@ -32,6 +32,28 @@ pub enum Fault {
     /// switch closed (no load current, output collapsed, or the monitor itself is
     /// not answering). See `board::OUTPUT_SWITCH_*`.
     OutputSwitchFailed,
+    /// rev3: at enable time the output node sat above
+    /// `board::VOUT_START_MAX_PCT` of the setpoint and never bled down inside
+    /// `board::OUTPUT_BLEED_TIMEOUT_MS` — an external source (or a battery)
+    /// is holding the output above what the sequencer will start into. Raise
+    /// the setpoint above that voltage or remove the source.
+    OutputAboveSetpoint,
+    /// The boot self-test (`src/preflight.rs`) reported a `[FAIL]`, so the
+    /// converter enable is refused until the hardware is fixed. The failing
+    /// checks are named in the boot log; see `board::PREFLIGHT_BLOCK_ENABLE`.
+    PreflightFailed,
+    /// rev3: the output-current sense chain is not plausible. Either the
+    /// converter is delivering meaningful power (judged from the input INA228)
+    /// while **both** the LT8390A's `ISMON` and the output INA228 read little or
+    /// no current, or U12 reads current that `ISMON` does not.
+    ///
+    /// Both current paths share the `R96` taps; `ISMON` additionally goes through
+    /// the `U7` range mux. A dead mux, an open tap or a shorted `C71` therefore
+    /// blinds the CC loop *and* the software over-current trip while the stage
+    /// keeps delivering power. The stage is switched off and the enable refused
+    /// until the fault is cleared, so it cannot run unprotected at 30 V / 5 A.
+    /// See [`crate::board::SENSE_OPEN_MIN_PIN_MW`] and friends.
+    SenseOpen,
     // TODO(dead-code): reserved for a "user switched the output off" state, but the
     // UI toggles `SupplyState::enabled` directly instead of raising a fault. Never
     // constructed or matched anywhere.
@@ -52,6 +74,9 @@ impl Fault {
             Fault::InputOverVoltage => Some("IN OVP"),
             Fault::OutputNotReached => Some("OUTPUT FAIL"),
             Fault::OutputSwitchFailed => Some("SWITCH FAIL"),
+            Fault::OutputAboveSetpoint => Some("OUT TOO HIGH"),
+            Fault::PreflightFailed => Some("SELF-TEST"),
+            Fault::SenseOpen => Some("SENSE OPEN"),
         }
     }
 }
@@ -143,6 +168,12 @@ pub const PD_PRESET_VOLTAGES_MV: [u32; 6] = [12_000, 15_000, 20_000, 28_000, 36_
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MenuScreen {
     Main,
+    /// Dedicated output-voltage editor, one stop in the BTN3 cycle.
+    ///
+    /// The Main screen's VSET mode (a single click of the encoder button) edits
+    /// the same field; this screen exists because BTN3 is the discovery path —
+    /// the whole setpoint cycle is Main → V-SET → I-LIM → PD → CFG → Main.
+    CvSetpoint,
     CcLimit,
     PdContract,
     Settings,
@@ -162,7 +193,7 @@ pub enum StepMode {
 /// element appended to [`CFG_ITEMS`].
 ///
 /// `PD CONTRACT` is deliberately *not* an entry: that screen already has its own
-/// stop in the BTN3 screen cycle (Main → I-LIM → PD → CFG → Main).
+/// stop in the BTN3 screen cycle (Main → V-SET → I-LIM → PD → CFG → Main).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CfgItem {
     EepromWrite,
@@ -306,6 +337,26 @@ impl Telemetry {
     }
 }
 
+impl AppState {
+    /// Is the USB-PD side of the board alive?
+    ///
+    /// The PD bus (TPS26750 + both INA228s) is powered from the **TPS26750's own
+    /// internal LDO** (`+3V3_LDO`, which also pulls up the MCU-side I2C2 lines),
+    /// so it only exists while a USB-C source supplies VBUS. An **XT90/DC input
+    /// is a fully supported configuration with no PD bus at all** — the board then
+    /// runs with Vin from the ADC divider and the output current from ISMON.
+    ///
+    /// Anything answering on that bus counts as alive, so the state self-heals
+    /// when a USB-C source is attached later (or when the controller finishes
+    /// loading its firmware). "Nothing answers" is treated as "no PD bus": on an
+    /// XT90-only bench that is the normal case, and a genuinely broken powered bus
+    /// looks identical from here — the boot-time pull-up probe and the
+    /// `preflight:` lines are what distinguish those.
+    pub fn pd_bus_alive(&self) -> bool {
+        self.pd_present || self.telemetry.ina_ok || self.telemetry.out_ina.ok
+    }
+}
+
 impl Default for Telemetry {
     fn default() -> Self {
         Self {
@@ -347,6 +398,12 @@ pub struct SupplyState {
     /// while the output is running (a range change is a ×10 step in CC loop gain),
     /// so `i_set_ma` wanting the other range is deferred to the next disable.
     pub cc_range: crate::board::CcRange,
+    /// Raw CV DAC code currently programmed (post-slew). Published for the
+    /// sweep log so the CV calibration fit can pair a code with the measured
+    /// output it actually produced.
+    pub dac_cv_code: u16,
+    /// Raw CC DAC code currently programmed, for `supply:` diagnostics.
+    pub dac_cc_code: u16,
 }
 
 impl Default for SupplyState {
@@ -369,6 +426,8 @@ impl Default for SupplyState {
             cc_active: false,
             stage: crate::control::sequencer::Stage::Off,
             cc_range: crate::board::CcRange::LowGain,
+            dac_cv_code: board::DAC_MAX_CODE,
+            dac_cc_code: 0,
         }
     }
 }
@@ -381,7 +440,9 @@ pub struct UiState {
     /// Main-screen VSET mode: set by a single encoder-button click, cleared by
     /// another click or by leaving Main with BTN3. While set, encoder rotation
     /// trims `v_set` and the status line shows `>V-SET` + the setpoint instead of
-    /// the efficiency readout.
+    /// the efficiency readout. The [`MenuScreen::CvSetpoint`] screen edits the
+    /// same field and is the BTN3 route to it; both can never be active at once
+    /// because entering either one clears the other.
     pub vset_mode: bool,
     pub pd_profile_index: u8,
     pub encoder_step_mode: StepMode,

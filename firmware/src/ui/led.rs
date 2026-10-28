@@ -30,6 +30,9 @@
 //! | 10  | EEPROM FAULT | EEPROM workflow error                     |
 //! | 11  | OUTPUT FAIL  | `Fault::OutputNotReached` (rev3)          |
 //! | 12  | SWITCH FAIL  | `Fault::OutputSwitchFailed` (rev3)        |
+//! | 13  | OUT TOO HIGH | `Fault::OutputAboveSetpoint` (rev3)       |
+//! | 14  | SELF-TEST    | `Fault::PreflightFailed` (boot self-test) |
+//! | 15  | SENSE OPEN   | `Fault::SenseOpen` (output-current chain blind) |
 //!
 //! Non-code states:
 //!
@@ -122,17 +125,22 @@ impl LedStatus {
         }
 
         if subsystems_ready {
-            // Either power monitor being absent is worth a code: the input one
-            // owns VIN/IIN/PIN, the output one owns the displayed VOUT/IOUT and
-            // is the only evidence the output switch closed.
-            if !app.telemetry.ina_ok || !app.telemetry.out_ina.ok {
-                return LedStatus::InaMissing;
-            }
-            if !app.pd_present {
-                return LedStatus::PdControllerLost;
-            }
-            if app.pd_control.error == PdAutoError::NoRail {
-                return LedStatus::PdNoRail;
+            // Only complain about the USB-PD side when it is *alive*: the
+            // TPS26750 and both INA228s are powered from the controller's own
+            // LDO, so with an XT90/DC input there is no PD bus at all — that is a
+            // supported configuration, not a fault, and it must not turn the
+            // status LED into an alarm. Codes 7–9 therefore mean "the PD side is
+            // up but a device on it is missing or unhappy".
+            if app.pd_bus_alive() {
+                if !app.telemetry.ina_ok || !app.telemetry.out_ina.ok {
+                    return LedStatus::InaMissing;
+                }
+                if !app.pd_present {
+                    return LedStatus::PdControllerLost;
+                }
+                if app.pd_control.error == PdAutoError::NoRail {
+                    return LedStatus::PdNoRail;
+                }
             }
         }
 
@@ -164,6 +172,9 @@ impl LedStatus {
             LedStatus::Fault(Fault::InputOverVoltage) => "IN OVP",
             LedStatus::Fault(Fault::OutputNotReached) => "OUTPUT FAIL",
             LedStatus::Fault(Fault::OutputSwitchFailed) => "SWITCH FAIL",
+            LedStatus::Fault(Fault::OutputAboveSetpoint) => "OUT TOO HIGH",
+            LedStatus::Fault(Fault::PreflightFailed) => "SELF-TEST",
+            LedStatus::Fault(Fault::SenseOpen) => "SENSE OPEN",
             // `classify` never produces `Fault(None)`.
             LedStatus::Fault(Fault::None) => "no fault",
             LedStatus::InaMissing => "INA228 FAULT",
@@ -198,6 +209,9 @@ fn fault_code(fault: Fault) -> u8 {
         Fault::InputOverVoltage => 6,
         Fault::OutputNotReached => 11,
         Fault::OutputSwitchFailed => 12,
+        Fault::OutputAboveSetpoint => 13,
+        Fault::PreflightFailed => 14,
+        Fault::SenseOpen => 15,
         // Not reachable through `classify`, which tests for `None` first.
         Fault::None => 0,
     }

@@ -36,6 +36,14 @@ struct PointResult {
     vout_mv: u32,
     iout_ma: u32,
     vin_mv: u32,
+    /// Raw CV DAC code commanded for this point. Paired with `u12_vbus_mv`
+    /// this is the input to the CV-map calibration fit
+    /// (`analysis/cv_cal/fit.py`).
+    cv_code: u16,
+    /// Output INA228 (U12) bus voltage for this point — the load-terminal
+    /// voltage, i.e. the value the CV calibration fits against. Zero/absent
+    /// when U12 was not answering (fit.py skips those points).
+    u12_vbus_mv: u32,
     /// Mean input power over the measurement window.
     pin_mw: u32,
     /// Mean output power over the measurement window.
@@ -224,6 +232,12 @@ impl SweepController {
             vout_mv: app.telemetry.vout_mv,
             iout_ma: app.telemetry.iout_ma,
             vin_mv: app.telemetry.vin_mv,
+            cv_code: app.supply.dac_cv_code,
+            u12_vbus_mv: if app.telemetry.out_ina.ok {
+                app.telemetry.out_ina.bus_mv
+            } else {
+                0
+            },
             pin_mw: self.acc.mean_pin_mw(),
             pout_mw: self.acc.mean_pout_mw(),
             samples: self.acc.samples(),
@@ -267,7 +281,7 @@ impl SweepController {
             Some(t) => {
                 let suffix = if Self::valid(result) { "" } else { " excluded" };
                 defmt::info!(
-                    "sweep point {}/{}: vset={} vout={} iout={} vin={} pin_avg={} pout_avg={} eta={}.{}% n={}{}",
+                    "sweep point {}/{}: vset={} vout={} iout={} vin={} pin_avg={} pout_avg={} eta={}.{}% n={} cv_code={} u12={}{}",
                     result.index + 1,
                     board::SWEEP_POINTS,
                     result.v_set_mv,
@@ -279,11 +293,13 @@ impl SweepController {
                     t / 10,
                     t % 10,
                     result.samples,
+                    result.cv_code,
+                    result.u12_vbus_mv,
                     suffix
                 )
             }
             None => defmt::info!(
-                "sweep point {}/{}: vset={} vout={} iout={} vin={} pin_avg={} pout_avg={} eta=-- n={}",
+                "sweep point {}/{}: vset={} vout={} iout={} vin={} pin_avg={} pout_avg={} eta=-- n={} cv_code={} u12={}",
                 result.index + 1,
                 board::SWEEP_POINTS,
                 result.v_set_mv,
@@ -292,7 +308,9 @@ impl SweepController {
                 result.vin_mv,
                 result.pin_mw,
                 result.pout_mw,
-                result.samples
+                result.samples,
+                result.cv_code,
+                result.u12_vbus_mv
             ),
         }
     }
