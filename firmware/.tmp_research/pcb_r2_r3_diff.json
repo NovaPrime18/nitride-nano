@@ -1,0 +1,1296 @@
+{
+ "added": {
+  "C15": {
+   "value": "1nF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": "Net-(C15-Pad1)",
+    "2": "GND"
+   }
+  },
+  "C27": {
+   "value": "100pF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": "Net-(U7-S3B)",
+    "2": "GND"
+   }
+  },
+  "C89": {
+   "value": "100nF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": "+3V3",
+    "2": "GND"
+   }
+  },
+  "D11": {
+   "value": "BZT52C4V7S",
+   "fp": "PCM_JLCPCB:D_SOD-323",
+   "pads": {
+    "1": "Net-(Q5-G)",
+    "2": "GND"
+   }
+  },
+  "F2": {
+   "value": "20A",
+   "fp": "Fuse:Fuse_2512_6332Metric",
+   "pads": {
+    "1": "/Converter/PWR_REG_OUT+",
+    "2": "/Power-Sense-Out/Bus_V"
+   }
+  },
+  "JP5": {
+   "value": "SolderJumper_3_Open",
+   "fp": "Jumper:SolderJumper-3_P1.3mm_Open_RoundedPad1.0x1.5mm",
+   "pads": {
+    "1": "/USB-PD/I2CC_SDA",
+    "2": "/USB-PD/I2CC_SDA_EEPROM",
+    "3": "/MCU/I2CC_SDA_MCU"
+   }
+  },
+  "Q7": {
+   "value": "AO3401A",
+   "fp": "PCM_JLCPCB:Q_SOT-23",
+   "pads": {
+    "1": "Net-(Q12-D)",
+    "2": "+5V",
+    "3": "Net-(Q7-D)"
+   }
+  },
+  "R101": {
+   "value": "1k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "Net-(C50-Pad1)",
+    "2": "Net-(U7-S3B)"
+   }
+  },
+  "R102": {
+   "value": "27R 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "/Converter/IAMP-Ref-In",
+    "2": "GND"
+   }
+  },
+  "R103": {
+   "value": "1k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "/Converter/IAMP-Ref-In",
+    "2": "+3V3"
+   }
+  },
+  "R83": {
+   "value": "27R 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "/Power-Sense-Out/PWR-In",
+    "2": "/Power-Sense-Out/SENSE_P"
+   }
+  },
+  "R96": {
+   "value": "2mR",
+   "fp": "Resistor_SMD:R_2512_6332Metric",
+   "pads": {
+    "1": "/Power-Sense-Out/PWR-In",
+    "2": "/Converter/PWR_REG_OUT-"
+   }
+  },
+  "R98": {
+   "value": "27R 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "/Converter/PWR_REG_OUT-",
+    "2": "/Power-Sense-Out/SENSE_N"
+   }
+  },
+  "SW2": {
+   "value": "KMR211NGLFS",
+   "fp": "Button_Switch_SMD:SW_Push_1P1T_NO_CK_KMR2",
+   "pads": {
+    "1": "Net-(U2-PB8)",
+    "2": "+3V3"
+   }
+  },
+  "SW3": {
+   "value": "KMR211NGLFS",
+   "fp": "Button_Switch_SMD:SW_Push_1P1T_NO_CK_KMR2",
+   "pads": {
+    "1": "GND",
+    "2": "/MCU/Reset"
+   }
+  },
+  "U14": {
+   "value": "INA241A1xDDF",
+   "fp": "Package_TO_SOT_SMD:SOT-23-8",
+   "pads": {
+    "1": "/Power-Sense-Out/SENSE_N",
+    "2": "GND",
+    "3": "/Converter/IAMP-Ref-In",
+    "4": "GND",
+    "5": "/Converter/IAMP-In",
+    "6": "+3V3",
+    "7": "/Converter/IAMP-Ref-In",
+    "8": "/Power-Sense-Out/SENSE_P"
+   }
+  }
+ },
+ "removed": {
+  "C1": {
+   "value": "1nF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": "Net-(C1-Pad1)",
+    "2": "GND"
+   }
+  },
+  "C3": {
+   "value": "~",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": "Net-(U1-VC)",
+    "2": "GND"
+   }
+  },
+  "C64": {
+   "value": "100n X7R 100V",
+   "fp": "Capacitor_SMD:C_0603_1608Metric",
+   "pads": {
+    "1": "+3V3",
+    "2": "GND"
+   }
+  },
+  "D10": {
+   "value": "APTD1608LQBC/D",
+   "fp": "Altium_port:kingbright_0603_blue",
+   "pads": {
+    "1": "GND",
+    "2": "Net-(D10-A)"
+   }
+  },
+  "D13": {
+   "value": "APTD1608LQBC/D",
+   "fp": "Altium_port:kingbright_0603_blue",
+   "pads": {
+    "1": "Net-(D13-C)",
+    "2": "+3V3"
+   }
+  },
+  "D30": {
+   "value": "LED",
+   "fp": "LED_SMD:LED_0603_1608Metric",
+   "pads": {
+    "1": "Net-(D30-K)",
+    "2": "+3V3"
+   }
+  },
+  "JP14": {
+   "value": "Jumper_2_Bridged",
+   "fp": "Jumper:SolderJumper-2_P1.3mm_Bridged_RoundedPad1.0x1.5mm",
+   "pads": {
+    "1": "/MCU/SWITCH_EN_MANUAL",
+    "2": "+3V3_LDO"
+   }
+  },
+  "JP6": {
+   "value": "jumper_solder_2pad_no",
+   "fp": "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm",
+   "pads": {
+    "1": "/USB-PD/I2CC_SCL_EEPROM",
+    "2": "/USB-PD/I2CC_SCL"
+   }
+  },
+  "JP8": {
+   "value": "jumper_solder_2pad_no",
+   "fp": "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm",
+   "pads": {
+    "1": "/USB-PD/I2CC_SCL_EEPROM",
+    "2": "/MCU/I2CC_SCL_MCU"
+   }
+  },
+  "JP9": {
+   "value": "jumper_solder_2pad_no",
+   "fp": "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm",
+   "pads": {
+    "1": "/USB-PD/I2CC_SDA_EEPROM",
+    "2": "/MCU/I2CC_SDA_MCU"
+   }
+  },
+  "NT1": {
+   "value": "nt_2pad_20x20_20_60x20",
+   "fp": "Altium_port:NetTie-2_SMD_Pad0.5mm",
+   "pads": {
+    "1": "Net-(NT1-Pad1)",
+    "2": "GND"
+   }
+  },
+  "Q11": {
+   "value": "AO3404A",
+   "fp": "Altium_port:sot-23-3L_103p_300x130x110_n",
+   "pads": {
+    "1": "/USB-PD/SWITCH_EN",
+    "2": "GND",
+    "3": "Net-(Q11-D)"
+   }
+  },
+  "R17": {
+   "value": "10",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "Net-(U1-ISN)",
+    "2": "Net-(D20-A)"
+   }
+  },
+  "R18": {
+   "value": "0.002",
+   "fp": "Resistor_SMD:R_1206_3216Metric",
+   "pads": {
+    "1": "Net-(D3-K)",
+    "2": "Net-(D20-A)"
+   }
+  },
+  "R2": {
+   "value": "18k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "Net-(U1-VC)",
+    "2": "Net-(C1-Pad1)"
+   }
+  },
+  "R26": {
+   "value": "100k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "+VBUS_LV",
+    "2": "Net-(R26-Pad2)"
+   }
+  },
+  "R27": {
+   "value": "100k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "Net-(R26-Pad2)",
+    "2": "Net-(R27-Pad2)"
+   }
+  },
+  "R29": {
+   "value": "33k 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "Net-(R27-Pad2)",
+    "2": "Net-(D10-A)"
+   }
+  },
+  "R37": {
+   "value": "100k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "/MCU/SWITCH_EN_MANUAL",
+    "2": "GND"
+   }
+  },
+  "R45": {
+   "value": "330R 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "Net-(D13-C)",
+    "2": "Net-(Q11-D)"
+   }
+  },
+  "R55": {
+   "value": "27R 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "/Power-Sense/INA_ALERT",
+    "2": "/USB-PD/SWITCH_EN"
+   }
+  },
+  "R56": {
+   "value": "4.7k 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": "Net-(U10B-Y)",
+    "2": "/MCU/SWITCH_EN_READ"
+   }
+  },
+  "TP28": {
+   "value": "tp_round_70",
+   "fp": "TestPoint:TestPoint_Pad_D1.0mm",
+   "pads": {
+    "1": "/USB-PD/SWITCH_EN"
+   }
+  },
+  "TP29": {
+   "value": "tp_round_70",
+   "fp": "TestPoint:TestPoint_Pad_D1.0mm",
+   "pads": {
+    "1": "/MCU/SWITCH_EN_READ"
+   }
+  },
+  "TP35": {
+   "value": "tp_round_70",
+   "fp": "TestPoint:TestPoint_Pad_D1.0mm",
+   "pads": {
+    "1": "GND"
+   }
+  },
+  "U10": {
+   "value": "SN74LVC1G17DBVR",
+   "fp": "Altium_port:sot25_95p_300x280x145_jedec_mo-178-aa_n",
+   "pads": {
+    "1": "unconnected-(U10A-NC-Pad1)",
+    "2": "/USB-PD/SWITCH_EN",
+    "3": "GND",
+    "4": "Net-(U10B-Y)",
+    "5": "+3V3"
+   }
+  }
+ },
+ "value_changed": {
+  "C26": {
+   "r2": "1uF",
+   "r3": "100pF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric"
+  },
+  "C50": {
+   "r2": "100n X7R 100V",
+   "r3": "10n X7R 100V",
+   "fp": "Capacitor_SMD:C_0402_1005Metric"
+  },
+  "C71": {
+   "r2": "100nF",
+   "r3": "100n X7R 100V",
+   "fp": "Capacitor_SMD:C_0603_1608Metric"
+  },
+  "C72": {
+   "r2": "100nF",
+   "r3": "100n X7R 100V",
+   "fp": "Capacitor_SMD:C_0603_1608Metric"
+  },
+  "JP4": {
+   "r2": "jumper_solder_2pad_no",
+   "r3": "SolderJumper_3_Open",
+   "fp": "Jumper:SolderJumper-3_P1.3mm_Open_RoundedPad1.0x1.5mm"
+  },
+  "Q12": {
+   "r2": "HUASHUO HSBB0115",
+   "r3": "AO3400A",
+   "fp": "PCM_JLCPCB:Q_SOT-23"
+  },
+  "Q5": {
+   "r2": "HUASHUO HSBB0115",
+   "r3": "EPC2367",
+   "fp": "thommys-parts2:D1068"
+  },
+  "R16": {
+   "r2": "10",
+   "r3": "18k",
+   "fp": "Resistor_SMD:R_0402_1005Metric"
+  },
+  "R21": {
+   "r2": "10k",
+   "r3": "100k",
+   "fp": "Resistor_SMD:R_0402_1005Metric"
+  },
+  "R22": {
+   "r2": "3.3",
+   "r3": "100k",
+   "fp": "Resistor_SMD:R_0402_1005Metric"
+  },
+  "R57": {
+   "r2": "3.3",
+   "r3": "4.7k 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric"
+  },
+  "R58": {
+   "r2": "330R 1%",
+   "r3": "27R 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric"
+  },
+  "R60": {
+   "r2": "8mR",
+   "r3": "2mR",
+   "fp": "Resistor_SMD:R_2512_6332Metric"
+  },
+  "R75": {
+   "r2": "10k",
+   "r3": "75k",
+   "fp": "Resistor_SMD:R_0402_1005Metric"
+  },
+  "R76": {
+   "r2": "10k",
+   "r3": "75k",
+   "fp": "Resistor_SMD:R_0402_1005Metric"
+  },
+  "U12": {
+   "r2": "FT234XD",
+   "r3": "INA228AIDGSR",
+   "fp": "Altium_port:vssop10_50p_300x300x110_mfg"
+  },
+  "U7": {
+   "r2": "74LVC1G08SE-7",
+   "r3": "TMUX1574RSV",
+   "fp": "Package_DFN_QFN:UQFN-16_1.8x2.6mm_P0.4mm"
+  }
+ },
+ "net_changed": {
+  "C14": {
+   "value": "100uF",
+   "fp": "Capacitor_SMD:CP_Elec_10x12.6",
+   "pads": {
+    "1": {
+     "r2": "Net-(D3-K)",
+     "r3": "Net-(D20-A)"
+    }
+   }
+  },
+  "C16": {
+   "value": "10uF",
+   "fp": "Capacitor_SMD:C_1210_3225Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(D3-K)",
+     "r3": "Net-(D20-A)"
+    }
+   }
+  },
+  "C17": {
+   "value": "100nF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(D3-K)",
+     "r3": "Net-(D20-A)"
+    }
+   }
+  },
+  "C18": {
+   "value": "100nF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(D3-K)",
+     "r3": "Net-(D20-A)"
+    }
+   }
+  },
+  "C19": {
+   "value": "100nF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(D3-K)",
+     "r3": "Net-(D20-A)"
+    }
+   }
+  },
+  "C20": {
+   "value": "100nF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(D3-K)",
+     "r3": "Net-(D20-A)"
+    }
+   }
+  },
+  "C21": {
+   "value": "1uF",
+   "fp": "Capacitor_SMD:C_0603_1608Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(D3-K)",
+     "r3": "Net-(D20-A)"
+    }
+   }
+  },
+  "C26": {
+   "value": "100pF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(U1-ISP)",
+     "r3": "Net-(U7-S3A)"
+    },
+    "2": {
+     "r2": "Net-(U1-ISN)",
+     "r3": "GND"
+    }
+   }
+  },
+  "C29": {
+   "value": "100nF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "/Converter/PWR_REG_OUT",
+     "r3": "/Converter/PWR_REG_OUT+"
+    }
+   }
+  },
+  "C50": {
+   "value": "10n X7R 100V",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "+3V3_LDO",
+     "r3": "Net-(C50-Pad1)"
+    }
+   }
+  },
+  "C51": {
+   "value": "2.2u X7R 100V",
+   "fp": "Capacitor_SMD:C_0805_2012Metric",
+   "pads": {
+    "1": {
+     "r2": "/USB-PD/TS",
+     "r3": "Net-(JP11-C)"
+    }
+   }
+  },
+  "C54": {
+   "value": "100n X7R 100V",
+   "fp": "Capacitor_SMD:C_0603_1608Metric",
+   "pads": {
+    "1": {
+     "r2": "/Power-Sense/SENSE_P",
+     "r3": "/Power-Sense-In/SENSE_P"
+    },
+    "2": {
+     "r2": "/Power-Sense/SENSE_N",
+     "r3": "/Power-Sense-In/SENSE_N"
+    }
+   }
+  },
+  "C71": {
+   "value": "100n X7R 100V",
+   "fp": "Capacitor_SMD:C_0603_1608Metric",
+   "pads": {
+    "1": {
+     "r2": "+3V3",
+     "r3": "/Power-Sense-Out/SENSE_P"
+    },
+    "2": {
+     "r2": "GND",
+     "r3": "/Power-Sense-Out/SENSE_N"
+    }
+   }
+  },
+  "C73": {
+   "value": "100nF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(U12-3V3OUT)",
+     "r3": "+3V3"
+    }
+   }
+  },
+  "C74": {
+   "value": "100nF",
+   "fp": "Capacitor_SMD:C_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(U12-3V3OUT)",
+     "r3": "/Converter/IAMP-Ref-In"
+    }
+   }
+  },
+  "D17": {
+   "value": "SMAJ58A",
+   "fp": "PCM_JLCPCB:D_SMA",
+   "pads": {
+    "1": {
+     "r2": "/Converter/PWR_REG_OUT",
+     "r3": "/Power-Sense-Out/Bus_V"
+    },
+    "2": {
+     "r2": "GND",
+     "r3": "/Power-Sense-Out/PWR-In"
+    }
+   }
+  },
+  "D21": {
+   "value": "LED",
+   "fp": "LED_SMD:LED_0603_1608Metric",
+   "pads": {
+    "2": {
+     "r2": "/Converter/PWR_REG_OUT",
+     "r3": "/Power-Sense-Out/Bus_V"
+    }
+   }
+  },
+  "D3": {
+   "value": "PMEG6020ETP,115",
+   "fp": "Diode_SMD:D_SOD-128",
+   "pads": {
+    "1": {
+     "r2": "Net-(D3-K)",
+     "r3": "Net-(D20-A)"
+    }
+   }
+  },
+  "F1": {
+   "value": "20A",
+   "fp": "Fuse:Fuse_2512_6332Metric",
+   "pads": {
+    "2": {
+     "r2": "/Power-Sense/+VBUS_SENSED",
+     "r3": "/Power-Sense-In/+VBUS_SENSED"
+    }
+   }
+  },
+  "FB5": {
+   "value": "TBD",
+   "fp": "Inductor_SMD:L_1210_3225Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(FB5-Pad1)",
+     "r3": "Net-(D20-A)"
+    },
+    "2": {
+     "r2": "/Converter/PWR_REG_OUT",
+     "r3": "/Converter/PWR_REG_OUT+"
+    }
+   }
+  },
+  "FB6": {
+   "value": "TBD",
+   "fp": "Inductor_SMD:L_1210_3225Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(FB5-Pad1)",
+     "r3": "Net-(D20-A)"
+    },
+    "2": {
+     "r2": "/Converter/PWR_REG_OUT",
+     "r3": "/Converter/PWR_REG_OUT+"
+    }
+   }
+  },
+  "FB7": {
+   "value": "TBD",
+   "fp": "Inductor_SMD:L_1210_3225Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(FB5-Pad1)",
+     "r3": "Net-(D20-A)"
+    },
+    "2": {
+     "r2": "/Converter/PWR_REG_OUT",
+     "r3": "/Converter/PWR_REG_OUT+"
+    }
+   }
+  },
+  "FB8": {
+   "value": "TBD",
+   "fp": "Inductor_SMD:L_1210_3225Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(FB5-Pad1)",
+     "r3": "Net-(D20-A)"
+    },
+    "2": {
+     "r2": "/Converter/PWR_REG_OUT",
+     "r3": "/Converter/PWR_REG_OUT+"
+    }
+   }
+  },
+  "J3": {
+   "value": "XT-90-M",
+   "fp": "thommys-parts2:CONN-TH_XT90PW-M.G.Y",
+   "pads": {
+    "2": {
+     "r2": "/Converter/PWR_REG_OUT",
+     "r3": "/Power-Sense-Out/Bus_V"
+    },
+    "1": {
+     "r2": "GND",
+     "r3": "/Power-Sense-Out/PWR-In"
+    }
+   }
+  },
+  "JP11": {
+   "value": "jumper_solder_3pad_12nc_kicad",
+   "fp": "Jumper:SolderJumper-3_P1.3mm_Bridged2Bar12_RoundedPad1.0x1.5mm",
+   "pads": {
+    "2": {
+     "r2": "/USB-PD/TS",
+     "r3": "Net-(JP11-C)"
+    }
+   }
+  },
+  "JP4": {
+   "value": "SolderJumper_3_Open",
+   "fp": "Jumper:SolderJumper-3_P1.3mm_Open_RoundedPad1.0x1.5mm",
+   "pads": {
+    "1": {
+     "r2": "/USB-PD/I2CC_SDA_EEPROM",
+     "r3": "/USB-PD/I2CC_SCL"
+    },
+    "2": {
+     "r2": "/USB-PD/I2CC_SDA",
+     "r3": "/USB-PD/I2CC_SCL_EEPROM"
+    },
+    "3": {
+     "r2": null,
+     "r3": "/MCU/I2CC_SCL_MCU"
+    }
+   }
+  },
+  "Q10": {
+   "value": "SQJB90EP-T1_GE3",
+   "fp": "Altium_port:PowerPAKSO-8_127p_513x615x120_n",
+   "pads": {
+    "6": {
+     "r2": "/Power-Sense/+VBUS_SENSED",
+     "r3": "/Power-Sense-In/+VBUS_SENSED"
+    }
+   }
+  },
+  "Q12": {
+   "value": "AO3400A",
+   "fp": "PCM_JLCPCB:Q_SOT-23",
+   "pads": {
+    "G": {
+     "r2": "Net-(Q12-PadG)",
+     "r3": null
+    },
+    "S": {
+     "r2": "Net-(D20-A)",
+     "r3": null
+    },
+    "D": {
+     "r2": "Net-(FB5-Pad1)",
+     "r3": null
+    },
+    "1": {
+     "r2": null,
+     "r3": "/Converter/PWR_G"
+    },
+    "2": {
+     "r2": null,
+     "r3": "GND"
+    },
+    "3": {
+     "r2": null,
+     "r3": "Net-(Q12-D)"
+    }
+   }
+  },
+  "Q4": {
+   "value": "EPC2367",
+   "fp": "thommys-parts2:D1068",
+   "pads": {
+    "5": {
+     "r2": "Net-(D3-K)",
+     "r3": "Net-(D20-A)"
+    },
+    "3": {
+     "r2": "Net-(D3-K)",
+     "r3": "Net-(D20-A)"
+    }
+   }
+  },
+  "Q5": {
+   "value": "EPC2367",
+   "fp": "thommys-parts2:D1068",
+   "pads": {
+    "4": {
+     "r2": null,
+     "r3": "GND"
+    },
+    "G": {
+     "r2": "Net-(Q5-PadG)",
+     "r3": null
+    },
+    "5": {
+     "r2": null,
+     "r3": "/Converter/PWR_REG_OUT-"
+    },
+    "D": {
+     "r2": "Net-(FB5-Pad1)",
+     "r3": null
+    },
+    "2": {
+     "r2": null,
+     "r3": "GND"
+    },
+    "S": {
+     "r2": "Net-(D20-A)",
+     "r3": null
+    },
+    "1": {
+     "r2": null,
+     "r3": "Net-(Q5-G)"
+    },
+    "3": {
+     "r2": null,
+     "r3": "/Converter/PWR_REG_OUT-"
+    }
+   }
+  },
+  "R16": {
+   "value": "18k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(U1-ISP)",
+     "r3": "Net-(U7-S3A)"
+    },
+    "2": {
+     "r2": "Net-(D3-K)",
+     "r3": "Net-(C15-Pad1)"
+    }
+   }
+  },
+  "R21": {
+   "value": "100k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(D20-A)",
+     "r3": "GND"
+    },
+    "2": {
+     "r2": "/Converter/LOADTG",
+     "r3": "/Converter/PWR_G"
+    }
+   }
+  },
+  "R22": {
+   "value": "100k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "/Converter/LOADTG",
+     "r3": "Net-(Q12-D)"
+    },
+    "2": {
+     "r2": "Net-(Q5-PadG)",
+     "r3": "+5V"
+    }
+   }
+  },
+  "R34": {
+   "value": "4.7k 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "2": {
+     "r2": "/USB-PD/I2CC_SDA_EEPROM",
+     "r3": "/USB-PD/I2CC_SDA"
+    }
+   }
+  },
+  "R35": {
+   "value": "4.7k 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "2": {
+     "r2": "/USB-PD/I2CC_SCL_EEPROM",
+     "r3": "/USB-PD/I2CC_SCL"
+    }
+   }
+  },
+  "R41": {
+   "value": "4.7k 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "/USB-PD/PP_EN3",
+     "r3": "/USB-PD/PP_EN2"
+    },
+    "2": {
+     "r2": "/USB-PD/SWITCH_EN",
+     "r3": "Net-(U8-INP)"
+    }
+   }
+  },
+  "R44": {
+   "value": "100k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "/Power-Sense/+VBUS_SENSED",
+     "r3": "/Power-Sense-In/+VBUS_SENSED"
+    }
+   }
+  },
+  "R46": {
+   "value": "100k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "2": {
+     "r2": "/Power-Sense/+VBUS_SENSED",
+     "r3": "/Power-Sense-In/+VBUS_SENSED"
+    }
+   }
+  },
+  "R51": {
+   "value": "10k @25\u00b0C",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "2": {
+     "r2": "Net-(NT1-Pad1)",
+     "r3": "GND"
+    }
+   }
+  },
+  "R52": {
+   "value": "27R 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "/Power-Sense/+VBUS_SENSED",
+     "r3": "/Power-Sense-In/+VBUS_SENSED"
+    },
+    "2": {
+     "r2": "/Power-Sense/SENSE_P",
+     "r3": "/Power-Sense-In/SENSE_P"
+    }
+   }
+  },
+  "R54": {
+   "value": "27R 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "2": {
+     "r2": "/Power-Sense/SENSE_N",
+     "r3": "/Power-Sense-In/SENSE_N"
+    }
+   }
+  },
+  "R57": {
+   "value": "4.7k 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(Q12-PadG)",
+     "r3": "GND"
+    },
+    "2": {
+     "r2": "/Converter/LOADTG",
+     "r3": "Net-(Q5-G)"
+    }
+   }
+  },
+  "R58": {
+   "value": "27R 1%",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(D30-K)",
+     "r3": "Net-(Q7-D)"
+    },
+    "2": {
+     "r2": "Net-(U12-CBUS0)",
+     "r3": "Net-(Q5-G)"
+    }
+   }
+  },
+  "R60": {
+   "value": "2mR",
+   "fp": "Resistor_SMD:R_2512_6332Metric",
+   "pads": {
+    "1": {
+     "r2": "/Power-Sense/+VBUS_SENSED",
+     "r3": "/Power-Sense-In/+VBUS_SENSED"
+    }
+   }
+  },
+  "R75": {
+   "value": "75k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "GND",
+     "r3": "Net-(D20-K)"
+    },
+    "2": {
+     "r2": "Net-(D20-K)",
+     "r3": "GND"
+    }
+   }
+  },
+  "R76": {
+   "value": "75k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "GND",
+     "r3": "Net-(D21-K)"
+    },
+    "2": {
+     "r2": "Net-(D21-K)",
+     "r3": "GND"
+    }
+   }
+  },
+  "R78": {
+   "value": "10",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "1": {
+     "r2": "Net-(U2-PA11)",
+     "r3": "Net-(U2-PB1)"
+    }
+   }
+  },
+  "R91": {
+   "value": "10k",
+   "fp": "Resistor_SMD:R_0402_1005Metric",
+   "pads": {
+    "2": {
+     "r2": "/USB-PD/PP_EN3",
+     "r3": "/USB-PD/PP_EN2"
+    }
+   }
+  },
+  "U1": {
+   "value": "LT8390AIUFD-PBF",
+   "fp": "thommys-parts2:UFD_28_ADI",
+   "pads": {
+    "20": {
+     "r2": "/Converter/LOADTG",
+     "r3": "unconnected-(U1-LOADTG-Pad20)"
+    },
+    "11": {
+     "r2": "Net-(U1-ISP)",
+     "r3": "/Converter/ISP-L"
+    },
+    "21": {
+     "r2": "Net-(D3-K)",
+     "r3": "Net-(D20-A)"
+    },
+    "12": {
+     "r2": "Net-(U1-ISN)",
+     "r3": "/Converter/ISN-L"
+    },
+    "8": {
+     "r2": "/Converter/VREF",
+     "r3": "/Converter/CNV-EN-LOADEN"
+    }
+   }
+  },
+  "U12": {
+   "value": "INA228AIDGSR",
+   "fp": "Altium_port:vssop10_50p_300x300x110_mfg",
+   "pads": {
+    "5": {
+     "r2": "GND",
+     "r3": "/MCU/I2C0_SCL"
+    },
+    "7": {
+     "r2": "Net-(U12-TXD{slash}D0)",
+     "r3": "GND"
+    },
+    "12": {
+     "r2": "/MCU/USB_D_P",
+     "r3": null
+    },
+    "6": {
+     "r2": "Net-(U12-CBUS0)",
+     "r3": "+3V3"
+    },
+    "1": {
+     "r2": "/MCU/USB_D_N",
+     "r3": "+3V3"
+    },
+    "10": {
+     "r2": "Net-(U12-RXD{slash}D1)",
+     "r3": "/Power-Sense-Out/SENSE_P"
+    },
+    "3": {
+     "r2": "Net-(U12-3V3OUT)",
+     "r3": "unconnected-(U12-ALERT-Pad3)"
+    },
+    "4": {
+     "r2": "+3V3",
+     "r3": "/MCU/I2C0_SDA"
+    },
+    "13": {
+     "r2": "GND",
+     "r3": null
+    },
+    "2": {
+     "r2": "Net-(U12-3V3OUT)",
+     "r3": "GND"
+    },
+    "8": {
+     "r2": "unconnected-(U12-~{RTS}{slash}D2-Pad8)",
+     "r3": "/Power-Sense-Out/Bus_V"
+    },
+    "9": {
+     "r2": "Net-(U12-3V3OUT)",
+     "r3": "/Power-Sense-Out/SENSE_N"
+    },
+    "11": {
+     "r2": "unconnected-(U12-~{CTS}{slash}D3-Pad11)",
+     "r3": null
+    }
+   }
+  },
+  "U2": {
+   "value": "STM32G474CEUx",
+   "fp": "Package_DFN_QFN:QFN-48-1EP_7x7mm_P0.5mm_EP5.6x5.6mm",
+   "pads": {
+    "33": {
+     "r2": "Net-(U2-PA11)",
+     "r3": "/MCU/USB_D_N"
+    },
+    "30": {
+     "r2": "/MCU/I2CC_SCL_MCU",
+     "r3": "/MCU/I2C0_SDA"
+    },
+    "17": {
+     "r2": "unconnected-(U2-PB0-Pad17)",
+     "r3": "/MCU/ENC_BUTT"
+    },
+    "40": {
+     "r2": "Net-(U12-TXD{slash}D0)",
+     "r3": "unconnected-(U2-PC11-Pad40)"
+    },
+    "43": {
+     "r2": "/MCU/I2CC_SDA_MCU",
+     "r3": "/MCU/ENC_B"
+    },
+    "39": {
+     "r2": "Net-(U12-RXD{slash}D1)",
+     "r3": "unconnected-(U2-PC10-Pad39)"
+    },
+    "18": {
+     "r2": "unconnected-(U2-PB1-Pad18)",
+     "r3": "Net-(U2-PB1)"
+    },
+    "29": {
+     "r2": "unconnected-(U2-PC6-Pad29)",
+     "r3": "/MCU/I2CC_SCL_MCU"
+    },
+    "19": {
+     "r2": "unconnected-(U2-PB2-Pad19)",
+     "r3": "/Converter/PWR_G"
+    },
+    "34": {
+     "r2": "/MCU/ENC_B",
+     "r3": "/MCU/USB_D_P"
+    },
+    "45": {
+     "r2": "/MCU/I2C0_SDA",
+     "r3": "/MCU/I2CC_SDA_MCU"
+    },
+    "44": {
+     "r2": "/MCU/ENC_A",
+     "r3": "/Converter/High-Gain"
+    },
+    "42": {
+     "r2": "/MCU/ENC_BUTT",
+     "r3": "/MCU/ENC_A"
+    },
+    "41": {
+     "r2": "/MCU/SWITCH_EN_MANUAL",
+     "r3": "/Converter/CNV-EN-LOADEN"
+    }
+   }
+  },
+  "U7": {
+   "value": "TMUX1574RSV",
+   "fp": "Package_DFN_QFN:UQFN-16_1.8x2.6mm_P0.4mm",
+   "pads": {
+    "5": {
+     "r2": "+3V3_LDO",
+     "r3": "/Converter/ISN-L"
+    },
+    "16": {
+     "r2": null,
+     "r3": "/Power-Sense-Out/SENSE_P"
+    },
+    "7": {
+     "r2": null,
+     "r3": "Net-(U1-VC)"
+    },
+    "12": {
+     "r2": null,
+     "r3": "unconnected-(U7-S4A-Pad12)"
+    },
+    "6": {
+     "r2": null,
+     "r3": "GND"
+    },
+    "1": {
+     "r2": "/USB-PD/PP_EN2",
+     "r3": "/Converter/IAMP-In"
+    },
+    "10": {
+     "r2": null,
+     "r3": "unconnected-(U7-D4-Pad10)"
+    },
+    "3": {
+     "r2": "GND",
+     "r3": "/Power-Sense-Out/SENSE_N"
+    },
+    "4": {
+     "r2": "/USB-PD/PP_EN3",
+     "r3": "/Converter/IAMP-Ref-In"
+    },
+    "13": {
+     "r2": null,
+     "r3": "GND"
+    },
+    "14": {
+     "r2": null,
+     "r3": "+3V3"
+    },
+    "2": {
+     "r2": "/MCU/SWITCH_EN_MANUAL",
+     "r3": "/Converter/ISP-L"
+    },
+    "8": {
+     "r2": null,
+     "r3": "Net-(U7-S3B)"
+    },
+    "9": {
+     "r2": null,
+     "r3": "Net-(U7-S3A)"
+    },
+    "11": {
+     "r2": null,
+     "r3": "unconnected-(U7-S4B-Pad11)"
+    },
+    "15": {
+     "r2": null,
+     "r3": "/Converter/High-Gain"
+    }
+   }
+  },
+  "U8": {
+   "value": "LTC7004x",
+   "fp": "Altium_port:msop_10p_300x490x110_tp168x188_n",
+   "pads": {
+    "4": {
+     "r2": "/USB-PD/SWITCH_EN",
+     "r3": "Net-(U8-INP)"
+    }
+   }
+  },
+  "U9": {
+   "value": "INA228AIDGSR",
+   "fp": "Altium_port:vssop10_50p_300x300x110_mfg",
+   "pads": {
+    "10": {
+     "r2": "/Power-Sense/SENSE_P",
+     "r3": "/Power-Sense-In/SENSE_P"
+    },
+    "3": {
+     "r2": "/Power-Sense/INA_ALERT",
+     "r3": "unconnected-(U9-ALERT-Pad3)"
+    },
+    "9": {
+     "r2": "/Power-Sense/SENSE_N",
+     "r3": "/Power-Sense-In/SENSE_N"
+    }
+   }
+  }
+ }
+}
