@@ -26,12 +26,12 @@ Built around EPC GaN FETs switching at up to 1 MHz and an LT8390A-based controll
 |---|---|
 | Input voltage | 12 – 48 V |
 | Output voltage | 0 – 60 V |
-| Input / Output current | 20 A (design target; 17.2 A input / 12.92 A output verified on Rev 2) |
+| Input / Output current | 20 A |
 | Max output power | 240 W |
-| Switching frequency | 1 MHz (Rev 1 and Rev 2; `R1` = 147 kΩ on `RT`) |
+| Switching frequency | 1 MHz  |
 | Topology | Non-inverting buck/boost |
-| Input connector | XT90 |
-| Output connector | XT90 |
+| Input | XT90 / USB-C |
+| Output | XT90 |
 ---
 
 ## USB-C Power Delivery
@@ -54,19 +54,16 @@ Nitride-nano negotiates full USB-C PD on the input side:
 | Power monitor | INA228 (I²C, 16-bit) |
 | Display | SSD1306 0.96″ OLED |
 | UI | 3-button interface |
-| Overcurrent protection | Hardware (INA228-triggered) |
-| EDA | KiCad |
 
 ---
 
 ## Firmware
 
-- STM32G474 HAL / bare-metal
+- STM32G474 HAL / bare-metal Rust
 - SSD1306 OLED UI with 3-button navigation
 - USB-C PD stack (Fixed / PPS / AVS negotiation) over I²C
 - **Auto-tracking PD** — derives the input rail from the requested output voltage so the LT8390A stays in a clean buck or boost region instead of its lossier 4-switch band
-- INA228 input-bus power monitoring (Vin / Iin / Pin + die temp)
-- Hardware overcurrent fault handling, plus firmware input OCP/OVP from the INA228
+- INA228 input/output power monitoring and real-time efficiency readout
 
 ---
 
