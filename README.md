@@ -33,9 +33,6 @@ Built around EPC GaN FETs switching at up to 1 MHz and an LT8390A-based controll
 | Topology | Non-inverting buck/boost |
 | Input connector | XT90 |
 | Output connector | XT90 |
-
-> ⚠️ **20 A / 240 W figures are design targets. Revision 2 testing has verified up to 219 W output (52.4 V @ 4.18 A, 94.8 %); the full 240 W output envelope is still unverified.**
-
 ---
 
 ## USB-C Power Delivery
