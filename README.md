@@ -124,33 +124,6 @@ power was 219.0 W, up from 164 W on Revision 1.
 
 ---
 
-## Revision 2 Changes
-
-Reworks to the power stage and the bring-up bugs found on Revision 1:
-
-**Power stage**
-- New 2.2 µH inductor (Coilcraft XAL1010-222MED) at 1 MHz switching (`R1` = 147 kΩ on `RT`), chosen for lower core losses — the Rev 1 core was the hottest part by far
-- Turn-off diodes in the gate paths: soft turn-on, quick turn-off
-  - This prevents Miller turn-on of the output top FET caused by the input bottom FET through the inductor core (annoying issue to debug)
-- Flyback diodes on the power FETs: better placement and a different footprint (PMEG6020ETP)
-- More output capacitance
-- Series resistors in the CV and CC paths so the LT chip doesn't blow up (it happened 3×)
-- The LT chip's 5 V rail is now fed from a switching regulator instead of an ultra-lossy LDO at high input voltage
-
-**Control / MCU**
-- MCU now measures the pre-output node instead of the output, for better insight into what the LT controller chip is doing
-- Reset mechanism around the MCU reworked
-- Both I²C busses wired correctly this time
-- OLED pinout is now correct
-
-**Connectivity**
-- Corrected pinout of the FTDI chip
-- Nicer USB-C connector
-
-Firmware developed alongside Rev 2: linearized CV control with ramping, OLED error messages, filtered readings, and a split between the measurement/control and display tasks.
-
----
-
 ## Acknowledgements / Based On
 
 - [**PD240W** by theohg](https://github.com/theohg/PD240W) — USB-C PD input stage reference
