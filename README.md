@@ -9,7 +9,6 @@
 <td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Pics/Assembled.jpg" width="100%"></td>
 <td><img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Pics/nitride-nano-f.jpg" width="100%"></td>
 </tr></table>
-<img src="https://raw.githubusercontent.com/NovaPrime18/nitride-nano/main/Pics/nitride-nano-f.jpg" width="100%">
 
 ---
 
